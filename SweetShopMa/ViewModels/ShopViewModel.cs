@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -8,13 +8,19 @@ using SweetShopMa.Services;
 
 namespace SweetShopMa.ViewModels;
 
+/// <summary>
+/// Main view model for the shopping interface.
+/// Manages products, cart, search, and user authentication.
+/// </summary>
 public class ShopViewModel : INotifyPropertyChanged
 {
     private readonly CartService _cartService;
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
+    
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
+    public ObservableCollection<Product> FilteredProducts { get; } = new();
 
     private decimal _total;
     public decimal Total
@@ -34,7 +40,15 @@ public class ShopViewModel : INotifyPropertyChanged
     public bool IsAdmin
     {
         get => _isAdmin;
-        set { if (_isAdmin != value) { _isAdmin = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsAuthenticated)); } }
+        set 
+        { 
+            if (_isAdmin != value) 
+            { 
+                _isAdmin = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(IsAuthenticated)); 
+            } 
+        }
     }
 
     private string _currentUserName;
@@ -98,8 +112,6 @@ public class ShopViewModel : INotifyPropertyChanged
     }
 
     public bool HasSelectedProduct => SelectedQuickProduct != null;
-
-    public ObservableCollection<Product> FilteredProducts { get; } = new();
 
     // Notification message for subtle feedback
     private string _notificationMessage = "";
@@ -551,22 +563,36 @@ public class ShopViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsAuthenticated));
     }
 
+    /// <summary>
+    /// Updates the cart display when cart contents change.
+    /// No longer needs to rebuild collection since CartItem now properly implements INotifyPropertyChanged.
+    /// </summary>
     private void UpdateCart()
     {
         var currentItems = _cartService.GetCartItems();
         
-        // Clear and rebuild to ensure UI updates properly
-        // This is necessary because CartItem doesn't implement INotifyPropertyChanged
-        CartItems.Clear();
+        // Sync CartItems collection with cart service items
+        // Only update if items have changed (not just quantity updates)
+        var existingIds = new HashSet<int>(CartItems.Select(x => x.Id));
+        var currentIds = new HashSet<int>(currentItems.Select(x => x.Id));
         
-        foreach (var cartItem in currentItems)
+        // Remove items no longer in cart
+        foreach (var item in CartItems.Where(x => !currentIds.Contains(x.Id)).ToList())
         {
-            CartItems.Add(cartItem);
+            CartItems.Remove(item);
         }
-
+        
+        // Add new items to cart
+        foreach (var item in currentItems.Where(x => !existingIds.Contains(x.Id)))
+        {
+            CartItems.Add(item);
+        }
+        
+        // Note: Quantity/Price updates are handled by CartItem's PropertyChanged events
+        // So the UI will update in real-time without needing to rebuild the collection
+        
         Total = _cartService.GetTotal();
         IsCheckoutEnabled = CartItems.Count > 0;
-        OnPropertyChanged(nameof(CartItems));
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(IsCheckoutEnabled));
     }
