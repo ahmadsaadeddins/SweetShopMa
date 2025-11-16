@@ -1,4 +1,4 @@
-using SweetShopMa.Models;
+﻿using SweetShopMa.Models;
 
 namespace SweetShopMa.Services;
 
@@ -133,7 +133,7 @@ public class CartService
     /// Completes the checkout process: creates an order, updates inventory, and clears cart.
     /// </summary>
     /// <returns>Created Order object if successful, null if cart is empty</returns>
-    public async Task<Order> CheckoutAsync()
+    public async Task<Order> CheckoutAsync(int userId, string userName)
     {
         if (_cartItems.Count == 0) 
             return null;
@@ -141,6 +141,8 @@ public class CartService
         // Create order with current cart totals
         var order = new Order
         {
+            UserId = userId,           // ← NEW
+            UserName = userName,       // ← NEW
             OrderDate = DateTime.Now,
             Total = GetTotal(),
             ItemCount = (int)Math.Ceiling(_cartItems.Sum(x => x.Quantity)), // Round up for display

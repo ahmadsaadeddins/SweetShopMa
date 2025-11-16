@@ -21,8 +21,8 @@ public static class MauiProgram
             .AddSingleton<AuthService>()
             .AddSingleton<CartService>()
             .AddSingleton<ShopViewModel>()
-            .AddSingleton<Views.MainPage>();
-
+            .AddSingleton<Views.MainPage>()
+            .AddSingleton<LoginPage>();  // ← Add this
         return builder.Build();
     }
 }

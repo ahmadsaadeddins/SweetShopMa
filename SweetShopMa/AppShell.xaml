@@ -3,12 +3,21 @@
     x:Class="SweetShopMa.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:SweetShopMa.Views">
+    xmlns:local="clr-namespace:SweetShopMa.Views"
+    FlyoutBehavior="Disabled">
 
     <TabBar>
-        <ShellContent
-            Title="Shop"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
+        <!-- Login route (starting point) -->
+        <ShellContent 
+            Title="Login" 
+            ContentTemplate="{DataTemplate local:LoginPage}" 
+            Route="login" />
+
+        <!-- Main shop route (after login) -->
+        <ShellContent 
+            Title="Shop" 
+            ContentTemplate="{DataTemplate local:MainPage}" 
+            Route="shop" />
     </TabBar>
+
 </Shell>
