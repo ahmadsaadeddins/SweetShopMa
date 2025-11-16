@@ -554,116 +554,31 @@ public class ShopViewModel : INotifyPropertyChanged
 
     private async void Login()
     {
-        var username = "";
-        var password = "";
-
-        // Username Entry
-        var usernameEntry = new Entry
-        {
-            Placeholder = "Enter username",
-
-            BackgroundColor = Colors.White,
-        };
-
-        // Password Entry
-        var passwordEntry = new Entry
-        {
-            IsPassword = true,
-            Placeholder = "Enter password",
-            BackgroundColor = Colors.White,
-        };
-
-       
-
-        // Login Button
-        var loginButton = new Button
-        {
-            Text = "🔓 Login",
-            BackgroundColor = Color.FromArgb("#32b8c6"),
-            TextColor = Colors.White,
-            Padding = 12,
-            FontAttributes = FontAttributes.Bold
-        };
-
-        // Cancel Button
-        var cancelButton = new Button
-        {
-            Text = "Cancel",
-            BackgroundColor = Color.FromArgb("#999"),
-            TextColor = Colors.White,
-            Padding = 12
-        };
-
-        // Create the form
-        var form = new VerticalStackLayout
-        {
-            Padding = 20,
-            Spacing = 15,
-            Children =
-        {
-            new Label { Text = "🔐 Secure Login", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#32b8c6"), HorizontalTextAlignment = TextAlignment.Center },
-            new Label { Text = "👤 Username", FontSize = 12, FontAttributes = FontAttributes.Bold },
-            usernameEntry,
-            new Label { Text = "🔒 Password", FontSize = 12, FontAttributes = FontAttributes.Bold },
-            passwordEntry,
-            loginButton,
-            cancelButton
-        }
-        };
-
-        var loginPage = new ContentPage
-        {
-            Title = "Login",
-            BackgroundColor = Color.FromArgb("#f5f5f5"),
-            Content = new ScrollView { Content = form }
-        };
-
-        // Login button click
-        loginButton.Clicked += async (s, e) =>
-        {
-            username = usernameEntry.Text;
-            password = passwordEntry.Text;
-
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                await Application.Current.MainPage.DisplayAlert("Error", "Please enter username and password", "OK");
-                return;
-            }
-
-            var success = await _authService.LoginAsync(username, password);
-            if (success)
-            {
-                await Shell.Current.Navigation.PopAsync();
-                await Application.Current.MainPage.DisplayAlert("Success", $"Welcome, {_authService.CurrentUser.Name}!", "OK");
-            }
-            else
-            {
-                await Application.Current.MainPage.DisplayAlert("Error", "Invalid credentials", "OK");
-            }
-        };
-
-        // Cancel button click
-        cancelButton.Clicked += async (s, e) =>
-        {
-            await Shell.Current.Navigation.PopAsync();
-        };
-
+        // Navigate to login page - create new instance with injected AuthService
+        var loginPage = new Views.LoginPage(_authService);
         await Shell.Current.Navigation.PushAsync(loginPage);
     }
 
     private async void Logout()
     {
         _authService.Logout();
-        await Shell.Current.GoToAsync("//login");
-        await Application.Current.MainPage.DisplayAlert("Logged Out", "You have been logged out", "OK");
+        
+        // Navigate to login page - create new instance with injected AuthService
+        var loginPage = new Views.LoginPage(_authService);
+        await Shell.Current.Navigation.PushAsync(loginPage);
     }
 
     private void OnUserChanged(User user) => UpdateAuthStatus();
 
+    public void RefreshAuthStatus()
+    {
+        UpdateAuthStatus();
+    }
+
     private void UpdateAuthStatus()
     {
         IsAdmin = _authService.IsAdmin;
-        CurrentUserName = _authService.CurrentUser?.Name ?? "Guest";
+        CurrentUserName = _authService.CurrentUser?.Name ?? "";
         OnPropertyChanged(nameof(IsAdmin));
         OnPropertyChanged(nameof(CurrentUserName));
         OnPropertyChanged(nameof(IsAuthenticated));

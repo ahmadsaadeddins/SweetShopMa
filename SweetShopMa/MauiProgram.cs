@@ -22,7 +22,7 @@ public static class MauiProgram
             .AddSingleton<CartService>()
             .AddSingleton<ShopViewModel>()
             .AddSingleton<Views.MainPage>()
-            .AddSingleton<LoginPage>();  // ← Add this
+            .AddTransient<Views.LoginPage>();  // Transient so we can create new instances
         return builder.Build();
     }
 }

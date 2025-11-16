@@ -13,7 +13,12 @@
                 <StackLayout Grid.Column="0" Spacing="5">
                     <Label Text="🍬 Sweet Shop" FontSize="28" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center"/>
                     <Label Text="Your favorite sweets and treats" FontSize="14" TextColor="White" HorizontalTextAlignment="Center"/>
-                    <Label Text="{Binding CurrentUserName, StringFormat='Logged in as: {0}'}" FontSize="12" TextColor="White" HorizontalTextAlignment="Center" Opacity="0.9"/>
+                    <Label Text="{Binding CurrentUserName, StringFormat='Logged in as: {0}'}" 
+                           FontSize="12" 
+                           TextColor="White" 
+                           HorizontalTextAlignment="Center" 
+                           Opacity="0.9"
+                           IsVisible="{Binding IsAuthenticated}"/>
                 </StackLayout>
                 <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalOptions="Center">
                     <Button Text="🔐 Login" BackgroundColor="#1d7480" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"

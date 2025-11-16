@@ -6,13 +6,11 @@ namespace SweetShopMa.Views;
 public partial class LoginPage : ContentPage
 {
     private readonly AuthService _authService;
-    private readonly DatabaseService _databaseService;
 
-    public LoginPage()
+    public LoginPage(AuthService authService)
     {
         InitializeComponent();
-        _databaseService = new DatabaseService();
-        _authService = new AuthService(_databaseService);
+        _authService = authService;
     }
 
     private async void OnLoginClicked(object sender, EventArgs e)
@@ -45,8 +43,10 @@ public partial class LoginPage : ContentPage
                 UsernameEntry.Text = "";
                 PasswordEntry.Text = "";
 
-                // Navigate to shop page
-                await Shell.Current.GoToAsync("//shop");
+                // Close login page
+                await Shell.Current.Navigation.PopAsync();
+                
+                // The MainPage OnAppearing will detect authentication and show the shop
             }
             else
             {

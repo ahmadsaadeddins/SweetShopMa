@@ -95,17 +95,36 @@ public partial class MainPage : ContentPage
     {
         base.OnAppearing();
         
-        // Display database path in debug output
-        System.Diagnostics.Debug.WriteLine($"Database Path: {DatabaseService.DatabasePath}");
-        System.Diagnostics.Debug.WriteLine($"App Data Directory: {DatabaseService.AppDataDirectory}");
-        
         if (BindingContext is ShopViewModel viewModel)
-            await viewModel.InitializeAsync();
-        
-        // Auto-focus product search for quick entry
-        if (ProductSearchEntry != null)
         {
-            ProductSearchEntry.Focus();
+            // Always refresh auth status when page appears
+            viewModel.RefreshAuthStatus();
+            
+            // Check if user is authenticated - if not, redirect to login
+            if (!viewModel.IsAuthenticated)
+            {
+                // User not logged in, navigate to login
+                // Get AuthService from Handler.MauiContext
+                var authService = Handler?.MauiContext?.Services.GetService<AuthService>();
+                if (authService != null)
+                {
+                    var loginPage = new Views.LoginPage(authService);
+                    await Shell.Current.Navigation.PushAsync(loginPage);
+                }
+                return;
+            }
+            
+            // Display database path in debug output
+            System.Diagnostics.Debug.WriteLine($"Database Path: {DatabaseService.DatabasePath}");
+            System.Diagnostics.Debug.WriteLine($"App Data Directory: {DatabaseService.AppDataDirectory}");
+            
+            await viewModel.InitializeAsync();
+            
+            // Auto-focus product search for quick entry
+            if (ProductSearchEntry != null)
+            {
+                ProductSearchEntry.Focus();
+            }
         }
     }
 }
