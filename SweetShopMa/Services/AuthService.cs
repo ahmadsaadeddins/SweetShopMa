@@ -1,4 +1,5 @@
 using SweetShopMa.Models;
+using SweetShopMa.Utils;
 
 namespace SweetShopMa.Services;
 
@@ -18,13 +19,13 @@ public class AuthService
         _databaseService = databaseService;
     }
 
-    public async Task<bool> LoginAsync(string username, string password)
+    public async Task<bool> LoginAsync(string username, string inputPassword)
     {
-        var user = await _databaseService.GetUserByUsernameAsync(username);
-        
-        if (user != null && user.Password == password) // In production, use password hashing
+        var storedUser = await _databaseService.GetUserByUsernameAsync(username);
+
+        if (storedUser != null && PasswordHelper.VerifyPassword(inputPassword, storedUser.Password)) // In production, use password hashing
         {
-            _currentUser = user;
+            _currentUser = storedUser;
             OnUserChanged?.Invoke(_currentUser);
             return true;
         }

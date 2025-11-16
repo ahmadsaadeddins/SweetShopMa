@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.Maui.Storage;
+using SQLite;
+using SweetShopMa.Models;
+using SweetShopMa.Utils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Maui.Storage;
-using SQLite;
-using SweetShopMa.Models;
 
 namespace SweetShopMa.Services;
 
@@ -253,7 +254,7 @@ public class DatabaseService
         var admin = new User
         {
             Username = "admin",
-            Password = "admin123", // In production, this should be hashed
+            Password = PasswordHelper.HashPassword("admin123"), // In production, this should be hashed
             Role = "Admin",
             Name = "Administrator"
         };
@@ -263,7 +264,7 @@ public class DatabaseService
         var customer = new User
         {
             Username = "customer",
-            Password = "customer123", // In production, this should be hashed
+            Password = PasswordHelper.HashPassword("customer123"), // In production, this should be hashed
             Role = "Customer",
             Name = "Customer"
         };
