@@ -20,6 +20,7 @@ public class AdminViewModel : INotifyPropertyChanged
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly Services.LocalizationService _localizationService;
 
     private bool _isBusy;
     private string _statusMessage = "";
@@ -83,11 +84,12 @@ public class AdminViewModel : INotifyPropertyChanged
     private List<AttendanceRecord> _currentMonthRecords = new();
     private string _newUserSalary = "0";
 
-    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider)
+    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService)
     {
         _databaseService = databaseService;
         _authService = authService;
         _serviceProvider = serviceProvider;
+        _localizationService = localizationService;
 
         AddUserCommand = new Command(async () => await AddUserAsync(), () => !IsBusy);
         AddProductCommand = new Command(async () => await AddProductAsync(), () => !IsBusy);
@@ -169,6 +171,9 @@ public class AdminViewModel : INotifyPropertyChanged
     }
 
     public bool IsAuthorized => _authService.IsAdmin;
+
+    public string DatabasePath => DatabaseService.DatabasePath;
+    public string AppDataDirectory => DatabaseService.AppDataDirectory;
 
     public bool IsBusy
     {
@@ -517,7 +522,7 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (!IsAuthorized)
         {
-            StatusMessage = "⚠️ Admin access required.";
+            StatusMessage = _localizationService.GetString("AdminAccessRequired");
             IsErrorStatus = true;
             return;
         }
@@ -657,10 +662,10 @@ public class AdminViewModel : INotifyPropertyChanged
         var items = await _databaseService.GetOrderItemsAsync(order.Id);
         if (items == null || items.Count == 0)
         {
-            await Application.Current.MainPage.DisplayAlert(
-                $"Order #{order.Id}",
-                "No items found for this order.",
-                "OK");
+            var orderTitle = string.Format(_localizationService.GetString("Order"), order.Id);
+            var noItems = _localizationService.GetString("NoItemsFound");
+            var ok = _localizationService.GetString("OK");
+            await Application.Current.MainPage.DisplayAlert(orderTitle, noItems, ok);
             return;
         }
 
@@ -669,27 +674,29 @@ public class AdminViewModel : INotifyPropertyChanged
 
         var body = string.Join("\n\n", lines);
 
-        var header = $"Order #{order.Id} • {order.OrderDate:yyyy-MM-dd HH:mm}\n" +
-                     $"Cashier: {order.UserName}\n" +
-                     $"Items: {order.ItemCount}   Total: ${order.Total:F2}\n\n";
+        var orderTitle2 = string.Format(_localizationService.GetString("Order"), order.Id);
+        var cashier = string.Format(_localizationService.GetString("Cashier"), order.UserName);
+        var itemsCount = string.Format(_localizationService.GetString("Items"), order.ItemCount);
+        var header = $"{orderTitle2} • {order.OrderDate:yyyy-MM-dd HH:mm}\n" +
+                     $"{cashier}\n" +
+                     $"{itemsCount}   Total: ${order.Total:F2}\n\n";
 
-        await Application.Current.MainPage.DisplayAlert(
-            "Order Details",
-            header + body,
-            "Close");
+        var orderDetails = _localizationService.GetString("OrderDetails");
+        var close = _localizationService.GetString("Close");
+        await Application.Current.MainPage.DisplayAlert(orderDetails, header + body, close);
     }
 
     private async Task AddAttendanceAsync()
     {
         if (SelectedAttendanceUser == null)
         {
-            ShowStatus("⚠️ Please select an employee.", true);
+            ShowStatus(_localizationService.GetString("PleaseSelectEmployee"), true);
             return;
         }
 
         if (AttendanceDate.Date > DateTime.Today)
         {
-            ShowStatus("⚠️ Future dates are not allowed.", true);
+            ShowStatus(_localizationService.GetString("FutureDatesNotAllowed"), true);
             return;
         }
 
@@ -699,7 +706,7 @@ public class AdminViewModel : INotifyPropertyChanged
 
         if (existingRecord != null)
         {
-            ShowStatus("⚠️ Attendance already exists for this employee on that date.", true);
+            ShowStatus(_localizationService.GetString("AttendanceExists"), true);
             return;
         }
 
@@ -729,7 +736,8 @@ public class AdminViewModel : INotifyPropertyChanged
         try
         {
             await _databaseService.SaveAttendanceRecordAsync(record);
-            ShowStatus($"✅ Recorded {SelectedAttendanceStatus} for {SelectedAttendanceUser.Name}.", false);
+            var recordedMsg = _localizationService.GetString("RecordedAttendance");
+            ShowStatus(string.Format(recordedMsg, SelectedAttendanceStatus, SelectedAttendanceUser.Name), false);
 
             AttendanceNotes = "";
             AttendanceCheckInTime = new TimeSpan(8, 0, 0);
@@ -758,7 +766,7 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (!IsAuthorized)
         {
-            ShowStatus("⚠️ Only admins can add users.", true);
+            ShowStatus(_localizationService.GetString("OnlyAdminsCanAddUsers"), true);
             return;
         }
 
@@ -766,19 +774,19 @@ public class AdminViewModel : INotifyPropertyChanged
             string.IsNullOrWhiteSpace(NewUserUsername) ||
             string.IsNullOrWhiteSpace(NewUserPassword))
         {
-            ShowStatus("⚠️ Please fill in all user fields.", true);
+            ShowStatus(_localizationService.GetString("PleaseFillAllUserFields"), true);
             return;
         }
 
         if (NewUserPassword.Length < 4)
         {
-            ShowStatus("⚠️ Password must be at least 4 characters.", true);
+            ShowStatus(_localizationService.GetString("PasswordMinLength"), true);
             return;
         }
 
         if (!decimal.TryParse(NewUserSalary, NumberStyles.Number, CultureInfo.InvariantCulture, out var salary) || salary < 0)
         {
-            ShowStatus("⚠️ Enter a valid monthly salary.", true);
+            ShowStatus(_localizationService.GetString("EnterValidSalary"), true);
             return;
         }
 
@@ -787,7 +795,7 @@ public class AdminViewModel : INotifyPropertyChanged
         {
             if (await _databaseService.UsernameExistsAsync(NewUserUsername.Trim()))
             {
-                ShowStatus("⚠️ Username already exists.", true);
+                ShowStatus(_localizationService.GetString("UsernameExists"), true);
                 return;
             }
 
@@ -801,7 +809,9 @@ public class AdminViewModel : INotifyPropertyChanged
             };
 
             await _databaseService.CreateUserAsync(user);
-            ShowStatus($"✅ Created {(NewUserIsAdmin ? "admin" : "user")} {user.Name}.", false);
+            var userType = _localizationService.GetString(NewUserIsAdmin ? "Admin" : "User");
+            var createdMsg = _localizationService.GetString("CreatedUser");
+            ShowStatus(string.Format(createdMsg, userType, user.Name), false);
 
             await LoadUsersAsync();
 
@@ -821,7 +831,7 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (!IsAuthorized)
         {
-            ShowStatus("⚠️ Only admins can add products.", true);
+            ShowStatus(_localizationService.GetString("OnlyAdminsCanAddProducts"), true);
             return;
         }
 
@@ -830,19 +840,19 @@ public class AdminViewModel : INotifyPropertyChanged
             string.IsNullOrWhiteSpace(NewProductPrice) ||
             string.IsNullOrWhiteSpace(NewProductStock))
         {
-            ShowStatus("⚠️ Please fill in all product fields.", true);
+            ShowStatus(_localizationService.GetString("PleaseFillAllProductFields"), true);
             return;
         }
 
         if (!decimal.TryParse(NewProductPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var price) || price <= 0)
         {
-            ShowStatus("⚠️ Enter a valid price.", true);
+            ShowStatus(_localizationService.GetString("EnterValidPrice"), true);
             return;
         }
 
         if (!decimal.TryParse(NewProductStock, NumberStyles.Number, CultureInfo.InvariantCulture, out var stock) || stock < 0)
         {
-            ShowStatus("⚠️ Enter a valid starting stock.", true);
+            ShowStatus(_localizationService.GetString("EnterValidStock"), true);
             return;
         }
 
@@ -852,7 +862,7 @@ public class AdminViewModel : INotifyPropertyChanged
             if (!string.IsNullOrWhiteSpace(NewProductBarcode) &&
                 await _databaseService.ProductBarcodeExistsAsync(NewProductBarcode.Trim()))
             {
-                ShowStatus("⚠️ Barcode already exists.", true);
+                ShowStatus(_localizationService.GetString("BarcodeExists"), true);
                 return;
             }
 
@@ -867,7 +877,8 @@ public class AdminViewModel : INotifyPropertyChanged
             };
 
             await _databaseService.SaveProductAsync(product);
-            ShowStatus($"✅ Added product {product.Name}.", false);
+            var addedMsg = _localizationService.GetString("AddedProduct");
+            ShowStatus(string.Format(addedMsg, product.Name), false);
 
             await LoadProductsAsync();
 
@@ -891,13 +902,13 @@ public class AdminViewModel : INotifyPropertyChanged
 
         if (!IsAuthorized)
         {
-            ShowStatus("⚠️ Only admins can change user status.", true);
+            ShowStatus(_localizationService.GetString("OnlyAdminsCanChangeStatus"), true);
             return;
         }
 
         if (_authService.CurrentUser?.Id == user.Id && user.IsEnabled)
         {
-            ShowStatus("⚠️ You cannot disable the currently logged-in account.", true);
+            ShowStatus(_localizationService.GetString("CannotDisableCurrentAccount"), true);
             return;
         }
 
@@ -906,8 +917,9 @@ public class AdminViewModel : INotifyPropertyChanged
         {
             user.IsEnabled = !user.IsEnabled;
             await _databaseService.UpdateUserAsync(user);
-            var action = user.IsEnabled ? "Enabled" : "Disabled";
-            ShowStatus($"✅ {action} {user.Name}.", false);
+            var action = user.IsEnabled ? _localizationService.GetString("Enabled") : _localizationService.GetString("Disabled2");
+            var statusMsg = _localizationService.GetString("UserStatusChanged");
+            ShowStatus(string.Format(statusMsg, action, user.Name), false);
             await LoadUsersAsync();
         }
         finally

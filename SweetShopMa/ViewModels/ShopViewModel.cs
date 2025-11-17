@@ -19,6 +19,7 @@ public class ShopViewModel : INotifyPropertyChanged
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly Services.LocalizationService _localizationService;
     
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
@@ -162,12 +163,14 @@ public class ShopViewModel : INotifyPropertyChanged
     public ShopViewModel(CartService cartService,
                          DatabaseService databaseService,
                          AuthService authService,
-                         IServiceProvider serviceProvider)
+                         IServiceProvider serviceProvider,
+                         Services.LocalizationService localizationService)
     {
         _cartService = cartService;
         _databaseService = databaseService;
         _authService = authService;
         _serviceProvider = serviceProvider;
+        _localizationService = localizationService;
 
         AddToCartCommand = new Command<Product>(AddToCart);
         RemoveFromCartCommand = new Command<CartItem>(RemoveFromCart);
@@ -459,10 +462,15 @@ public class ShopViewModel : INotifyPropertyChanged
         if (CartItems.Count == 0) return;
 
         var itemCount = CartItems.Sum(x => x.Quantity);
+        var confirmOrder = _localizationService.GetString("ConfirmOrder");
+        var yes = _localizationService.GetString("Yes");
+        var no = _localizationService.GetString("No");
+        var ok = _localizationService.GetString("OK");
+        
         bool confirmed = await Application.Current.MainPage.DisplayAlert(
-            "Confirm Order",
-            $"{itemCount} item(s) for ${Total:F2}?\n\nCashier: {CurrentUserName}",  // ← Show who's checking out
-            "Yes", "No");
+            confirmOrder,
+            $"{itemCount} item(s) for ${Total:F2}?\n\nCashier: {CurrentUserName}",
+            yes, no);
 
         if (confirmed)
         {
@@ -474,8 +482,9 @@ public class ShopViewModel : INotifyPropertyChanged
 
             if (order != null)
             {
+                var orderPlaced = _localizationService.GetString("OrderPlaced");
                 await Application.Current.MainPage.DisplayAlert("Success",
-                    $"Order #{order.Id} placed!\nCashier: {order.UserName}\nTotal: ${order.Total:F2}", "OK");
+                    string.Format(orderPlaced, order.Id, order.UserName, order.Total), ok);
                 await RefreshProductsAsync();
             }
         }
@@ -562,8 +571,8 @@ public class ShopViewModel : INotifyPropertyChanged
 
     private async void Login()
     {
-        // Navigate to login page - create new instance with injected AuthService
-        var loginPage = new Views.LoginPage(_authService);
+        // Navigate to login page - create new instance with injected services
+        var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService);
         await Shell.Current.Navigation.PushAsync(loginPage);
     }
 
@@ -571,8 +580,8 @@ public class ShopViewModel : INotifyPropertyChanged
     {
         _authService.Logout();
         
-        // Navigate to login page - create new instance with injected AuthService
-        var loginPage = new Views.LoginPage(_authService);
+        // Navigate to login page - create new instance with injected services
+        var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService);
         await Shell.Current.Navigation.PushAsync(loginPage);
     }
 
@@ -630,8 +639,10 @@ public class ShopViewModel : INotifyPropertyChanged
     {
         if (!_authService.IsAdmin)
         {
-            await Application.Current.MainPage.DisplayAlert("Access Denied",
-                "Only administrators can open the admin panel.", "OK");
+            var accessDenied = _localizationService.GetString("AccessDenied");
+            var onlyAdmins = _localizationService.GetString("OnlyAdminsCanOpenAdminPanel");
+            var ok = _localizationService.GetString("OK");
+            await Application.Current.MainPage.DisplayAlert(accessDenied, onlyAdmins, ok);
             return;
         }
 

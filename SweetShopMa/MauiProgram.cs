@@ -25,6 +25,7 @@ public static class MauiProgram
             .Services.AddSingleton<DatabaseService>()
             .AddSingleton<AuthService>()
             .AddSingleton<CartService>()
+            .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)
             .AddSingleton<ShopViewModel>()
             .AddSingleton<AdminViewModel>()
             .AddSingleton<Views.MainPage>()

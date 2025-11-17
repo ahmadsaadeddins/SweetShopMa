@@ -11,9 +11,9 @@
                BackgroundColor="#32b8c6" CornerRadius="8" BorderColor="#32b8c6">
             <Grid ColumnDefinitions="*,Auto">
                 <StackLayout Grid.Column="0" Spacing="5">
-                    <Label Text="🍬 Sweet Shop" FontSize="28" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center"/>
-                    <Label Text="Your favorite sweets and treats" FontSize="14" TextColor="White" HorizontalTextAlignment="Center"/>
-                    <Label Text="{Binding CurrentUserName, StringFormat='Logged in as: {0}'}" 
+                    <Label x:Name="AppTitleLabel" Text="🍬 Sweet Shop" FontSize="28" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center"/>
+                    <Label x:Name="AppSubtitleLabel" Text="Your favorite sweets and treats" FontSize="14" TextColor="White" HorizontalTextAlignment="Center"/>
+                    <Label x:Name="LoggedInAsLabel" Text="{Binding CurrentUserName, StringFormat='Logged in as: {0}'}" 
                            FontSize="12" 
                            TextColor="White" 
                            HorizontalTextAlignment="Center" 
@@ -21,7 +21,24 @@
                            IsVisible="{Binding IsAuthenticated}"/>
                 </StackLayout>
                 <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalOptions="Center">
-                    <Button Text="🔐 Login" BackgroundColor="#1d7480" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
+                    <!-- Language Selector -->
+                    <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                        <Button Text="EN" 
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Padding="8,5"
+                                CornerRadius="4"
+                                FontSize="10"
+                                Clicked="OnLanguageButtonClicked"/>
+                        <Button Text="AR" 
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Padding="8,5"
+                                CornerRadius="4"
+                                FontSize="10"
+                                Clicked="OnLanguageButtonClicked"/>
+                    </HorizontalStackLayout>
+                    <Button x:Name="LoginButton" Text="🔐 Login" BackgroundColor="#1d7480" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
                             Command="{Binding LoginCommand}">
                         <Button.Triggers>
                             <DataTrigger TargetType="Button" Binding="{Binding IsAuthenticated}" Value="True">
@@ -29,10 +46,10 @@
                             </DataTrigger>
                         </Button.Triggers>
                     </Button>
-                    <Button Text="⚙️ Admin Panel" BackgroundColor="#0f5c66" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
+                    <Button x:Name="AdminPanelButton" Text="⚙️ Admin Panel" BackgroundColor="#0f5c66" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
                             Command="{Binding OpenAdminPanelCommand}"
                             IsVisible="{Binding IsAdmin}"/>
-                    <Button Text="🚪 Logout" BackgroundColor="#c00000" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
+                    <Button x:Name="LogoutButton" Text="🚪 Logout" BackgroundColor="#c00000" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
                             Command="{Binding LogoutCommand}">
                         <Button.Triggers>
                             <DataTrigger TargetType="Button" Binding="{Binding IsAuthenticated}" Value="False">
@@ -65,7 +82,7 @@
               
               <!-- Product Search -->
               <StackLayout Grid.Row="0" Grid.Column="0" Spacing="5">
-                  <Label Text="🔍 Scan/Enter Barcode or ID" FontSize="12" FontAttributes="Bold" TextColor="#333"/>
+                  <Label x:Name="ScanBarcodeLabel" Text="🔍 Scan/Enter Barcode or ID" FontSize="12" FontAttributes="Bold" TextColor="#333"/>
                   <Entry Text="{Binding QuickSearchText}" 
                          Placeholder="Scan barcode or enter ID (e.g., 1001, 1008)..." 
                          FontSize="14"
@@ -78,7 +95,7 @@
 
                 <!-- Quantity Input -->
                 <StackLayout Grid.Row="0" Grid.Column="1" Spacing="5" WidthRequest="120">
-                    <Label FontSize="12" FontAttributes="Bold" TextColor="#333">
+                    <Label x:Name="QuantityLabel" FontSize="12" FontAttributes="Bold" TextColor="#333">
                         <Label.Text>
                             <Binding Path="SelectedQuickProduct.UnitLabel" StringFormat="📦 Qty ({0})" TargetNullValue="📦 Quantity"/>
                         </Label.Text>
@@ -303,7 +320,7 @@
         <!-- Cart Sidebar -->
         <Frame Grid.Row="2" Grid.Column="1" Padding="16" CornerRadius="8" BorderColor="#e0e0e0">
             <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
-                <Label Grid.Row="0" Text="🛒 Cart" FontSize="18" FontAttributes="Bold"/>
+                <Label x:Name="CartLabel" Grid.Row="0" Text="🛒 Cart" FontSize="18" FontAttributes="Bold"/>
 
                 <!-- Cart Items -->
                 <CollectionView Grid.Row="1"
@@ -342,10 +359,10 @@
                 <BoxView Grid.Row="2" HeightRequest="1" Color="#ddd" Margin="0,12"/>
                 <StackLayout Grid.Row="3" Spacing="12">
                     <StackLayout Orientation="Horizontal" Spacing="10">
-                        <Label Text="Total:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label x:Name="TotalLabel" Text="Total:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
                         <Label Text="{Binding Total, StringFormat='${0:F2}'}" FontSize="16" FontAttributes="Bold" TextColor="#1d7480" HorizontalOptions="EndAndExpand" VerticalOptions="Center"/>
                     </StackLayout>
-                    <Button Text="Checkout" BackgroundColor="#32b8c6" TextColor="White" Padding="12" CornerRadius="6" FontAttributes="Bold"
+                    <Button x:Name="CheckoutButton" Text="Checkout" BackgroundColor="#32b8c6" TextColor="White" Padding="12" CornerRadius="6" FontAttributes="Bold"
                             IsEnabled="{Binding IsCheckoutEnabled}"
                             Command="{Binding CheckoutCommand}"/>
                 </StackLayout>

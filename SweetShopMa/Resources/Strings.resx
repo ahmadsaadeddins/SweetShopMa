@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>🍬 Sweet Shop</value>
+  </data>
+  <data name="AppSubtitle" xml:space="preserve">
+    <value>Your favorite sweets and treats</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="SecureLogin" xml:space="preserve">
+    <value>🔐 Secure Login</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>👤 Username</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>🔒 Password</value>
+  </data>
+  <data name="EnterUsername" xml:space="preserve">
+    <value>Enter username</value>
+  </data>
+  <data name="EnterPassword" xml:space="preserve">
+    <value>Enter password</value>
+  </data>
+  <data name="LoginButton" xml:space="preserve">
+    <value>🔓 Login</value>
+  </data>
+  <data name="LoggedInAs" xml:space="preserve">
+    <value>Logged in as: {0}</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>🚪 Logout</value>
+  </data>
+  <data name="AdminPanel" xml:space="preserve">
+    <value>⚙️ Admin Panel</value>
+  </data>
+  <data name="ScanBarcode" xml:space="preserve">
+    <value>🔍 Scan/Enter Barcode or ID</value>
+  </data>
+  <data name="BarcodePlaceholder" xml:space="preserve">
+    <value>Scan barcode or enter ID (e.g., 1001, 1008)...</value>
+  </data>
+  <data name="Quantity" xml:space="preserve">
+    <value>📦 Quantity</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>➕ Add</value>
+  </data>
+  <data name="Stock" xml:space="preserve">
+    <value>Stock: {0} {1}</value>
+  </data>
+  <data name="Cart" xml:space="preserve">
+    <value>🛒 Cart</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Checkout" xml:space="preserve">
+    <value>💳 Checkout</value>
+  </data>
+  <data name="Products" xml:space="preserve">
+    <value>Products</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>❌ Invalid username or password</value>
+  </data>
+  <data name="PleaseEnterBoth" xml:space="preserve">
+    <value>⚠️ Please enter both username and password</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>⚠️ Error: {0}</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Arabic" xml:space="preserve">
+    <value>العربية</value>
+  </data>
+  <data name="CreateNewUser" xml:space="preserve">
+    <value>Create New User</value>
+  </data>
+  <data name="FullName" xml:space="preserve">
+    <value>Full name</value>
+  </data>
+  <data name="MonthlySalary" xml:space="preserve">
+    <value>Monthly Salary</value>
+  </data>
+  <data name="GrantAdminAccess" xml:space="preserve">
+    <value>Grant admin access?</value>
+  </data>
+  <data name="AddUser" xml:space="preserve">
+    <value>Add User</value>
+  </data>
+  <data name="ExistingUsers" xml:space="preserve">
+    <value>Existing Users</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="AddProduct" xml:space="preserve">
+    <value>Add Product</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="StartingStock" xml:space="preserve">
+    <value>Starting Stock</value>
+  </data>
+  <data name="SoldByWeight" xml:space="preserve">
+    <value>Sold by weight?</value>
+  </data>
+  <data name="ConfirmOrder" xml:space="preserve">
+    <value>Confirm Order</value>
+  </data>
+  <data name="OrderPlaced" xml:space="preserve">
+    <value>Order #{0} placed!&#10;Cashier: {1}&#10;Total: ${2:F2}</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="AdministratorPanel" xml:space="preserve">
+    <value>Administrator Panel</value>
+  </data>
+  <data name="DatabaseInformation" xml:space="preserve">
+    <value>📁 Database Information</value>
+  </data>
+  <data name="Path" xml:space="preserve">
+    <value>Path: {0}</value>
+  </data>
+  <data name="AppData" xml:space="preserve">
+    <value>App Data: {0}</value>
+  </data>
+  <data name="UsernamePlaceholder" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="PasswordPlaceholder" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Salary" xml:space="preserve">
+    <value>Salary: ${0:F2}</value>
+  </data>
+  <data name="ReportsInsights" xml:space="preserve">
+    <value>Reports &amp; Insights</value>
+  </data>
+  <data name="TotalSales" xml:space="preserve">
+    <value>Total Sales</value>
+  </data>
+  <data name="Orders" xml:space="preserve">
+    <value>Orders</value>
+  </data>
+  <data name="ItemsSold" xml:space="preserve">
+    <value>Items Sold</value>
+  </data>
+  <data name="Last7Days" xml:space="preserve">
+    <value>Last 7 Days</value>
+  </data>
+  <data name="TopProduct" xml:space="preserve">
+    <value>Top Product</value>
+  </data>
+  <data name="ReportStatus" xml:space="preserve">
+    <value>Report Status</value>
+  </data>
+  <data name="DataReady" xml:space="preserve">
+    <value>Data ready</value>
+  </data>
+  <data name="NoDataYet" xml:space="preserve">
+    <value>No data yet</value>
+  </data>
+  <data name="TopProducts" xml:space="preserve">
+    <value>Top Products</value>
+  </data>
+  <data name="RecentOrders" xml:space="preserve">
+    <value>Recent Orders</value>
+  </data>
+  <data name="AttendanceTracker" xml:space="preserve">
+    <value>Attendance Tracker</value>
+  </data>
+  <data name="OpenAttendanceTracker" xml:space="preserve">
+    <value>Open Attendance Tracker</value>
+  </data>
+  <data name="Employee" xml:space="preserve">
+    <value>Employee</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="NotesOptional" xml:space="preserve">
+    <value>Notes (optional)</value>
+  </data>
+  <data name="AccessDenied" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="AdminPrivilegesRequired" xml:space="preserve">
+    <value>Administrator privileges are required.</value>
+  </data>
+  <data name="Barcode" xml:space="preserve">
+    <value>Barcode</value>
+  </data>
+  <data name="BarcodePlaceholder2" xml:space="preserve">
+    <value>Barcode: {0}</value>
+  </data>
+  <data name="Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="OnlyAdminsCanAddUsers" xml:space="preserve">
+    <value>⚠️ Only admins can add users.</value>
+  </data>
+  <data name="PleaseFillAllUserFields" xml:space="preserve">
+    <value>⚠️ Please fill in all user fields.</value>
+  </data>
+  <data name="PasswordMinLength" xml:space="preserve">
+    <value>⚠️ Password must be at least 4 characters.</value>
+  </data>
+  <data name="EnterValidSalary" xml:space="preserve">
+    <value>⚠️ Enter a valid monthly salary.</value>
+  </data>
+  <data name="UsernameExists" xml:space="preserve">
+    <value>⚠️ Username already exists.</value>
+  </data>
+  <data name="CreatedUser" xml:space="preserve">
+    <value>✅ Created {0} {1}.</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>admin</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>user</value>
+  </data>
+  <data name="OnlyAdminsCanAddProducts" xml:space="preserve">
+    <value>⚠️ Only admins can add products.</value>
+  </data>
+  <data name="PleaseFillAllProductFields" xml:space="preserve">
+    <value>⚠️ Please fill in all product fields.</value>
+  </data>
+  <data name="EnterValidPrice" xml:space="preserve">
+    <value>⚠️ Enter a valid price.</value>
+  </data>
+  <data name="EnterValidStock" xml:space="preserve">
+    <value>⚠️ Enter a valid starting stock.</value>
+  </data>
+  <data name="BarcodeExists" xml:space="preserve">
+    <value>⚠️ Barcode already exists.</value>
+  </data>
+  <data name="AddedProduct" xml:space="preserve">
+    <value>✅ Added product {0}.</value>
+  </data>
+  <data name="OnlyAdminsCanChangeStatus" xml:space="preserve">
+    <value>⚠️ Only admins can change user status.</value>
+  </data>
+  <data name="CannotDisableCurrentAccount" xml:space="preserve">
+    <value>⚠️ You cannot disable the currently logged-in account.</value>
+  </data>
+  <data name="UserStatusChanged" xml:space="preserve">
+    <value>✅ {0} {1}.</value>
+  </data>
+  <data name="Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Disabled2" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="OnlyAdminsCanOpenAdminPanel" xml:space="preserve">
+    <value>Only administrators can open the admin panel.</value>
+  </data>
+  <data name="PleaseSelectEmployee" xml:space="preserve">
+    <value>⚠️ Please select an employee.</value>
+  </data>
+  <data name="FutureDatesNotAllowed" xml:space="preserve">
+    <value>⚠️ Future dates are not allowed.</value>
+  </data>
+  <data name="AttendanceExists" xml:space="preserve">
+    <value>⚠️ Attendance already exists for this employee on that date.</value>
+  </data>
+  <data name="RecordedAttendance" xml:space="preserve">
+    <value>✅ Recorded {0} for {1}.</value>
+  </data>
+  <data name="AdminAccessRequired" xml:space="preserve">
+    <value>⚠️ Admin access required.</value>
+  </data>
+  <data name="OrderDetails" xml:space="preserve">
+    <value>Order Details</value>
+  </data>
+  <data name="NoItemsFound" xml:space="preserve">
+    <value>No items found for this order.</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Order" xml:space="preserve">
+    <value>Order #{0}</value>
+  </data>
+  <data name="Cashier" xml:space="preserve">
+    <value>Cashier: {0}</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>Items: {0}</value>
+  </data>
+</root>
+

@@ -12,14 +12,36 @@
         HorizontalOptions="Center"
         MaximumWidthRequest="400">
 
+        <!-- Language Selector -->
+        <HorizontalStackLayout HorizontalOptions="End" Spacing="10">
+            <Button Text="EN" 
+                    x:Name="EnglishButton"
+                    BackgroundColor="#32b8c6"
+                    TextColor="White"
+                    Padding="15,5"
+                    CornerRadius="5"
+                    FontSize="12"
+                    Clicked="OnLanguageButtonClicked"/>
+            <Button Text="AR" 
+                    x:Name="ArabicButton"
+                    BackgroundColor="#32b8c6"
+                    TextColor="White"
+                    Padding="15,5"
+                    CornerRadius="5"
+                    FontSize="12"
+                    Clicked="OnLanguageButtonClicked"/>
+        </HorizontalStackLayout>
+
         <!-- Header -->
         <Label 
+            x:Name="AppTitleLabel"
             Text="🍬 Sweet Shop" 
             FontSize="32" 
             FontAttributes="Bold" 
             TextColor="#32b8c6"
             HorizontalTextAlignment="Center"/>
         <Label 
+            x:Name="SecureLoginLabel"
             Text="🔐 Secure Login" 
             FontSize="18" 
             TextColor="#666"
@@ -27,7 +49,7 @@
 
         <!-- Username Field -->
         <StackLayout Spacing="8">
-            <Label Text="👤 Username" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Label x:Name="UsernameLabel" Text="👤 Username" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
             <Entry 
                 x:Name="UsernameEntry"
                 Placeholder="Enter username"
@@ -37,7 +59,7 @@
 
         <!-- Password Field with Lock Icon -->
         <StackLayout Spacing="8">
-            <Label Text="🔒 Password" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Label x:Name="PasswordLabel" Text="🔒 Password" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
             <HorizontalStackLayout Spacing="0">
                 <Entry 
                     x:Name="PasswordEntry"
@@ -46,12 +68,7 @@
                     BackgroundColor="White"
                     FontSize="14"
                     HorizontalOptions="FillAndExpand"/>
-                <Label 
-                    Text="🔐" 
-                    FontSize="16" 
-                    VerticalOptions="Center"
-                    Margin="0,0,12,0"
-                    TextColor="#32b8c6"/>
+                
             </HorizontalStackLayout>
         </StackLayout>
 

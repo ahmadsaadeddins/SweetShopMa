@@ -7,13 +7,31 @@
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
 
-            <Label Text="Attendance Tracker"
+            <!-- Language Selector -->
+            <HorizontalStackLayout HorizontalOptions="End" Spacing="5" Margin="0,0,0,10">
+                <Button Text="EN" 
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+                <Button Text="AR" 
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+            </HorizontalStackLayout>
+
+            <Label x:Name="AttendanceTrackerTitleLabel" Text="Attendance Tracker"
                    FontSize="24"
                    FontAttributes="Bold"/>
 
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
-                    <Picker Title="Employee"
+                    <Picker x:Name="EmployeePicker" Title="Employee"
                             ItemsSource="{Binding Users}"
                             ItemDisplayBinding="{Binding Name}"
                             SelectedItem="{Binding SelectedAttendanceUser}"/>
@@ -22,7 +40,7 @@
                                     Date="{Binding AttendanceDate}"
                                     Format="MMM dd, yyyy"
                                     MaximumDate="{x:Static sys:DateTime.Today}"/>
-                        <Picker Grid.Column="1"
+                        <Picker x:Name="StatusPicker" Grid.Column="1"
                                 Title="Status"
                                 ItemsSource="{Binding AttendanceStatuses}"
                                 SelectedItem="{Binding SelectedAttendanceStatus}"/>
@@ -35,7 +53,7 @@
                                     Time="{Binding AttendanceCheckOutTime}"
                                     IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
                     </Grid>
-                    <Entry Placeholder="Notes (optional)"
+                    <Entry x:Name="NotesEntry" Placeholder="Notes (optional)"
                            Text="{Binding AttendanceNotes}"/>
                     <Label Text="{Binding AttendancePreview}"
                            FontAttributes="Italic"

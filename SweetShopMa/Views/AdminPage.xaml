@@ -6,38 +6,71 @@
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
 
-            <Label Text="Administrator Panel"
+            <!-- Language Selector -->
+            <HorizontalStackLayout HorizontalOptions="End" Spacing="5" Margin="0,0,0,10">
+                <Button Text="EN" 
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+                <Button Text="AR" 
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+            </HorizontalStackLayout>
+
+            <Label x:Name="AdminPanelTitleLabel" Text="Administrator Panel"
                    FontSize="24"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
 
+            <!-- Database Info -->
+            <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f8ff">
+                <VerticalStackLayout Spacing="8">
+                    <Label x:Name="DatabaseInfoLabel" Text="📁 Database Information" FontSize="14" FontAttributes="Bold" TextColor="#1d7480"/>
+                    <Label Text="{Binding DatabasePath, StringFormat='Path: {0}'}" 
+                           FontSize="11" 
+                           TextColor="#666"
+                           LineBreakMode="TailTruncation"/>
+                    <Label Text="{Binding AppDataDirectory, StringFormat='App Data: {0}'}" 
+                           FontSize="11" 
+                           TextColor="#666"
+                           LineBreakMode="TailTruncation"/>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Create New User" FontSize="18" FontAttributes="Bold"/>
-                    <Entry Placeholder="Full name"
+                    <Label x:Name="CreateUserLabel" Text="Create New User" FontSize="18" FontAttributes="Bold"/>
+                    <Entry x:Name="FullNameEntry" Placeholder="Full name"
                            Text="{Binding NewUserName}"
                            Keyboard="Default"/>
-                    <Entry Placeholder="Username"
+                    <Entry x:Name="UsernameEntry" Placeholder="Username"
                            Text="{Binding NewUserUsername}"
                            Keyboard="Default"/>
-                    <Entry Placeholder="Password"
+                    <Entry x:Name="PasswordEntry" Placeholder="Password"
                            Text="{Binding NewUserPassword}"
                            IsPassword="True"/>
-                    <Entry Placeholder="Monthly Salary"
+                    <Entry x:Name="SalaryEntry" Placeholder="Monthly Salary"
                            Keyboard="Numeric"
                            Text="{Binding NewUserSalary}"/>
                     <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                        <Label Text="Grant admin access?" VerticalOptions="Center"/>
+                        <Label x:Name="GrantAdminLabel" Text="Grant admin access?" VerticalOptions="Center"/>
                         <Switch IsToggled="{Binding NewUserIsAdmin}"/>
                     </HorizontalStackLayout>
-                    <Button Text="Add User"
+                    <Button x:Name="AddUserButton" Text="Add User"
                             BackgroundColor="#1d7480"
                             TextColor="White"
                             Command="{Binding AddUserCommand}"/>
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="Existing Users" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="ExistingUsersLabel" Text="Existing Users" FontSize="16" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding Users}" HeightRequest="200">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -87,7 +120,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label Text="Reports &amp; Insights" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="ReportsLabel" Text="Reports &amp; Insights" FontSize="16" FontAttributes="Bold"/>
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
@@ -136,7 +169,7 @@
                 </Border>
             </Grid>
 
-            <Label Text="Top Products" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="TopProductsLabel" Text="Top Products" FontSize="16" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding TopProducts}" HeightRequest="200">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -156,7 +189,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label Text="Recent Orders" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="RecentOrdersLabel" Text="Recent Orders" FontSize="16" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding RecentOrders}" HeightRequest="220" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -185,15 +218,15 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"/>
-            <Button Text="Open Attendance Tracker"
+            <Label x:Name="AttendanceTrackerLabel" Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"/>
+            <Button x:Name="OpenAttendanceButton" Text="Open Attendance Tracker"
                     BackgroundColor="#1d7480"
                     TextColor="White"
                     Command="{Binding OpenAttendancePageCommand}"/>
 
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Add Product" FontSize="18" FontAttributes="Bold"/>
+                    <Label x:Name="AddProductLabel" Text="Add Product" FontSize="18" FontAttributes="Bold"/>
                     <Entry Placeholder="Name"
                            Text="{Binding NewProductName}"/>
                     <Entry Placeholder="Emoji (e.g., 🍫)"
@@ -219,7 +252,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="Products" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="ProductsLabel" Text="Products" FontSize="16" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding Products}" HeightRequest="250">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>

@@ -8,13 +8,85 @@ namespace SweetShopMa.Views;
 
 public partial class MainPage : ContentPage
 {
-    public MainPage(ShopViewModel viewModel)
+    private readonly LocalizationService _localizationService;
+
+    public MainPage(ShopViewModel viewModel, LocalizationService localizationService)
     {
         InitializeComponent();
         BindingContext = viewModel;
+        _localizationService = localizationService;
+        
+        _localizationService.LanguageChanged += OnLanguageChanged;
         
         // Set up keyboard navigation
         SetupKeyboardNavigation();
+        
+        UpdateLocalizedStrings();
+        UpdateRTL();
+    }
+
+    private void OnLanguageChanged()
+    {
+        UpdateLocalizedStrings();
+        UpdateRTL();
+    }
+
+    private void UpdateLocalizedStrings()
+    {
+        Title = _localizationService.GetString("AppTitle");
+        if (AppTitleLabel != null)
+            AppTitleLabel.Text = _localizationService.GetString("AppTitle");
+        if (AppSubtitleLabel != null)
+            AppSubtitleLabel.Text = _localizationService.GetString("AppSubtitle");
+        if (LoginButton != null)
+            LoginButton.Text = _localizationService.GetString("LoginButton");
+        if (AdminPanelButton != null)
+            AdminPanelButton.Text = _localizationService.GetString("AdminPanel");
+        if (LogoutButton != null)
+            LogoutButton.Text = _localizationService.GetString("Logout");
+        if (ScanBarcodeLabel != null)
+            ScanBarcodeLabel.Text = _localizationService.GetString("ScanBarcode");
+        if (ProductSearchEntry != null)
+            ProductSearchEntry.Placeholder = _localizationService.GetString("BarcodePlaceholder");
+        if (QuantityLabel != null)
+        {
+            if (BindingContext is ShopViewModel viewModel && viewModel.SelectedQuickProduct != null)
+            {
+                var qtyFormat = _localizationService.GetString("Quantity");
+                QuantityLabel.Text = $"{qtyFormat} ({viewModel.SelectedQuickProduct.UnitLabel})";
+            }
+            else
+            {
+                QuantityLabel.Text = _localizationService.GetString("Quantity");
+            }
+        }
+        if (QuickAddButton != null)
+            QuickAddButton.Text = _localizationService.GetString("Add");
+        if (CartLabel != null)
+            CartLabel.Text = _localizationService.GetString("Cart");
+        if (TotalLabel != null)
+            TotalLabel.Text = _localizationService.GetString("Total") + ":";
+        if (CheckoutButton != null)
+            CheckoutButton.Text = _localizationService.GetString("Checkout");
+        
+        // Update LoggedInAs label
+        if (LoggedInAsLabel != null && BindingContext is ShopViewModel vm)
+        {
+            var loggedInAsFormat = _localizationService.GetString("LoggedInAs");
+            LoggedInAsLabel.Text = string.Format(loggedInAsFormat, vm.CurrentUserName);
+        }
+    }
+
+    private void UpdateRTL()
+    {
+        FlowDirection = _localizationService.IsRTL ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    private void OnLanguageButtonClicked(object sender, EventArgs e)
+    {
+        var currentLang = _localizationService.CurrentLanguage;
+        var newLang = currentLang == "en" ? "ar" : "en";
+        _localizationService.SetLanguage(newLang);
     }
 
     private void SetupKeyboardNavigation()
@@ -95,8 +167,16 @@ public partial class MainPage : ContentPage
     {
         base.OnAppearing();
         
+        // Update localized strings when page appears
+        UpdateLocalizedStrings();
+        UpdateRTL();
+        
         if (BindingContext is ShopViewModel viewModel)
         {
+            // Get services from Handler.MauiContext
+            var databaseService = Handler?.MauiContext?.Services.GetService<DatabaseService>();
+            var authService = Handler?.MauiContext?.Services.GetService<AuthService>();
+            
             // Always refresh auth status when page appears
             viewModel.RefreshAuthStatus();
             
@@ -104,11 +184,10 @@ public partial class MainPage : ContentPage
             if (!viewModel.IsAuthenticated)
             {
                 // User not logged in, navigate to login
-                // Get AuthService from Handler.MauiContext
-                var authService = Handler?.MauiContext?.Services.GetService<AuthService>();
-                if (authService != null)
+                // LoginPage will seed the database when it appears
+                if (authService != null && databaseService != null && _localizationService != null)
                 {
-                    var loginPage = new Views.LoginPage(authService);
+                    var loginPage = new Views.LoginPage(authService, databaseService, _localizationService);
                     await Shell.Current.Navigation.PushAsync(loginPage);
                 }
                 return;
