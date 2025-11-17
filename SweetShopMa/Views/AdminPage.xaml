@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SweetShopMa.Views.AdminPage"
+             Title="Admin Panel">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <Label Text="Administrator Panel"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Create New User" FontSize="18" FontAttributes="Bold"/>
+                    <Entry Placeholder="Full name"
+                           Text="{Binding NewUserName}"
+                           Keyboard="Default"/>
+                    <Entry Placeholder="Username"
+                           Text="{Binding NewUserUsername}"
+                           Keyboard="Default"/>
+                    <Entry Placeholder="Password"
+                           Text="{Binding NewUserPassword}"
+                           IsPassword="True"/>
+                    <Entry Placeholder="Monthly Salary"
+                           Keyboard="Numeric"
+                           Text="{Binding NewUserSalary}"/>
+                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <Label Text="Grant admin access?" VerticalOptions="Center"/>
+                        <Switch IsToggled="{Binding NewUserIsAdmin}"/>
+                    </HorizontalStackLayout>
+                    <Button Text="Add User"
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Command="{Binding AddUserCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Existing Users" FontSize="16" FontAttributes="Bold"/>
+            <CollectionView ItemsSource="{Binding Users}" HeightRequest="200">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Padding="8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Username}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding MonthlySalary, StringFormat='Salary: ${0:F2}'}" FontSize="12" TextColor="#777"/>
+                                <Label FontSize="12" TextColor="#1f7a4d" Text="Active">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsEnabled}" Value="False">
+                                            <Setter Property="Text" Value="Disabled"/>
+                                            <Setter Property="TextColor" Value="#c00000"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding Role}"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Center"
+                                   TextColor="#1d7480">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Role}" Value="Admin">
+                                        <Setter Property="TextColor" Value="#c00000"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Button Grid.Column="2"
+                                    Text="Disable"
+                                    Padding="12,6"
+                                    BackgroundColor="#c00000"
+                                    TextColor="White"
+                                    FontSize="12"
+                                    CornerRadius="4"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleUserStatusCommand}"
+                                    CommandParameter="{Binding .}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsEnabled}" Value="False">
+                                        <Setter Property="Text" Value="Enable"/>
+                                        <Setter Property="BackgroundColor" Value="#1d7480"/>
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Reports &amp; Insights" FontSize="16" FontAttributes="Bold"/>
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Total Sales" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding TotalSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Orders" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding TotalOrders}" FontSize="20" FontAttributes="Bold"/>
+                        <Label Text="{Binding AverageOrderValue, StringFormat='Avg: ${0:F2}'}" FontSize="12" TextColor="#666"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Items Sold" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding TotalItemsSold, StringFormat='{0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Last 7 Days" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding Last7DaysSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Top Product" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding TopProductName}" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="{Binding TopProductDetails}" FontSize="12" TextColor="#666"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Report Status" FontSize="12" TextColor="#666"/>
+                        <Label FontSize="16" FontAttributes="Bold" TextColor="#1f7a4d" Text="Data ready">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding HasReportData}" Value="False">
+                                    <Setter Property="Text" Value="No data yet"/>
+                                    <Setter Property="TextColor" Value="#c00000"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <Label Text="Top Products" FontSize="16" FontAttributes="Bold"/>
+            <CollectionView ItemsSource="{Binding TopProducts}" HeightRequest="200">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="8" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding Emoji}" FontSize="24" VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                                <Label Text="{Binding QuantityDisplay}" FontSize="12" TextColor="#555"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2"
+                                   Text="{Binding TotalSalesDisplay}"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Recent Orders" FontSize="16" FontAttributes="Bold"/>
+            <CollectionView ItemsSource="{Binding RecentOrders}" HeightRequest="220" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="8" ColumnSpacing="10">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Id, StringFormat='# {0}'}"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding OrderDate, StringFormat='{0:MMM dd, HH:mm}'}" FontAttributes="Bold"/>
+                                <Label Text="{Binding UserName, StringFormat='Cashier: {0}'}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding ItemCount, StringFormat='Items: {0}'}" FontSize="12" TextColor="#777"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2"
+                                   Text="{Binding Total, StringFormat='${0:F2}'}"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End"/>
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenOrderDetailsCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Grid.GestureRecognizers>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"/>
+            <Button Text="Open Attendance Tracker"
+                    BackgroundColor="#1d7480"
+                    TextColor="White"
+                    Command="{Binding OpenAttendancePageCommand}"/>
+
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Add Product" FontSize="18" FontAttributes="Bold"/>
+                    <Entry Placeholder="Name"
+                           Text="{Binding NewProductName}"/>
+                    <Entry Placeholder="Emoji (e.g., 🍫)"
+                           Text="{Binding NewProductEmoji}"
+                           MaxLength="4"/>
+                    <Entry Placeholder="Barcode"
+                           Text="{Binding NewProductBarcode}"
+                           Keyboard="Numeric"/>
+                    <Entry Placeholder="Price"
+                           Text="{Binding NewProductPrice}"
+                           Keyboard="Numeric"/>
+                    <Entry Placeholder="Starting Stock"
+                           Text="{Binding NewProductStock}"
+                           Keyboard="Numeric"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Sold by weight?" VerticalOptions="Center"/>
+                        <Switch IsToggled="{Binding NewProductIsWeight}"/>
+                    </HorizontalStackLayout>
+                    <Button Text="Add Product"
+                            BackgroundColor="#32b8c6"
+                            TextColor="White"
+                            Command="{Binding AddProductCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Products" FontSize="16" FontAttributes="Bold"/>
+            <CollectionView ItemsSource="{Binding Products}" HeightRequest="250">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="8">
+                            <Label Grid.Column="0" Text="{Binding Emoji}" FontSize="24"/>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Barcode, StringFormat='Barcode: {0}'}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                                <Label Text="{Binding Stock, StringFormat='Stock: {0:F2}'}" FontSize="12"/>
+                                <Label Text="{Binding UnitLabel}" FontSize="12" TextColor="#777"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontAttributes="Bold"
+                   IsVisible="{Binding HasStatusMessage}"
+                   HorizontalOptions="Center">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
+                        <Setter Property="TextColor" Value="#c00000"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
+                        <Setter Property="TextColor" Value="#1f7a4d"/>
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

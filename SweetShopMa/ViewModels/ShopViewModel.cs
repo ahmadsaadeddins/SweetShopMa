@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
 
@@ -17,6 +18,7 @@ public class ShopViewModel : INotifyPropertyChanged
     private readonly CartService _cartService;
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
+    private readonly IServiceProvider _serviceProvider;
     
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
@@ -155,12 +157,17 @@ public class ShopViewModel : INotifyPropertyChanged
     public ICommand LoginCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand QuickAddCommand { get; }
+    public ICommand OpenAdminPanelCommand { get; }
 
-    public ShopViewModel(CartService cartService, DatabaseService databaseService, AuthService authService)
+    public ShopViewModel(CartService cartService,
+                         DatabaseService databaseService,
+                         AuthService authService,
+                         IServiceProvider serviceProvider)
     {
         _cartService = cartService;
         _databaseService = databaseService;
         _authService = authService;
+        _serviceProvider = serviceProvider;
 
         AddToCartCommand = new Command<Product>(AddToCart);
         RemoveFromCartCommand = new Command<CartItem>(RemoveFromCart);
@@ -182,6 +189,7 @@ public class ShopViewModel : INotifyPropertyChanged
         LoginCommand = new Command(Login);
         LogoutCommand = new Command(Logout);
         QuickAddCommand = new Command(QuickAddToCart);
+        OpenAdminPanelCommand = new Command(async () => await OpenAdminPanel());
 
         _cartService.OnCartChanged += UpdateCart;
         _authService.OnUserChanged += OnUserChanged;
@@ -616,6 +624,22 @@ public class ShopViewModel : INotifyPropertyChanged
         IsCheckoutEnabled = CartItems.Count > 0;
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(IsCheckoutEnabled));
+    }
+
+    private async Task OpenAdminPanel()
+    {
+        if (!_authService.IsAdmin)
+        {
+            await Application.Current.MainPage.DisplayAlert("Access Denied",
+                "Only administrators can open the admin panel.", "OK");
+            return;
+        }
+
+        var adminPage = _serviceProvider.GetService<Views.AdminPage>();
+        if (adminPage != null)
+        {
+            await Shell.Current.Navigation.PushAsync(adminPage);
+        }
     }
 
     public event PropertyChangedEventHandler PropertyChanged;

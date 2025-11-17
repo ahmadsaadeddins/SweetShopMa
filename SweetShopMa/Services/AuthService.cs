@@ -23,7 +23,8 @@ public class AuthService
     {
         var storedUser = await _databaseService.GetUserByUsernameAsync(username);
 
-        if (storedUser != null && PasswordHelper.VerifyPassword(inputPassword, storedUser.Password)) // In production, use password hashing
+        if (storedUser != null && storedUser.IsEnabled &&
+            PasswordHelper.VerifyPassword(inputPassword, storedUser.Password)) // In production, use password hashing
         {
             _currentUser = storedUser;
             OnUserChanged?.Invoke(_currentUser);

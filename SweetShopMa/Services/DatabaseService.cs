@@ -55,6 +55,10 @@ public class DatabaseService
             await _database.CreateTableAsync<CartItem>();
             await _database.CreateTableAsync<Order>();
             await _database.CreateTableAsync<OrderItem>();
+            await _database.CreateTableAsync<AttendanceRecord>();
+
+            await EnsureUserTableColumnsAsync();
+            await EnsureAttendanceTableColumnsAsync();
         }
         finally
         {
@@ -193,6 +197,46 @@ public class DatabaseService
             .FirstOrDefaultAsync(o => o.Id == orderId);
     }
 
+    public async Task<List<OrderItem>> GetAllOrderItemsAsync()
+    {
+        await InitializeAsync();
+        return await _database.Table<OrderItem>().ToListAsync();
+    }
+
+    // Attendance
+    public async Task<int> SaveAttendanceRecordAsync(AttendanceRecord record)
+    {
+        await InitializeAsync();
+        if (record.Id != 0)
+            return await _database.UpdateAsync(record);
+        return await _database.InsertAsync(record);
+    }
+
+    public async Task<List<AttendanceRecord>> GetAttendanceRecordsAsync(DateTime? start = null, DateTime? end = null)
+    {
+        await InitializeAsync();
+        var query = _database.Table<AttendanceRecord>();
+
+        if (start.HasValue)
+            query = query.Where(r => r.Date >= start.Value);
+        if (end.HasValue)
+            query = query.Where(r => r.Date <= end.Value);
+
+        return await query
+            .OrderByDescending(r => r.Date)
+            .ThenByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<AttendanceRecord> GetAttendanceRecordAsync(int userId, DateTime date)
+    {
+        await InitializeAsync();
+        var normalizedDate = date.Date;
+        return await _database.Table<AttendanceRecord>()
+            .Where(r => r.UserId == userId && r.Date == normalizedDate)
+            .FirstOrDefaultAsync();
+    }
+
     // Inventory methods
     public async Task<bool> UpdateProductStockAsync(int productId, decimal quantityChange)
     {
@@ -238,6 +282,39 @@ public class DatabaseService
         return await _database.InsertAsync(user);
     }
 
+    public async Task<List<User>> GetUsersAsync()
+    {
+        await InitializeAsync();
+        return await _database.Table<User>()
+            .OrderByDescending(u => u.CreatedDate)
+            .ToListAsync();
+    }
+
+    public async Task<bool> UsernameExistsAsync(string username)
+    {
+        await InitializeAsync();
+        return await _database.Table<User>()
+            .Where(u => u.Username == username)
+            .CountAsync() > 0;
+    }
+
+    public async Task<bool> ProductBarcodeExistsAsync(string barcode)
+    {
+        await InitializeAsync();
+        if (string.IsNullOrWhiteSpace(barcode))
+            return false;
+
+        return await _database.Table<Product>()
+            .Where(p => p.Barcode == barcode)
+            .CountAsync() > 0;
+    }
+
+    public async Task<int> UpdateUserAsync(User user)
+    {
+        await InitializeAsync();
+        return await _database.UpdateAsync(user);
+    }
+
     public async Task<int> GetUserCountAsync()
     {
         await InitializeAsync();
@@ -256,7 +333,9 @@ public class DatabaseService
             Username = "admin",
             Password = PasswordHelper.HashPassword("admin123"), // In production, this should be hashed
             Role = "Admin",
-            Name = "Administrator"
+            Name = "Administrator",
+            IsEnabled = true,
+            MonthlySalary = 2500m
         };
         await _database.InsertAsync(admin);
 
@@ -266,8 +345,71 @@ public class DatabaseService
             Username = "customer",
             Password = PasswordHelper.HashPassword("customer123"), // In production, this should be hashed
             Role = "Customer",
-            Name = "Customer"
+            Name = "Customer",
+            IsEnabled = true,
+            MonthlySalary = 0m
         };
         await _database.InsertAsync(customer);
+    }
+
+    private async Task EnsureUserTableColumnsAsync()
+    {
+        var columns = await _database.QueryAsync<TableInfo>("PRAGMA table_info(User);");
+
+        if (!columns.Any(c => string.Equals(c.name, "IsEnabled", StringComparison.OrdinalIgnoreCase)))
+        {
+            await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN IsEnabled INTEGER NOT NULL DEFAULT 1;");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "MonthlySalary", StringComparison.OrdinalIgnoreCase)))
+        {
+            await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN MonthlySalary REAL NOT NULL DEFAULT 0;");
+        }
+    }
+
+    private async Task EnsureAttendanceTableColumnsAsync()
+    {
+        var columns = await _database.QueryAsync<TableInfo>("PRAGMA table_info(AttendanceRecord);");
+
+        async Task AddColumnAsync(string name, string sqlType, string defaultValue)
+        {
+            await _database.ExecuteAsync($"ALTER TABLE AttendanceRecord ADD COLUMN {name} {sqlType} {defaultValue};");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "CheckInTime", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("CheckInTime", "TEXT", "DEFAULT NULL");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "CheckOutTime", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("CheckOutTime", "TEXT", "DEFAULT NULL");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "RegularHours", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("RegularHours", "REAL", "DEFAULT 0");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "OvertimeHours", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("OvertimeHours", "REAL", "DEFAULT 0");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "DailyPay", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("DailyPay", "REAL", "DEFAULT 0");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "IsPresent", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("IsPresent", "INTEGER", "NOT NULL DEFAULT 1");
+        }
+    }
+
+    private class TableInfo
+    {
+        // ReSharper disable once InconsistentNaming - matches PRAGMA output
+        public string name { get; set; }
     }
 }

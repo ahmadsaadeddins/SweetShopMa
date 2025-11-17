@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sys="clr-namespace:System;assembly=netstandard"
+             x:Class="SweetShopMa.Views.AttendancePage"
+             Title="Attendance Tracker">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <Label Text="Attendance Tracker"
+                   FontSize="24"
+                   FontAttributes="Bold"/>
+
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Picker Title="Employee"
+                            ItemsSource="{Binding Users}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding SelectedAttendanceUser}"/>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <DatePicker Grid.Column="0"
+                                    Date="{Binding AttendanceDate}"
+                                    Format="MMM dd, yyyy"
+                                    MaximumDate="{x:Static sys:DateTime.Today}"/>
+                        <Picker Grid.Column="1"
+                                Title="Status"
+                                ItemsSource="{Binding AttendanceStatuses}"
+                                SelectedItem="{Binding SelectedAttendanceStatus}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <TimePicker Grid.Column="0"
+                                    Time="{Binding AttendanceCheckInTime}"
+                                    IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
+                        <TimePicker Grid.Column="1"
+                                    Time="{Binding AttendanceCheckOutTime}"
+                                    IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
+                    </Grid>
+                    <Entry Placeholder="Notes (optional)"
+                           Text="{Binding AttendanceNotes}"/>
+                    <Label Text="{Binding AttendancePreview}"
+                           FontAttributes="Italic"
+                           TextColor="#1d7480"/>
+                    <Label Text="{Binding StatusMessage}"
+                           FontAttributes="Bold"
+                           IsVisible="{Binding HasStatusMessage}"
+                           HorizontalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
+                                <Setter Property="TextColor" Value="#c00000"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
+                                <Setter Property="TextColor" Value="#1f7a4d"/>
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                    <Button Text="Record Attendance"
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Command="{Binding AddAttendanceCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Present" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.PresentCount}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Absent" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.AbsentCount}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Overtime Entries" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.OvertimeCount}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Regular Hours" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.TotalRegularHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Overtime Hours" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Payroll (30d)" FontSize="12" TextColor="#666"/>
+                        <Label Text="{Binding AttendanceSummary.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold" FontSize="20"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding AttendanceRecords}" HeightRequest="280">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
+                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Date, StringFormat='{0:MMM dd}'}" HorizontalOptions="End" TextColor="#666"/>
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="10">
+                                <Label Text="{Binding Status}" FontAttributes="Bold" TextColor="#1d7480">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsPresent}" Value="False">
+                                            <Setter Property="TextColor" Value="#c00000"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Label Text="{Binding Notes}" FontSize="12" TextColor="#999"/>
+                            </HorizontalStackLayout>
+                            <Label Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding DailyPay, StringFormat='${0:F2}'}"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="End"/>
+                            <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="12">
+                                <Label Text="{Binding CheckInDisplay, StringFormat='In {0}'}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding CheckOutDisplay, StringFormat='Out {0}'}" FontSize="12" TextColor="#555"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="10" HorizontalOptions="End">
+                                <Label Text="{Binding RegularHours, StringFormat='Reg {0:F1}h'}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding OvertimeHours, StringFormat='OT {0:F1}h'}" FontSize="12" TextColor="#555"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Label Text="Month:" VerticalOptions="Center"/>
+                <DatePicker Grid.Column="1"
+                            Date="{Binding SummaryMonth}"
+                            Format="MMM yyyy"/>
+            </Grid>
+            <CollectionView ItemsSource="{Binding MonthlyAttendanceSummaries}"
+                            HeightRequest="220"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedMonthlySummary}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
+                            <Label Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
+                            <Label Grid.Column="1" Text="{Binding DaysPresent, StringFormat='Present {0}'}" FontSize="12" TextColor="#555"/>
+                            <Label Grid.Column="2" Text="{Binding DaysAbsent, StringFormat='Absent {0}'}" FontSize="12" TextColor="#c00000" HorizontalOptions="End"/>
+                            <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="End">
+                                <Label Text="{Binding OvertimeDisplay}" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding PayrollDisplay}" FontSize="12" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" Padding="0,0,0,10">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="Total Present" FontSize="12" TextColor="#666"/>
+                    <Label Text="{Binding MonthlySummaryTotals.TotalPresentDays}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="Total Absent" FontSize="12" TextColor="#666"/>
+                    <Label Text="{Binding MonthlySummaryTotals.TotalAbsentDays}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="OT Hours" FontSize="12" TextColor="#666"/>
+                    <Label Text="{Binding MonthlySummaryTotals.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="3" Spacing="2">
+                    <Label Text="Payroll" FontSize="12" TextColor="#666"/>
+                    <Label Text="{Binding MonthlySummaryTotals.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <Label Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
+            <Grid ColumnDefinitions="*,*,*,*,*,*,*" HorizontalOptions="Fill">
+                <Label Text="Sun" HorizontalTextAlignment="Center" />
+                <Label Text="Mon" Grid.Column="1" HorizontalTextAlignment="Center" />
+                <Label Text="Tue" Grid.Column="2" HorizontalTextAlignment="Center" />
+                <Label Text="Wed" Grid.Column="3" HorizontalTextAlignment="Center" />
+                <Label Text="Thu" Grid.Column="4" HorizontalTextAlignment="Center" />
+                <Label Text="Fri" Grid.Column="5" HorizontalTextAlignment="Center" />
+                <Label Text="Sat" Grid.Column="6" HorizontalTextAlignment="Center" />
+            </Grid>
+            <CollectionView ItemsSource="{Binding AttendanceCalendarDays}"
+                            SelectionMode="None"
+                            HeightRequest="320">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="7"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="4" BackgroundColor="#f7f7f7">
+                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Label Text="{Binding DayText}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                                <Label Text="{Binding DetailText}" FontSize="10" TextColor="#555" HorizontalTextAlignment="Center"/>
+                                <Label Text="OT" FontSize="10" TextColor="#c00000" HorizontalTextAlignment="Center"
+                                       IsVisible="{Binding HasOvertime}"/>
+                            </VerticalStackLayout>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsPlaceholder}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                    <Setter Property="StrokeThickness" Value="0"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsPresent}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#d4edda"/>
+                                    <Setter Property="Stroke" Value="#9ad1a4"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsAbsent}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="#f8d7da"/>
+                                    <Setter Property="Stroke" Value="#f5c2c7"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding HasOvertime}" Value="True">
+                                    <Setter Property="Stroke" Value="#c00000"/>
+                                </DataTrigger>
+                            </Border.Triggers>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+
