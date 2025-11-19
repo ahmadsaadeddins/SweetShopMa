@@ -61,6 +61,15 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Access Denied.
+        /// </summary>
+        internal static string AccessDenied {
+            get {
+                return ResourceManager.GetString("AccessDenied", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Active.
         /// </summary>
         internal static string Active {
@@ -75,6 +84,15 @@ namespace SweetShopMa.Resources {
         internal static string Add {
             get {
                 return ResourceManager.GetString("Add", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ✅ Added product {0}..
+        /// </summary>
+        internal static string AddedProduct {
+            get {
+                return ResourceManager.GetString("AddedProduct", resourceCulture);
             }
         }
         
@@ -97,11 +115,56 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to admin.
+        /// </summary>
+        internal static string Admin {
+            get {
+                return ResourceManager.GetString("Admin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Admin access required..
+        /// </summary>
+        internal static string AdminAccessRequired {
+            get {
+                return ResourceManager.GetString("AdminAccessRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Administrator Panel.
+        /// </summary>
+        internal static string AdministratorPanel {
+            get {
+                return ResourceManager.GetString("AdministratorPanel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ⚙️ Admin Panel.
         /// </summary>
         internal static string AdminPanel {
             get {
                 return ResourceManager.GetString("AdminPanel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Administrator privileges are required..
+        /// </summary>
+        internal static string AdminPrivilegesRequired {
+            get {
+                return ResourceManager.GetString("AdminPrivilegesRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to App Data: {0}.
+        /// </summary>
+        internal static string AppData {
+            get {
+                return ResourceManager.GetString("AppData", resourceCulture);
             }
         }
         
@@ -133,11 +196,56 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Attendance already exists for this employee on that date..
+        /// </summary>
+        internal static string AttendanceExists {
+            get {
+                return ResourceManager.GetString("AttendanceExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Attendance Tracker.
+        /// </summary>
+        internal static string AttendanceTracker {
+            get {
+                return ResourceManager.GetString("AttendanceTracker", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Barcode.
+        /// </summary>
+        internal static string Barcode {
+            get {
+                return ResourceManager.GetString("Barcode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Barcode already exists..
+        /// </summary>
+        internal static string BarcodeExists {
+            get {
+                return ResourceManager.GetString("BarcodeExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Scan barcode or enter ID (e.g., 1001, 1008)....
         /// </summary>
         internal static string BarcodePlaceholder {
             get {
                 return ResourceManager.GetString("BarcodePlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Barcode: {0}.
+        /// </summary>
+        internal static string BarcodePlaceholder2 {
+            get {
+                return ResourceManager.GetString("BarcodePlaceholder2", resourceCulture);
             }
         }
         
@@ -151,11 +259,29 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ⚠️ You cannot disable the currently logged-in account..
+        /// </summary>
+        internal static string CannotDisableCurrentAccount {
+            get {
+                return ResourceManager.GetString("CannotDisableCurrentAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 🛒 Cart.
         /// </summary>
         internal static string Cart {
             get {
                 return ResourceManager.GetString("Cart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cashier: {0}.
+        /// </summary>
+        internal static string Cashier {
+            get {
+                return ResourceManager.GetString("Cashier", resourceCulture);
             }
         }
         
@@ -169,6 +295,15 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        internal static string Close {
+            get {
+                return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirm Order.
         /// </summary>
         internal static string ConfirmOrder {
@@ -178,11 +313,38 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ✅ Created {0} {1}..
+        /// </summary>
+        internal static string CreatedUser {
+            get {
+                return ResourceManager.GetString("CreatedUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Create New User.
         /// </summary>
         internal static string CreateNewUser {
             get {
                 return ResourceManager.GetString("CreateNewUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 📁 Database Information.
+        /// </summary>
+        internal static string DatabaseInformation {
+            get {
+                return ResourceManager.GetString("DatabaseInformation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Data ready.
+        /// </summary>
+        internal static string DataReady {
+            get {
+                return ResourceManager.GetString("DataReady", resourceCulture);
             }
         }
         
@@ -205,11 +367,38 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Disabled.
+        /// </summary>
+        internal static string Disabled2 {
+            get {
+                return ResourceManager.GetString("Disabled2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Employee.
+        /// </summary>
+        internal static string Employee {
+            get {
+                return ResourceManager.GetString("Employee", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable.
         /// </summary>
         internal static string Enable {
             get {
                 return ResourceManager.GetString("Enable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enabled.
+        /// </summary>
+        internal static string Enabled {
+            get {
+                return ResourceManager.GetString("Enabled", resourceCulture);
             }
         }
         
@@ -241,6 +430,33 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Enter a valid price..
+        /// </summary>
+        internal static string EnterValidPrice {
+            get {
+                return ResourceManager.GetString("EnterValidPrice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Enter a valid monthly salary..
+        /// </summary>
+        internal static string EnterValidSalary {
+            get {
+                return ResourceManager.GetString("EnterValidSalary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Enter a valid starting stock..
+        /// </summary>
+        internal static string EnterValidStock {
+            get {
+                return ResourceManager.GetString("EnterValidStock", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ⚠️ Error: {0}.
         /// </summary>
         internal static string Error {
@@ -268,6 +484,15 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Future dates are not allowed..
+        /// </summary>
+        internal static string FutureDatesNotAllowed {
+            get {
+                return ResourceManager.GetString("FutureDatesNotAllowed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Grant admin access?.
         /// </summary>
         internal static string GrantAdminAccess {
@@ -286,11 +511,38 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Items: {0}.
+        /// </summary>
+        internal static string Items {
+            get {
+                return ResourceManager.GetString("Items", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Items Sold.
+        /// </summary>
+        internal static string ItemsSold {
+            get {
+                return ResourceManager.GetString("ItemsSold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
         internal static string Language {
             get {
                 return ResourceManager.GetString("Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 7 Days.
+        /// </summary>
+        internal static string Last7Days {
+            get {
+                return ResourceManager.GetString("Last7Days", resourceCulture);
             }
         }
         
@@ -358,11 +610,101 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No data yet.
+        /// </summary>
+        internal static string NoDataYet {
+            get {
+                return ResourceManager.GetString("NoDataYet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No items found for this order..
+        /// </summary>
+        internal static string NoItemsFound {
+            get {
+                return ResourceManager.GetString("NoItemsFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Notes (optional).
+        /// </summary>
+        internal static string NotesOptional {
+            get {
+                return ResourceManager.GetString("NotesOptional", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to OK.
         /// </summary>
         internal static string OK {
             get {
                 return ResourceManager.GetString("OK", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Only admins can add products..
+        /// </summary>
+        internal static string OnlyAdminsCanAddProducts {
+            get {
+                return ResourceManager.GetString("OnlyAdminsCanAddProducts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Only admins can add users..
+        /// </summary>
+        internal static string OnlyAdminsCanAddUsers {
+            get {
+                return ResourceManager.GetString("OnlyAdminsCanAddUsers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Only admins can change user status..
+        /// </summary>
+        internal static string OnlyAdminsCanChangeStatus {
+            get {
+                return ResourceManager.GetString("OnlyAdminsCanChangeStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only administrators can open the admin panel..
+        /// </summary>
+        internal static string OnlyAdminsCanOpenAdminPanel {
+            get {
+                return ResourceManager.GetString("OnlyAdminsCanOpenAdminPanel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Attendance Tracker.
+        /// </summary>
+        internal static string OpenAttendanceTracker {
+            get {
+                return ResourceManager.GetString("OpenAttendanceTracker", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Order #{0}.
+        /// </summary>
+        internal static string Order {
+            get {
+                return ResourceManager.GetString("Order", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Order Details.
+        /// </summary>
+        internal static string OrderDetails {
+            get {
+                return ResourceManager.GetString("OrderDetails", resourceCulture);
             }
         }
         
@@ -378,6 +720,15 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Orders.
+        /// </summary>
+        internal static string Orders {
+            get {
+                return ResourceManager.GetString("Orders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 🔒 Password.
         /// </summary>
         internal static string Password {
@@ -387,11 +738,65 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Password must be at least 4 characters..
+        /// </summary>
+        internal static string PasswordMinLength {
+            get {
+                return ResourceManager.GetString("PasswordMinLength", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password.
+        /// </summary>
+        internal static string PasswordPlaceholder {
+            get {
+                return ResourceManager.GetString("PasswordPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Path: {0}.
+        /// </summary>
+        internal static string Path {
+            get {
+                return ResourceManager.GetString("Path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ⚠️ Please enter both username and password.
         /// </summary>
         internal static string PleaseEnterBoth {
             get {
                 return ResourceManager.GetString("PleaseEnterBoth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Please fill in all product fields..
+        /// </summary>
+        internal static string PleaseFillAllProductFields {
+            get {
+                return ResourceManager.GetString("PleaseFillAllProductFields", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Please fill in all user fields..
+        /// </summary>
+        internal static string PleaseFillAllUserFields {
+            get {
+                return ResourceManager.GetString("PleaseFillAllUserFields", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Please select an employee..
+        /// </summary>
+        internal static string PleaseSelectEmployee {
+            get {
+                return ResourceManager.GetString("PleaseSelectEmployee", resourceCulture);
             }
         }
         
@@ -419,6 +824,51 @@ namespace SweetShopMa.Resources {
         internal static string Quantity {
             get {
                 return ResourceManager.GetString("Quantity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recent Orders.
+        /// </summary>
+        internal static string RecentOrders {
+            get {
+                return ResourceManager.GetString("RecentOrders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ✅ Recorded {0} for {1}..
+        /// </summary>
+        internal static string RecordedAttendance {
+            get {
+                return ResourceManager.GetString("RecordedAttendance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reports &amp; Insights.
+        /// </summary>
+        internal static string ReportsInsights {
+            get {
+                return ResourceManager.GetString("ReportsInsights", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Report Status.
+        /// </summary>
+        internal static string ReportStatus {
+            get {
+                return ResourceManager.GetString("ReportStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Salary: ${0:F2}.
+        /// </summary>
+        internal static string Salary {
+            get {
+                return ResourceManager.GetString("Salary", resourceCulture);
             }
         }
         
@@ -459,11 +909,47 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        internal static string Status {
+            get {
+                return ResourceManager.GetString("Status", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Stock: {0} {1}.
         /// </summary>
         internal static string Stock {
             get {
                 return ResourceManager.GetString("Stock", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Success.
+        /// </summary>
+        internal static string Success {
+            get {
+                return ResourceManager.GetString("Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top Product.
+        /// </summary>
+        internal static string TopProduct {
+            get {
+                return ResourceManager.GetString("TopProduct", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top Products.
+        /// </summary>
+        internal static string TopProducts {
+            get {
+                return ResourceManager.GetString("TopProducts", resourceCulture);
             }
         }
         
@@ -477,11 +963,56 @@ namespace SweetShopMa.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Total Sales.
+        /// </summary>
+        internal static string TotalSales {
+            get {
+                return ResourceManager.GetString("TotalSales", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to user.
+        /// </summary>
+        internal static string User {
+            get {
+                return ResourceManager.GetString("User", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 👤 Username.
         /// </summary>
         internal static string Username {
             get {
                 return ResourceManager.GetString("Username", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ⚠️ Username already exists..
+        /// </summary>
+        internal static string UsernameExists {
+            get {
+                return ResourceManager.GetString("UsernameExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Username.
+        /// </summary>
+        internal static string UsernamePlaceholder {
+            get {
+                return ResourceManager.GetString("UsernamePlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ✅ {0} {1}..
+        /// </summary>
+        internal static string UserStatusChanged {
+            get {
+                return ResourceManager.GetString("UserStatusChanged", resourceCulture);
             }
         }
         

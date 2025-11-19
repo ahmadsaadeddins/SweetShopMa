@@ -1,4 +1,6 @@
-﻿using SweetShopMa;
+﻿using System.Threading.Tasks;
+using Microsoft.Maui.ApplicationModel;
+using SweetShopMa;
 using SweetShopMa.Services;
 using SweetShopMa.Views;
 
@@ -10,6 +12,19 @@ public partial class App : Application
     {
         InitializeComponent();
         MainPage = new AppShell();
+        
+        // Navigate to login page on startup
+        if (MainPage is AppShell shell)
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100); // Small delay to ensure Shell is ready
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await shell.GoToAsync("//login");
+                });
+            });
+        }
         
         // Initialize localization and set RTL if needed
         var localizationService = LocalizationService.Instance;

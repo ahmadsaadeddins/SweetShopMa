@@ -1043,7 +1043,7 @@ public class ProductReportItem
     public bool IsSoldByWeight { get; set; }
     public decimal TotalSales { get; set; }
 
-    public string UnitLabel => IsSoldByWeight ? "kg" : "pcs";
+    public string UnitLabel => IsSoldByWeight ? "KGS" : "PCS";
     public string QuantityDisplay => $"{Quantity:F2} {UnitLabel}";
     public string TotalSalesDisplay => $"${TotalSales:F2}";
 }

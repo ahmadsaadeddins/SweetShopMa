@@ -156,7 +156,7 @@
                     <Label Text="{Binding SelectedQuickProduct.Emoji}" FontSize="20" VerticalOptions="Center"/>
                     <Label FontSize="13" FontAttributes="Bold" VerticalOptions="Center">
                         <Label.Text>
-                            <MultiBinding StringFormat='{}{0} - ${1:F2}/{2}'>
+                            <MultiBinding StringFormat='{}{0} - LE {1:F2} ج.م / {2}'>
                                 <Binding Path="SelectedQuickProduct.Name"/>
                                 <Binding Path="SelectedQuickProduct.Price"/>
                                 <Binding Path="SelectedQuickProduct.UnitLabel"/>
@@ -206,7 +206,7 @@
                                 <Label Grid.Row="2" FontSize="12" FontAttributes="Bold" 
                                        TextColor="#1d7480" HorizontalTextAlignment="Center">
                                     <Label.Text>
-                                        <MultiBinding StringFormat='{}${0:F2}/{1}'>
+                                        <MultiBinding StringFormat='{}LE {0:F2} ج.م / {1}'>
                                             <Binding Path="Price"/>
                                             <Binding Path="UnitLabel"/>
                                         </MultiBinding>
@@ -291,7 +291,7 @@
                                 </Grid>
                                 
                                 <!-- Add to Cart Button -->
-                                <Button Grid.Row="5" Text="Add" BackgroundColor="#32b8c6" TextColor="White" 
+                                <Button Grid.Row="5" Text="إضافة" BackgroundColor="#32b8c6" TextColor="White" 
                                         CornerRadius="4" Padding="4,6" FontSize="10" FontAttributes="Bold" Margin="0,4,0,0"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AddToCartCommand}"
                                         CommandParameter="{Binding .}">
@@ -345,7 +345,7 @@
                                     </StackLayout>
                                 </StackLayout>
                                 <StackLayout Orientation="Horizontal" Spacing="8">
-                                    <Label Text="{Binding ItemTotal, StringFormat='${0:F2}'}" FontSize="13" FontAttributes="Bold" HorizontalOptions="FillAndExpand"/>
+                                    <Label Text="{Binding ItemTotal, StringFormat='LE {0:F2} ج.م'}" FontSize="13" FontAttributes="Bold" HorizontalOptions="FillAndExpand"/>
                                     <Button Text="Remove" BackgroundColor="#c00000" TextColor="White" Padding="4,8" FontSize="12" CornerRadius="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveFromCartCommand}"
                                             CommandParameter="{Binding .}"/>
@@ -360,11 +360,13 @@
                 <StackLayout Grid.Row="3" Spacing="12">
                     <StackLayout Orientation="Horizontal" Spacing="10">
                         <Label x:Name="TotalLabel" Text="Total:" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
-                        <Label Text="{Binding Total, StringFormat='${0:F2}'}" FontSize="16" FontAttributes="Bold" TextColor="#1d7480" HorizontalOptions="EndAndExpand" VerticalOptions="Center"/>
+                        <Label Text="{Binding Total, StringFormat='LE {0:F2} ج.م'}" FontSize="16" FontAttributes="Bold" TextColor="#1d7480" HorizontalOptions="EndAndExpand" VerticalOptions="Center"/>
                     </StackLayout>
                     <Button x:Name="CheckoutButton" Text="Checkout" BackgroundColor="#32b8c6" TextColor="White" Padding="12" CornerRadius="6" FontAttributes="Bold"
                             IsEnabled="{Binding IsCheckoutEnabled}"
                             Command="{Binding CheckoutCommand}"/>
+                    <Button x:Name="OpenDrawerButton" Text="💰 Open Drawer" BackgroundColor="#ff9800" TextColor="White" Padding="12" CornerRadius="6" FontAttributes="Bold"
+                            Command="{Binding OpenDrawerCommand}"/>
                 </StackLayout>
             </Grid>
         </Frame>

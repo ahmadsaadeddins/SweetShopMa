@@ -15,6 +15,6 @@ public class OrderItem
     public bool IsSoldByWeight { get; set; } = false;
     public decimal ItemTotal => Price * Quantity;
     
-    public string UnitLabel => IsSoldByWeight ? "kg" : "pcs";
+    public string UnitLabel => IsSoldByWeight ? "KGS" : "PCS";
 }
 

@@ -43,7 +43,7 @@ public class Product : INotifyPropertyChanged
 
     public decimal TotalPrice => Price * Quantity;
     
-    public string UnitLabel => IsSoldByWeight ? "kg" : "pcs";
+    public string UnitLabel => IsSoldByWeight ? "KGS" : "PCS";
 
     public event PropertyChangedEventHandler PropertyChanged;
 

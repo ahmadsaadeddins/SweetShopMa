@@ -63,9 +63,16 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+		<PackageReference Include="System.Management" Version="8.0.0" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
+		<PackageReference Include="System.IO.Ports" Version="8.0.0" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Resources\Strings.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Strings.resx</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\MainPage.xaml.cs">
 	    <DependentUpon>MainPage.xaml</DependentUpon>
 	  </Compile>

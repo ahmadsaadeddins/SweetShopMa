@@ -104,7 +104,7 @@
     <value>📦 Quantity</value>
   </data>
   <data name="Add" xml:space="preserve">
-    <value>➕ Add</value>
+    <value>➕ إضافة</value>
   </data>
   <data name="Stock" xml:space="preserve">
     <value>Stock: {0} {1}</value>
@@ -117,6 +117,12 @@
   </data>
   <data name="Checkout" xml:space="preserve">
     <value>💳 Checkout</value>
+  </data>
+  <data name="OpenDrawer" xml:space="preserve">
+    <value>💰 Open Drawer</value>
+  </data>
+  <data name="OpenCashDrawer" xml:space="preserve">
+    <value>💰 Open Cash Drawer</value>
   </data>
   <data name="Products" xml:space="preserve">
     <value>Products</value>
@@ -170,7 +176,7 @@
     <value>Disable</value>
   </data>
   <data name="AddProduct" xml:space="preserve">
-    <value>Add Product</value>
+    <value>إضافة منتج</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Name</value>
@@ -261,6 +267,21 @@
   </data>
   <data name="OpenAttendanceTracker" xml:space="preserve">
     <value>Open Attendance Tracker</value>
+  </data>
+  <data name="BackButton" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="RecordAttendanceButton" xml:space="preserve">
+    <value>Record Attendance</value>
+  </data>
+  <data name="MonthlyAttendanceSummary" xml:space="preserve">
+    <value>Monthly Attendance Summary</value>
+  </data>
+  <data name="MonthLabel" xml:space="preserve">
+    <value>Month:</value>
+  </data>
+  <data name="AttendanceCalendar" xml:space="preserve">
+    <value>Attendance Calendar</value>
   </data>
   <data name="Employee" xml:space="preserve">
     <value>Employee</value>

@@ -54,22 +54,22 @@
                 x:Name="UsernameEntry"
                 Placeholder="Enter username"
                 BackgroundColor="White"
-                FontSize="14"/>
+                FontSize="14"
+                ReturnType="Next"
+                Completed="OnUsernameEntryCompleted"/>
         </StackLayout>
 
         <!-- Password Field with Lock Icon -->
         <StackLayout Spacing="8">
             <Label x:Name="PasswordLabel" Text="🔒 Password" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
-            <HorizontalStackLayout Spacing="0">
-                <Entry 
-                    x:Name="PasswordEntry"
-                    IsPassword="True"
-                    Placeholder="Enter password"
-                    BackgroundColor="White"
-                    FontSize="14"
-                    HorizontalOptions="FillAndExpand"/>
-                
-            </HorizontalStackLayout>
+            <Entry 
+                x:Name="PasswordEntry"
+                IsPassword="True"
+                Placeholder="Enter password"
+                BackgroundColor="White"
+                FontSize="14"
+                ReturnType="Go"
+                Completed="OnPasswordEntryCompleted"/>
         </StackLayout>
 
         <!-- Error Message -->

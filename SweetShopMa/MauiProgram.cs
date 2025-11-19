@@ -6,6 +6,7 @@ using Microsoft.Maui.LifecycleEvents;
 #if WINDOWS
 using Microsoft.Maui.Platform;
 using Microsoft.UI.Windowing;
+using SweetShopMa.Platforms.Windows;
 #endif
 
 namespace SweetShopMa;
@@ -26,6 +27,13 @@ public static class MauiProgram
             .AddSingleton<AuthService>()
             .AddSingleton<CartService>()
             .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)
+#if WINDOWS
+            .AddSingleton<IPrintService, WindowsPrintService>()
+            .AddSingleton<ICashDrawerService, WindowsCashDrawerService>()
+#else
+            .AddSingleton<IPrintService, DefaultPrintService>()
+            .AddSingleton<ICashDrawerService, DefaultCashDrawerService>()
+#endif
             .AddSingleton<ShopViewModel>()
             .AddSingleton<AdminViewModel>()
             .AddSingleton<Views.MainPage>()

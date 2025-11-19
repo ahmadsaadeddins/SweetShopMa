@@ -8,7 +8,7 @@
         ...
                 <Label FontSize="13" FontAttributes="Bold" VerticalOptions="Center">
                     <Label.Text>
-                        <MultiBinding StringFormat='{}{0} - ${1:F2}/{2}'>
+                        <MultiBinding StringFormat='{}{0} - LE {1:F2} ج.م / {2}'>
                             <Binding Path="SelectedQuickProduct.Name"/>
                             <Binding Path="SelectedQuickProduct.Price"/>
                             <Binding Path="SelectedQuickProduct.UnitLabel"/>

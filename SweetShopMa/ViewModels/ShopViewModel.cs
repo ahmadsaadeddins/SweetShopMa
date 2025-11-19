@@ -1,7 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using SweetShopMa.Models;
@@ -20,6 +22,8 @@ public class ShopViewModel : INotifyPropertyChanged
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
     private readonly Services.LocalizationService _localizationService;
+    private readonly Services.IPrintService _printService;
+    private readonly Services.ICashDrawerService _cashDrawerService;
     
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
@@ -159,18 +163,23 @@ public class ShopViewModel : INotifyPropertyChanged
     public ICommand LogoutCommand { get; }
     public ICommand QuickAddCommand { get; }
     public ICommand OpenAdminPanelCommand { get; }
+    public ICommand OpenDrawerCommand { get; }
 
     public ShopViewModel(CartService cartService,
                          DatabaseService databaseService,
                          AuthService authService,
                          IServiceProvider serviceProvider,
-                         Services.LocalizationService localizationService)
+                         Services.LocalizationService localizationService,
+                         Services.IPrintService printService,
+                         Services.ICashDrawerService cashDrawerService)
     {
         _cartService = cartService;
         _databaseService = databaseService;
         _authService = authService;
         _serviceProvider = serviceProvider;
         _localizationService = localizationService;
+        _printService = printService;
+        _cashDrawerService = cashDrawerService;
 
         AddToCartCommand = new Command<Product>(AddToCart);
         RemoveFromCartCommand = new Command<CartItem>(RemoveFromCart);
@@ -193,6 +202,7 @@ public class ShopViewModel : INotifyPropertyChanged
         LogoutCommand = new Command(Logout);
         QuickAddCommand = new Command(QuickAddToCart);
         OpenAdminPanelCommand = new Command(async () => await OpenAdminPanel());
+        OpenDrawerCommand = new Command(async () => await OpenDrawer());
 
         _cartService.OnCartChanged += UpdateCart;
         _authService.OnUserChanged += OnUserChanged;
@@ -319,7 +329,7 @@ public class ShopViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(QuickQuantityText) || !decimal.TryParse(QuickQuantityText, out decimal quantity) || quantity <= 0)
+        if (string.IsNullOrWhiteSpace(QuickQuantityText) || !decimal.TryParse(QuickQuantityText, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal quantity) || quantity <= 0)
         {
             ShowNotification("⚠️ Please enter a valid quantity", isError: true);
             return;
@@ -330,7 +340,7 @@ public class ShopViewModel : INotifyPropertyChanged
         // Check stock
         if (quantity > product.Stock)
         {
-            var stockUnit = product.IsSoldByWeight ? "kg" : "items";
+            var stockUnit = product.IsSoldByWeight ? "KGS" : "PCS";
             ShowNotification($"⚠️ Only {product.Stock} {stockUnit} in stock", isError: true);
             QuickQuantityText = product.Stock.ToString();
             return;
@@ -350,7 +360,7 @@ public class ShopViewModel : INotifyPropertyChanged
         }
 
         // Success - show brief success message
-        var successUnit = product.IsSoldByWeight ? "kg" : "pcs";
+        var successUnit = product.IsSoldByWeight ? "KGS" : "PCS";
         ShowNotification($"✅ Added {quantity} {successUnit} {product.Name}", isError: false);
 
         // Clear search but keep quantity for next item
@@ -427,7 +437,7 @@ public class ShopViewModel : INotifyPropertyChanged
 
         if (product.Quantity > product.Stock)
         {
-            var unit = product.IsSoldByWeight ? "kg" : "items";
+            var unit = product.IsSoldByWeight ? "KGS" : "PCS";
             await Application.Current.MainPage.DisplayAlert("Error", $"Only {product.Stock} {unit} available in stock", "OK");
             product.Quantity = product.Stock;
             return;
@@ -483,8 +493,27 @@ public class ShopViewModel : INotifyPropertyChanged
             if (order != null)
             {
                 var orderPlaced = _localizationService.GetString("OrderPlaced");
-                await Application.Current.MainPage.DisplayAlert("Success",
-                    string.Format(orderPlaced, order.Id, order.UserName, order.Total), ok);
+                var printReceipt = "🖨️ Print Receipt";
+                var openDrawer = _localizationService.GetString("OpenCashDrawer");
+                var cancel = _localizationService.GetString("Cancel");
+                
+                var action = await Application.Current.MainPage.DisplayActionSheet(
+                    "Success",
+                    cancel,
+                    null,
+                    printReceipt,
+                    openDrawer,
+                    ok);
+                
+                if (action == printReceipt)
+                {
+                    await PrintReceiptAsync(order);
+                }
+                else if (action == openDrawer)
+                {
+                    await OpenDrawer();
+                }
+                
                 await RefreshProductsAsync();
             }
         }
@@ -501,6 +530,62 @@ public class ShopViewModel : INotifyPropertyChanged
         FilterProducts();
         
         OnPropertyChanged(nameof(Products));
+    }
+
+    private async Task PrintReceiptAsync(Order order)
+    {
+        if (order == null) return;
+
+        try
+        {
+            // Get order items
+            var orderItems = await _databaseService.GetOrderItemsAsync(order.Id);
+            if (orderItems == null || orderItems.Count == 0)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", "No items found in order", "OK");
+                return;
+            }
+
+            // Build receipt text
+            var receipt = new StringBuilder();
+            receipt.AppendLine("═══════════════════════════");
+            receipt.AppendLine("      SWEET SHOP RECEIPT");
+            receipt.AppendLine("═══════════════════════════");
+            receipt.AppendLine();
+            receipt.AppendLine($"Order #: {order.Id}");
+            receipt.AppendLine($"Date: {order.OrderDate:yyyy-MM-dd HH:mm:ss}");
+            receipt.AppendLine($"Cashier: {order.UserName}");
+            receipt.AppendLine();
+            receipt.AppendLine("───────────────────────────");
+            receipt.AppendLine("ITEMS:");
+            receipt.AppendLine("───────────────────────────");
+            
+            foreach (var item in orderItems)
+            {
+                receipt.AppendLine($"{item.Emoji} {item.Name}");
+                receipt.AppendLine($"  {item.Quantity:F2} {item.UnitLabel} × ${item.Price:F2} = ${item.ItemTotal:F2}");
+            }
+            
+            receipt.AppendLine("───────────────────────────");
+            receipt.AppendLine($"TOTAL: ${order.Total:F2}");
+            receipt.AppendLine("═══════════════════════════");
+            receipt.AppendLine();
+            receipt.AppendLine("Thank you for your purchase!");
+            receipt.AppendLine("═══════════════════════════");
+
+            // Print the receipt
+            var success = await _printService.PrintReceiptAsync(receipt.ToString(), $"Receipt - Order #{order.Id}");
+            if (!success)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", 
+                    "Failed to open print dialog. Please try again.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Application.Current.MainPage.DisplayAlert("Error", 
+                $"Failed to print receipt: {ex.Message}", "OK");
+        }
     }
 
     private async void Restock(Product product)
@@ -521,7 +606,7 @@ public class ShopViewModel : INotifyPropertyChanged
             "0",
             keyboard: Microsoft.Maui.Keyboard.Numeric);
 
-        if (string.IsNullOrWhiteSpace(result) || !decimal.TryParse(result, out decimal quantity) || quantity <= 0)
+        if (string.IsNullOrWhiteSpace(result) || !decimal.TryParse(result, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal quantity) || quantity <= 0)
             return;
 
         var success = await _databaseService.UpdateProductStockAsync(product.Id, quantity);
@@ -650,6 +735,24 @@ public class ShopViewModel : INotifyPropertyChanged
         if (adminPage != null)
         {
             await Shell.Current.Navigation.PushAsync(adminPage);
+        }
+    }
+
+    private async Task OpenDrawer()
+    {
+        try
+        {
+            var success = await _cashDrawerService.OpenDrawerAsync();
+            if (!success)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", 
+                    "Failed to open cash drawer. Please check your printer connection.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Application.Current.MainPage.DisplayAlert("Error", 
+                $"Failed to open cash drawer: {ex.Message}", "OK");
         }
     }
 

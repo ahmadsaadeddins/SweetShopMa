@@ -6,7 +6,13 @@
     xmlns:local="clr-namespace:SweetShopMa.Views"
     FlyoutBehavior="Disabled">
 
-    <!-- Single page - no tabs -->
+    <!-- Login page as initial route -->
+    <ShellContent 
+        Title="Login" 
+        ContentTemplate="{DataTemplate local:LoginPage}" 
+        Route="login" />
+    
+    <!-- Shop page -->
     <ShellContent 
         Title="Shop" 
         ContentTemplate="{DataTemplate local:MainPage}" 

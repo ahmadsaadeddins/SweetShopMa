@@ -52,6 +52,8 @@ public partial class AdminPage : ContentPage
         Title = _localizationService.GetString("AdministratorPanel");
         if (AdminPanelTitleLabel != null)
             AdminPanelTitleLabel.Text = _localizationService.GetString("AdministratorPanel");
+        if (AdminBackButton != null)
+            AdminBackButton.Text = _localizationService.GetString("BackButton");
         if (DatabaseInfoLabel != null)
             DatabaseInfoLabel.Text = _localizationService.GetString("DatabaseInformation");
         if (CreateUserLabel != null)
@@ -96,6 +98,17 @@ public partial class AdminPage : ContentPage
         var currentLang = _localizationService.CurrentLanguage;
         var newLang = currentLang == "en" ? "ar" : "en";
         _localizationService.SetLanguage(newLang);
+    }
+
+    private async void OnBackButtonClicked(object sender, EventArgs e)
+    {
+        if (Navigation?.NavigationStack?.Count > 1)
+        {
+            await Navigation.PopAsync();
+            return;
+        }
+
+        await Shell.Current.GoToAsync("..");
     }
 }
 

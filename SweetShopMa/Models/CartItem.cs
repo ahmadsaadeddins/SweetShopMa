@@ -46,9 +46,9 @@ public class CartItem : INotifyPropertyChanged
     public decimal ItemTotal => Price * Quantity;
 
     /// <summary>
-    /// Unit label for display ("kg" for weight-based, "pcs" for unit-based)
+    /// Unit label for display ("KGS" for weight-based, "PCS" for unit-based)
     /// </summary>
-    public string UnitLabel => IsSoldByWeight ? "kg" : "pcs";
+    public string UnitLabel => IsSoldByWeight ? "KGS" : "PCS";
 
     public CartItem() { }
 

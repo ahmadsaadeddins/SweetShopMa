@@ -68,6 +68,8 @@ public partial class MainPage : ContentPage
             TotalLabel.Text = _localizationService.GetString("Total") + ":";
         if (CheckoutButton != null)
             CheckoutButton.Text = _localizationService.GetString("Checkout");
+        if (OpenDrawerButton != null)
+            OpenDrawerButton.Text = _localizationService.GetString("OpenDrawer");
         
         // Update LoggedInAs label
         if (LoggedInAsLabel != null && BindingContext is ShopViewModel vm)
@@ -184,12 +186,7 @@ public partial class MainPage : ContentPage
             if (!viewModel.IsAuthenticated)
             {
                 // User not logged in, navigate to login
-                // LoginPage will seed the database when it appears
-                if (authService != null && databaseService != null && _localizationService != null)
-                {
-                    var loginPage = new Views.LoginPage(authService, databaseService, _localizationService);
-                    await Shell.Current.Navigation.PushAsync(loginPage);
-                }
+                await Shell.Current.GoToAsync("//login");
                 return;
             }
             

@@ -118,6 +118,12 @@
   <data name="Checkout" xml:space="preserve">
     <value>💳 الدفع</value>
   </data>
+  <data name="OpenDrawer" xml:space="preserve">
+    <value>💰 فتح الدرج</value>
+  </data>
+  <data name="OpenCashDrawer" xml:space="preserve">
+    <value>💰 فتح درج النقد</value>
+  </data>
   <data name="Products" xml:space="preserve">
     <value>المنتجات</value>
   </data>
@@ -261,6 +267,21 @@
   </data>
   <data name="OpenAttendanceTracker" xml:space="preserve">
     <value>فتح متتبع الحضور</value>
+  </data>
+  <data name="BackButton" xml:space="preserve">
+    <value>رجوع</value>
+  </data>
+  <data name="RecordAttendanceButton" xml:space="preserve">
+    <value>تسجيل الحضور</value>
+  </data>
+  <data name="MonthlyAttendanceSummary" xml:space="preserve">
+    <value>ملخص الحضور الشهري</value>
+  </data>
+  <data name="MonthLabel" xml:space="preserve">
+    <value>الشهر:</value>
+  </data>
+  <data name="AttendanceCalendar" xml:space="preserve">
+    <value>تقويم الحضور</value>
   </data>
   <data name="Employee" xml:space="preserve">
     <value>الموظف</value>

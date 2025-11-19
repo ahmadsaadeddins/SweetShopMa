@@ -7,23 +7,33 @@
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
 
-            <!-- Language Selector -->
-            <HorizontalStackLayout HorizontalOptions="End" Spacing="5" Margin="0,0,0,10">
-                <Button Text="EN" 
-                        BackgroundColor="#1d7480"
-                        TextColor="White"
-                        Padding="8,5"
-                        CornerRadius="4"
-                        FontSize="10"
-                        Clicked="OnLanguageButtonClicked"/>
-                <Button Text="AR" 
-                        BackgroundColor="#1d7480"
-                        TextColor="White"
-                        Padding="8,5"
-                        CornerRadius="4"
-                        FontSize="10"
-                        Clicked="OnLanguageButtonClicked"/>
-            </HorizontalStackLayout>
+            <!-- Navigation + Language Selector -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Button x:Name="AttendanceBackButton"
+                        Text="Back"
+                        BackgroundColor="#f0f4f7"
+                        TextColor="#1d7480"
+                        Padding="10,6"
+                        CornerRadius="6"
+                        Clicked="OnBackButtonClicked"
+                        HorizontalOptions="Start"/>
+                <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                    <Button Text="EN" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                    <Button Text="AR" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                </HorizontalStackLayout>
+            </Grid>
 
             <Label x:Name="AttendanceTrackerTitleLabel" Text="Attendance Tracker"
                    FontSize="24"
@@ -71,7 +81,8 @@
                             </DataTrigger>
                         </Label.Triggers>
                     </Label>
-                    <Button Text="Record Attendance"
+                    <Button x:Name="RecordAttendanceButton"
+                            Text="Record Attendance"
                             BackgroundColor="#1d7480"
                             TextColor="White"
                             Command="{Binding AddAttendanceCommand}"/>
@@ -150,9 +161,9 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="MonthlySummaryLabel" Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Label Text="Month:" VerticalOptions="Center"/>
+                <Label x:Name="MonthLabel" Text="Month:" VerticalOptions="Center"/>
                 <DatePicker Grid.Column="1"
                             Date="{Binding SummaryMonth}"
                             Format="MMM yyyy"/>
@@ -194,7 +205,7 @@
                 </VerticalStackLayout>
             </Grid>
 
-            <Label Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
+            <Label x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
             <Grid ColumnDefinitions="*,*,*,*,*,*,*" HorizontalOptions="Fill">
                 <Label Text="Sun" HorizontalTextAlignment="Center" />
                 <Label Text="Mon" Grid.Column="1" HorizontalTextAlignment="Center" />
