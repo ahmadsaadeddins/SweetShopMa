@@ -39,8 +39,8 @@
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
 
-            <!-- Database Info -->
-            <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f8ff">
+            <!-- Database Info - Hidden -->
+            <!-- <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f8ff" IsVisible="False">
                 <VerticalStackLayout Spacing="8">
                     <Label x:Name="DatabaseInfoLabel" Text="📁 Database Information" FontSize="14" FontAttributes="Bold" TextColor="#1d7480"/>
                     <Label Text="{Binding DatabasePath, StringFormat='Path: {0}'}" 
@@ -52,36 +52,28 @@
                            TextColor="#666"
                            LineBreakMode="TailTruncation"/>
                 </VerticalStackLayout>
-            </Border>
+            </Border> -->
 
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
+            <!-- User Management Section (Only for Developer/Admin) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9"
+                    IsVisible="{Binding CanManageUsers}">
                 <VerticalStackLayout Spacing="10">
-                    <Label x:Name="CreateUserLabel" Text="Create New User" FontSize="18" FontAttributes="Bold"/>
-                    <Entry x:Name="FullNameEntry" Placeholder="Full name"
-                           Text="{Binding NewUserName}"
-                           Keyboard="Default"/>
-                    <Entry x:Name="UsernameEntry" Placeholder="Username"
-                           Text="{Binding NewUserUsername}"
-                           Keyboard="Default"/>
-                    <Entry x:Name="PasswordEntry" Placeholder="Password"
-                           Text="{Binding NewUserPassword}"
-                           IsPassword="True"/>
-                    <Entry x:Name="SalaryEntry" Placeholder="Monthly Salary"
-                           Keyboard="Numeric"
-                           Text="{Binding NewUserSalary}"/>
-                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                        <Label x:Name="GrantAdminLabel" Text="Grant admin access?" VerticalOptions="Center"/>
-                        <Switch IsToggled="{Binding NewUserIsAdmin}"/>
-                    </HorizontalStackLayout>
-                    <Button x:Name="AddUserButton" Text="Add User"
+                    <Label x:Name="CreateUserLabel" Text="User Management" FontSize="18" FontAttributes="Bold"/>
+                    <Button x:Name="CreateUserButton" Text="👤 Create New User" 
                             BackgroundColor="#1d7480"
                             TextColor="White"
-                            Command="{Binding AddUserCommand}"/>
+                            Padding="12"
+                            CornerRadius="6"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            Clicked="OnCreateUserClicked"/>
                 </VerticalStackLayout>
             </Border>
 
-            <Label x:Name="ExistingUsersLabel" Text="Existing Users" FontSize="16" FontAttributes="Bold"/>
-            <CollectionView ItemsSource="{Binding Users}" HeightRequest="200">
+            <Label x:Name="ExistingUsersLabel" Text="Existing Users" FontSize="16" FontAttributes="Bold"
+                   IsVisible="{Binding CanManageUsers}"/>
+            <CollectionView ItemsSource="{Binding Users}" HeightRequest="200"
+                           IsVisible="{Binding CanManageUsers}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Padding="8">
@@ -134,47 +126,44 @@
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Total Sales" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="TotalSalesLabel" Text="Total Sales" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Orders" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="OrdersLabel" Text="Orders" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalOrders}" FontSize="20" FontAttributes="Bold"/>
-                        <Label Text="{Binding AverageOrderValue, StringFormat='Avg: ${0:F2}'}" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="AverageOrderValueLabel" Text="{Binding AverageOrderValueDisplay}" FontSize="12" TextColor="#666"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Items Sold" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="ItemsSoldLabel" Text="Items Sold" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalItemsSold, StringFormat='{0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Last 7 Days" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="Last7DaysLabel" Text="Last 7 Days" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding Last7DaysSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Top Product" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="TopProductLabel" Text="Top Product" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TopProductName}" FontSize="16" FontAttributes="Bold"/>
                         <Label Text="{Binding TopProductDetails}" FontSize="12" TextColor="#666"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label Text="Report Status" FontSize="12" TextColor="#666"/>
-                        <Label FontSize="16" FontAttributes="Bold" TextColor="#1f7a4d" Text="Data ready">
-                            <Label.Triggers>
-                                <DataTrigger TargetType="Label" Binding="{Binding HasReportData}" Value="False">
-                                    <Setter Property="Text" Value="No data yet"/>
-                                    <Setter Property="TextColor" Value="#c00000"/>
-                                </DataTrigger>
-                            </Label.Triggers>
-                        </Label>
+                        <Label x:Name="ReportStatusLabel" Text="Report Status" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="ReportStatusValueLabel" 
+                               FontSize="16" 
+                               FontAttributes="Bold" 
+                               Text="{Binding ReportStatusText}"
+                               TextColor="{Binding ReportStatusTextColor}"/>
                     </VerticalStackLayout>
                 </Border>
             </Grid>
@@ -228,11 +217,27 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Label x:Name="AttendanceTrackerLabel" Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"/>
+            <!-- Attendance Tracker Section (Only if enabled and user has permission) -->
+            <Label x:Name="AttendanceTrackerLabel" Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"
+                   IsVisible="{Binding CanUseAttendanceTracker}"/>
             <Button x:Name="OpenAttendanceButton" Text="Open Attendance Tracker"
                     BackgroundColor="#1d7480"
                     TextColor="White"
-                    Command="{Binding OpenAttendancePageCommand}"/>
+                    Command="{Binding OpenAttendancePageCommand}"
+                    IsVisible="{Binding CanUseAttendanceTracker}"/>
+
+            <!-- Restock Report Section -->
+            <Label x:Name="RestockReportLabel" Text="Restock Report" FontSize="16" FontAttributes="Bold"
+                   IsVisible="{Binding CanManageStock}"/>
+            <Button x:Name="OpenRestockReportButton" Text="📦 View Restock Report"
+                    BackgroundColor="#32b8c6"
+                    TextColor="White"
+                    Padding="12"
+                    CornerRadius="6"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    Clicked="OnOpenRestockReportClicked"
+                    IsVisible="{Binding CanManageStock}"/>
 
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
@@ -255,7 +260,8 @@
                         <Label Text="Sold by weight?" VerticalOptions="Center"/>
                         <Switch IsToggled="{Binding NewProductIsWeight}"/>
                     </HorizontalStackLayout>
-                    <Button Text="Add Product"
+                    <Button x:Name="AddProductButton"
+                            Text="Add Product"
                             BackgroundColor="#32b8c6"
                             TextColor="White"
                             Command="{Binding AddProductCommand}"/>

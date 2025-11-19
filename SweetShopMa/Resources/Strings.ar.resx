@@ -259,6 +259,9 @@
   <data name="TopProducts" xml:space="preserve">
     <value>أفضل المنتجات</value>
   </data>
+  <data name="Average" xml:space="preserve">
+    <value>المتوسط:</value>
+  </data>
   <data name="RecentOrders" xml:space="preserve">
     <value>الطلبات الأخيرة</value>
   </data>
@@ -330,6 +333,90 @@
   </data>
   <data name="User" xml:space="preserve">
     <value>مستخدم</value>
+  </data>
+  <data name="EnterFullName" xml:space="preserve">
+    <value>أدخل الاسم الكامل</value>
+  </data>
+  <data name="EnterUsername" xml:space="preserve">
+    <value>أدخل اسم المستخدم</value>
+  </data>
+  <data name="EnterPassword" xml:space="preserve">
+    <value>أدخل كلمة المرور</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>تأكيد كلمة المرور</value>
+  </data>
+  <data name="EnterConfirmPassword" xml:space="preserve">
+    <value>تأكيد كلمة المرور</value>
+  </data>
+  <data name="EnterMonthlySalary" xml:space="preserve">
+    <value>أدخل الراتب الشهري</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>الدور</value>
+  </data>
+  <data name="Moderator" xml:space="preserve">
+    <value>مشرف</value>
+  </data>
+  <data name="PleaseEnterName" xml:space="preserve">
+    <value>يرجى إدخال الاسم</value>
+  </data>
+  <data name="PleaseEnterUsername" xml:space="preserve">
+    <value>يرجى إدخال اسم المستخدم</value>
+  </data>
+  <data name="PleaseEnterPassword" xml:space="preserve">
+    <value>يرجى إدخال كلمة المرور</value>
+  </data>
+  <data name="PasswordMustBe4Chars" xml:space="preserve">
+    <value>يجب أن تكون كلمة المرور 4 أحرف على الأقل</value>
+  </data>
+  <data name="PasswordsDoNotMatch" xml:space="preserve">
+    <value>كلمات المرور غير متطابقة</value>
+  </data>
+  <data name="PleaseEnterValidSalary" xml:space="preserve">
+    <value>يرجى إدخال راتب صالح</value>
+  </data>
+  <data name="UserCreatedSuccessfully" xml:space="preserve">
+    <value>تم إنشاء المستخدم '{0}' بنجاح!</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>إدارة المستخدمين</value>
+  </data>
+  <data name="RestockProduct" xml:space="preserve">
+    <value>إعادة تخزين المنتج</value>
+  </data>
+  <data name="EnterQuantityToAdd" xml:space="preserve">
+    <value>أدخل الكمية المضافة إلى {0}:&#10;المخزون الحالي: {1}</value>
+  </data>
+  <data name="YouDontHavePermissionToRestock" xml:space="preserve">
+    <value>ليس لديك صلاحية لإعادة تخزين المنتجات.</value>
+  </data>
+  <data name="AddedItemsToProduct" xml:space="preserve">
+    <value>تمت إضافة {0} عنصر إلى {1}&#10;المخزون الجديد: {2}</value>
+  </data>
+  <data name="FailedToRestockProduct" xml:space="preserve">
+    <value>فشلت إعادة تخزين المنتج</value>
+  </data>
+  <data name="RestockReport" xml:space="preserve">
+    <value>تقرير إعادة التخزين</value>
+  </data>
+  <data name="ViewRestockReport" xml:space="preserve">
+    <value>📦 عرض تقرير إعادة التخزين</value>
+  </data>
+  <data name="Quantity" xml:space="preserve">
+    <value>الكمية</value>
+  </data>
+  <data name="Before" xml:space="preserve">
+    <value>قبل</value>
+  </data>
+  <data name="After" xml:space="preserve">
+    <value>بعد</value>
+  </data>
+  <data name="RestockedBy" xml:space="preserve">
+    <value>تم إعادة التخزين بواسطة</value>
+  </data>
+  <data name="NoRestockRecordsFound" xml:space="preserve">
+    <value>لم يتم العثور على سجلات إعادة التخزين</value>
   </data>
   <data name="OnlyAdminsCanAddProducts" xml:space="preserve">
     <value>⚠️ فقط المديرون يمكنهم إضافة المنتجات.</value>

@@ -38,8 +38,11 @@ public static class MauiProgram
             .AddSingleton<AdminViewModel>()
             .AddSingleton<Views.MainPage>()
             .AddTransient<Views.LoginPage>()  // Transient so we can create new instances
+            .AddTransient<Views.DeveloperSetupPage>()  // Transient for developer setup
             .AddTransient<Views.AdminPage>()
-            .AddTransient<Views.AttendancePage>();
+            .AddTransient<Views.AttendancePage>()
+            .AddTransient<ViewModels.RestockReportViewModel>()
+            .AddTransient<Views.RestockReportPage>();
 
         builder.ConfigureLifecycleEvents(events =>
         {

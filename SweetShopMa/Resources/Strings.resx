@@ -104,7 +104,7 @@
     <value>📦 Quantity</value>
   </data>
   <data name="Add" xml:space="preserve">
-    <value>➕ إضافة</value>
+    <value>➕ Add</value>
   </data>
   <data name="Stock" xml:space="preserve">
     <value>Stock: {0} {1}</value>
@@ -176,7 +176,7 @@
     <value>Disable</value>
   </data>
   <data name="AddProduct" xml:space="preserve">
-    <value>إضافة منتج</value>
+    <value>Add Product</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Name</value>
@@ -258,6 +258,9 @@
   </data>
   <data name="TopProducts" xml:space="preserve">
     <value>Top Products</value>
+  </data>
+  <data name="Average" xml:space="preserve">
+    <value>Avg:</value>
   </data>
   <data name="RecentOrders" xml:space="preserve">
     <value>Recent Orders</value>
@@ -357,6 +360,90 @@
   </data>
   <data name="UserStatusChanged" xml:space="preserve">
     <value>✅ {0} {1}.</value>
+  </data>
+  <data name="EnterFullName" xml:space="preserve">
+    <value>Enter full name</value>
+  </data>
+  <data name="EnterUsername" xml:space="preserve">
+    <value>Enter username</value>
+  </data>
+  <data name="EnterPassword" xml:space="preserve">
+    <value>Enter password</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>Confirm Password</value>
+  </data>
+  <data name="EnterConfirmPassword" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="EnterMonthlySalary" xml:space="preserve">
+    <value>Enter monthly salary</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="Moderator" xml:space="preserve">
+    <value>Moderator</value>
+  </data>
+  <data name="PleaseEnterName" xml:space="preserve">
+    <value>Please enter a name</value>
+  </data>
+  <data name="PleaseEnterUsername" xml:space="preserve">
+    <value>Please enter a username</value>
+  </data>
+  <data name="PleaseEnterPassword" xml:space="preserve">
+    <value>Please enter a password</value>
+  </data>
+  <data name="PasswordMustBe4Chars" xml:space="preserve">
+    <value>Password must be at least 4 characters</value>
+  </data>
+  <data name="PasswordsDoNotMatch" xml:space="preserve">
+    <value>Passwords do not match</value>
+  </data>
+  <data name="PleaseEnterValidSalary" xml:space="preserve">
+    <value>Please enter a valid salary</value>
+  </data>
+  <data name="UserCreatedSuccessfully" xml:space="preserve">
+    <value>User '{0}' created successfully!</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>User Management</value>
+  </data>
+  <data name="RestockProduct" xml:space="preserve">
+    <value>Restock Product</value>
+  </data>
+  <data name="EnterQuantityToAdd" xml:space="preserve">
+    <value>Enter quantity to add to {0}:&#10;Current Stock: {1}</value>
+  </data>
+  <data name="YouDontHavePermissionToRestock" xml:space="preserve">
+    <value>You don't have permission to restock products.</value>
+  </data>
+  <data name="AddedItemsToProduct" xml:space="preserve">
+    <value>Added {0} items to {1}&#10;New Stock: {2}</value>
+  </data>
+  <data name="FailedToRestockProduct" xml:space="preserve">
+    <value>Failed to restock product</value>
+  </data>
+  <data name="RestockReport" xml:space="preserve">
+    <value>Restock Report</value>
+  </data>
+  <data name="ViewRestockReport" xml:space="preserve">
+    <value>📦 View Restock Report</value>
+  </data>
+  <data name="Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Before" xml:space="preserve">
+    <value>Before</value>
+  </data>
+  <data name="After" xml:space="preserve">
+    <value>After</value>
+  </data>
+  <data name="RestockedBy" xml:space="preserve">
+    <value>Restocked by</value>
+  </data>
+  <data name="NoRestockRecordsFound" xml:space="preserve">
+    <value>No restock records found</value>
   </data>
   <data name="Enabled" xml:space="preserve">
     <value>Enabled</value>

@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:SweetShopMa.Views"
     FlyoutBehavior="Disabled">
 
-    <!-- Login page as initial route -->
+    <!-- Login page (default route) -->
     <ShellContent 
         Title="Login" 
         ContentTemplate="{DataTemplate local:LoginPage}" 

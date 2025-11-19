@@ -4,10 +4,13 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
+using SweetShopMa.Views;
 
 namespace SweetShopMa.ViewModels;
 
@@ -43,6 +46,17 @@ public class ShopViewModel : INotifyPropertyChanged
         set { if (_isCheckoutEnabled != value) { _isCheckoutEnabled = value; OnPropertyChanged(); } }
     }
 
+    private bool _isPostCheckout = false; // Flag to prevent add command immediately after checkout
+    private bool _isHandlingError = false; // Flag to prevent focus changes during error handling
+    
+    public bool IsHandlingError => _isHandlingError; // Public property to check error handling state
+    public bool IsPostCheckout => _isPostCheckout; // Public property to check post-checkout state
+    
+    private void UpdateQuickAddCommandCanExecute()
+    {
+        (QuickAddCommand as Command)?.ChangeCanExecute();
+    }
+
     private bool _isAdmin;
     public bool IsAdmin
     {
@@ -53,10 +67,17 @@ public class ShopViewModel : INotifyPropertyChanged
             { 
                 _isAdmin = value; 
                 OnPropertyChanged(); 
-                OnPropertyChanged(nameof(IsAuthenticated)); 
+                OnPropertyChanged(nameof(IsAuthenticated));
+                OnPropertyChanged(nameof(CanRestock));
+                OnPropertyChanged(nameof(CanManageStock));
             } 
         }
     }
+    
+    // Permission properties
+    public bool CanRestock => _authService.CanRestock;
+    public bool CanManageStock => _authService.CanManageStock;
+    public bool CanAccessAdminPanel => _authService.CanManageUsers || _authService.CanManageStock;
 
     private string _currentUserName;
     public string CurrentUserName
@@ -106,13 +127,14 @@ public class ShopViewModel : INotifyPropertyChanged
                 _selectedQuickProduct = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSelectedProduct));
+                UpdateQuickAddCommandCanExecute();
                 
                 // When product is selected, set default quantity based on product type
-                // For weight-based products, leave empty for manual entry
+                // For weight-based products, default to 0.5 (500 grams)
                 // For unit products, default to 1
                 if (value != null)
                 {
-                    QuickQuantityText = value.IsSoldByWeight ? "" : "1";
+                    QuickQuantityText = value.IsSoldByWeight ? "0.5" : "1";
                 }
             }
         }
@@ -200,7 +222,7 @@ public class ShopViewModel : INotifyPropertyChanged
         RestockCommand = new Command<Product>(Restock);
         LoginCommand = new Command(Login);
         LogoutCommand = new Command(Logout);
-        QuickAddCommand = new Command(QuickAddToCart);
+        QuickAddCommand = new Command(QuickAddToCart, () => !_isPostCheckout && SelectedQuickProduct != null);
         OpenAdminPanelCommand = new Command(async () => await OpenAdminPanel());
         OpenDrawerCommand = new Command(async () => await OpenDrawer());
 
@@ -215,13 +237,31 @@ public class ShopViewModel : INotifyPropertyChanged
         await _databaseService.SeedProductsAsync();
 
         var products = await _databaseService.GetProductsAsync();
-        Products.Clear();
-        foreach (var product in products)
-            Products.Add(product);
+        
+        // Ensure ObservableCollection operations are on the main thread
+        if (MainThread.IsMainThread)
+        {
+            Products.Clear();
+            foreach (var product in products)
+                Products.Add(product);
 
-        FilteredProducts.Clear();
-        foreach (var product in products)
-            FilteredProducts.Add(product);
+            FilteredProducts.Clear();
+            foreach (var product in products)
+                FilteredProducts.Add(product);
+        }
+        else
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Products.Clear();
+                foreach (var product in products)
+                    Products.Add(product);
+
+                FilteredProducts.Clear();
+                foreach (var product in products)
+                    FilteredProducts.Add(product);
+            });
+        }
 
         await _cartService.InitializeAsync();
         UpdateCart();
@@ -229,6 +269,13 @@ public class ShopViewModel : INotifyPropertyChanged
 
     private void FilterProducts()
     {
+        // Ensure ObservableCollection operations are on the main thread
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(FilterProducts);
+            return;
+        }
+        
         FilteredProducts.Clear();
         if (string.IsNullOrWhiteSpace(QuickSearchText))
         {
@@ -320,18 +367,34 @@ public class ShopViewModel : INotifyPropertyChanged
 
     private async void QuickAddToCart()
     {
+        // If we just finished checkout, ignore this call (prevents error when Enter is pressed after checkout)
+        if (_isPostCheckout)
+        {
+            return;
+        }
+
         // Always clear notification first
         NotificationMessage = "";
 
         if (SelectedQuickProduct == null)
         {
-            ShowNotification("⚠️ Please select a product", isError: true);
+            // Set error handling flag to prevent other focus changes
+            _isHandlingError = true;
+            // Instead of showing error, focus barcode field immediately
+            await FocusBarcodeFieldImmediate();
+            // Clear flag after a short delay
+            _ = Task.Delay(200).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => _isHandlingError = false));
             return;
         }
 
         if (string.IsNullOrWhiteSpace(QuickQuantityText) || !decimal.TryParse(QuickQuantityText, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal quantity) || quantity <= 0)
         {
-            ShowNotification("⚠️ Please enter a valid quantity", isError: true);
+            // Set error handling flag to prevent other focus changes
+            _isHandlingError = true;
+            // Instead of showing error, focus barcode field immediately
+            await FocusBarcodeFieldImmediate();
+            // Clear flag after a short delay
+            _ = Task.Delay(200).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => _isHandlingError = false));
             return;
         }
 
@@ -341,21 +404,31 @@ public class ShopViewModel : INotifyPropertyChanged
         if (quantity > product.Stock)
         {
             var stockUnit = product.IsSoldByWeight ? "KGS" : "PCS";
-            ShowNotification($"⚠️ Only {product.Stock} {stockUnit} in stock", isError: true);
             QuickQuantityText = product.Stock.ToString();
+            // Set error handling flag to prevent other focus changes
+            _isHandlingError = true;
+            // Instead of showing error, focus barcode field immediately
+            await FocusBarcodeFieldImmediate();
+            // Clear flag after a short delay
+            _ = Task.Delay(200).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => _isHandlingError = false));
             return;
         }
 
         var success = await _cartService.AddToCartAsync(product, quantity);
         if (!success)
         {
-            ShowNotification("⚠️ Not enough stock available", isError: true);
             var updatedProduct = await _databaseService.GetProductAsync(product.Id);
             if (updatedProduct != null)
             {
                 product.Stock = updatedProduct.Stock;
                 OnPropertyChanged(nameof(Products));
             }
+            // Set error handling flag to prevent other focus changes
+            _isHandlingError = true;
+            // Instead of showing error, focus barcode field immediately
+            await FocusBarcodeFieldImmediate();
+            // Clear flag after a short delay
+            _ = Task.Delay(200).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => _isHandlingError = false));
             return;
         }
 
@@ -497,26 +570,115 @@ public class ShopViewModel : INotifyPropertyChanged
                 var openDrawer = _localizationService.GetString("OpenCashDrawer");
                 var cancel = _localizationService.GetString("Cancel");
                 
+                // Order: Open Drawer first, Print Receipt second
                 var action = await Application.Current.MainPage.DisplayActionSheet(
                     "Success",
                     cancel,
                     null,
-                    printReceipt,
                     openDrawer,
+                    printReceipt,
                     ok);
                 
-                if (action == printReceipt)
-                {
-                    await PrintReceiptAsync(order);
-                }
-                else if (action == openDrawer)
+                if (action == openDrawer)
                 {
                     await OpenDrawer();
+                    // After opening drawer, ensure barcode field is focused and post-checkout flag is set
+                    _isPostCheckout = true;
+                    UpdateQuickAddCommandCanExecute();
+                    OnPropertyChanged(nameof(IsPostCheckout));
+                    await FocusBarcodeFieldImmediate();
+                }
+                else if (action == printReceipt)
+                {
+                    await PrintReceiptAsync(order);
+                    // After printing, ensure barcode field is focused and post-checkout flag is set
+                    _isPostCheckout = true;
+                    UpdateQuickAddCommandCanExecute();
+                    OnPropertyChanged(nameof(IsPostCheckout));
+                    await FocusBarcodeFieldImmediate();
                 }
                 
                 await RefreshProductsAsync();
+                
+                // Clear the flag after a delay to allow normal operation
+                _ = Task.Delay(1000).ContinueWith(_ => 
+                {
+                    MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        _isPostCheckout = false;
+                        UpdateQuickAddCommandCanExecute();
+                        // Notify that post-checkout state changed so UI can update
+                        OnPropertyChanged(nameof(IsPostCheckout));
+                    });
+                });
             }
         }
+    }
+
+    private async Task FocusBarcodeFieldImmediate()
+    {
+        // Clear selection and search text to reset the quick sell interface
+        // Do this first to ensure state is cleared
+        QuickSearchText = "";
+        SelectedQuickProduct = null;
+        
+        // Use MainThread to ensure UI updates happen on the correct thread
+        // Use InvokeOnMainThreadAsync to ensure it completes before returning
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            // Try to get MainPage and focus the barcode field immediately
+            if (Application.Current?.MainPage is MainPage mainPage)
+            {
+                if (mainPage.FindByName("ProductSearchEntry") is Entry barcodeEntry)
+                {
+                    // Clear the text explicitly
+                    barcodeEntry.Text = "";
+                    // Unfocus quantity field if it has focus
+                    if (mainPage.FindByName("QuantityEntry") is Entry qtyEntry)
+                    {
+                        if (qtyEntry.IsFocused)
+                        {
+                            qtyEntry.Unfocus();
+                        }
+                    }
+                    // Now focus barcode field immediately
+                    barcodeEntry.Focus();
+                }
+            }
+        });
+    }
+
+    private async Task FocusBarcodeField()
+    {
+        // Clear selection and search text to reset the quick sell interface
+        // Do this first to ensure state is cleared
+        QuickSearchText = "";
+        SelectedQuickProduct = null;
+        
+        // Use MainThread to ensure UI updates happen on the correct thread
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            // Small delay to ensure any pending events are processed
+            await Task.Delay(100);
+            
+            // Try to get MainPage and focus the barcode field
+            if (Application.Current?.MainPage is MainPage mainPage)
+            {
+                if (mainPage.FindByName("ProductSearchEntry") is Entry barcodeEntry)
+                {
+                    // Clear the text explicitly
+                    barcodeEntry.Text = "";
+                    // Unfocus quantity field if it has focus
+                    if (mainPage.FindByName("QuantityEntry") is Entry qtyEntry && qtyEntry.IsFocused)
+                    {
+                        qtyEntry.Unfocus();
+                        await Task.Delay(50);
+                    }
+                    // Now focus barcode field
+                    barcodeEntry.Focus();
+                }
+            }
+        });
     }
 
     private async Task RefreshProductsAsync()
@@ -591,38 +753,67 @@ public class ShopViewModel : INotifyPropertyChanged
     private async void Restock(Product product)
     {
         if (product == null) return;
-        if (!_authService.IsAdmin)
+        if (!_authService.CanRestock)
         {
-            await Application.Current.MainPage.DisplayAlert("Access Denied",
-                "Only administrators can restock products. Please login as admin.", "OK");
+            await Application.Current.MainPage.DisplayAlert(
+                _localizationService.GetString("AccessDenied"),
+                _localizationService.GetString("YouDontHavePermissionToRestock"), 
+                _localizationService.GetString("OK"));
             return;
         }
 
+        var message = string.Format(_localizationService.GetString("EnterQuantityToAdd"), product.Name, product.Stock)
+            .Replace("\\n", Environment.NewLine)
+            .Replace("&#10;", Environment.NewLine);
         string result = await Application.Current.MainPage.DisplayPromptAsync(
-            "Restock Product",
-            $"Enter quantity to add to {product.Name}:\nCurrent Stock: {product.Stock}",
-            "Add",
-            "Cancel",
+            _localizationService.GetString("RestockProduct"),
+            message,
+            _localizationService.GetString("Add"),
+            _localizationService.GetString("Cancel"),
             "0",
             keyboard: Microsoft.Maui.Keyboard.Numeric);
 
         if (string.IsNullOrWhiteSpace(result) || !decimal.TryParse(result, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal quantity) || quantity <= 0)
             return;
 
+        var stockBefore = product.Stock;
         var success = await _databaseService.UpdateProductStockAsync(product.Id, quantity);
         if (success)
         {
             var updatedProduct = await _databaseService.GetProductAsync(product.Id);
             var newStock = updatedProduct?.Stock ?? (product.Stock + quantity);
 
-            await Application.Current.MainPage.DisplayAlert("Success",
-                $"Added {quantity} items to {product.Name}\nNew Stock: {newStock}", "OK");
+            // Create restock record
+            var restockRecord = new RestockRecord
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                ProductEmoji = product.Emoji,
+                QuantityAdded = quantity,
+                StockBefore = stockBefore,
+                StockAfter = newStock,
+                UserId = _authService.CurrentUser?.Id ?? 0,
+                UserName = _authService.CurrentUser?.Name ?? "Unknown",
+                RestockDate = DateTime.UtcNow
+            };
+            await _databaseService.CreateRestockRecordAsync(restockRecord);
+
+            var successMessage = string.Format(_localizationService.GetString("AddedItemsToProduct"), quantity, product.Name, newStock)
+                .Replace("\\n", Environment.NewLine)
+                .Replace("&#10;", Environment.NewLine);
+            await Application.Current.MainPage.DisplayAlert(
+                _localizationService.GetString("Success"),
+                successMessage, 
+                _localizationService.GetString("OK"));
 
             await RefreshProductsAsync();
         }
         else
         {
-            await Application.Current.MainPage.DisplayAlert("Error", "Failed to restock product", "OK");
+            await Application.Current.MainPage.DisplayAlert(
+                _localizationService.GetString("Error"), 
+                _localizationService.GetString("FailedToRestockProduct"), 
+                _localizationService.GetString("OK"));
         }
     }
 
@@ -682,6 +873,9 @@ public class ShopViewModel : INotifyPropertyChanged
         IsAdmin = _authService.IsAdmin;
         CurrentUserName = _authService.CurrentUser?.Name ?? "";
         OnPropertyChanged(nameof(IsAdmin));
+        OnPropertyChanged(nameof(CanRestock));
+        OnPropertyChanged(nameof(CanManageStock));
+        OnPropertyChanged(nameof(CanAccessAdminPanel));
         OnPropertyChanged(nameof(CurrentUserName));
         OnPropertyChanged(nameof(IsAuthenticated));
     }
@@ -693,6 +887,13 @@ public class ShopViewModel : INotifyPropertyChanged
     private void UpdateCart()
     {
         var currentItems = _cartService.GetCartItems();
+        
+        // Ensure ObservableCollection operations are on the main thread
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateCart);
+            return;
+        }
         
         // Sync CartItems collection with cart service items
         // Only update if items have changed (not just quantity updates)
@@ -722,7 +923,7 @@ public class ShopViewModel : INotifyPropertyChanged
 
     private async Task OpenAdminPanel()
     {
-        if (!_authService.IsAdmin)
+        if (!CanAccessAdminPanel)
         {
             var accessDenied = _localizationService.GetString("AccessDenied");
             var onlyAdmins = _localizationService.GetString("OnlyAdminsCanOpenAdminPanel");

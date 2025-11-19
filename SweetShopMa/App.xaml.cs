@@ -14,11 +14,12 @@ public partial class App : Application
         MainPage = new AppShell();
         
         // Navigate to login page on startup
+        // LoginPage will handle seeding users and products
         if (MainPage is AppShell shell)
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(100); // Small delay to ensure Shell is ready
+                await Task.Delay(200); // Small delay to ensure Shell is ready
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await shell.GoToAsync("//login");

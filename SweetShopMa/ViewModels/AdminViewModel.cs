@@ -100,7 +100,12 @@ public class AdminViewModel : INotifyPropertyChanged
         OpenAttendancePageCommand = new Command(async () => await OpenAttendancePage());
 
         _authService.OnUserChanged += _ => OnPropertyChanged(nameof(IsAuthorized));
-        TopProducts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasReportData));
+        TopProducts.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasReportData));
+            OnPropertyChanged(nameof(ReportStatusText));
+            OnPropertyChanged(nameof(ReportStatusTextColor));
+        };
 
         UpdateAttendancePreview();
     }
@@ -170,7 +175,12 @@ public class AdminViewModel : INotifyPropertyChanged
         SelectedMonthlySummary = MonthlyAttendanceSummaries.FirstOrDefault();
     }
 
-    public bool IsAuthorized => _authService.IsAdmin;
+    // Permission properties
+    public bool IsAuthorized => _authService.CanManageUsers || _authService.CanManageStock;
+    public bool CanManageUsers => _authService.CanManageUsers;
+    public bool CanUseAttendanceTracker => _authService.CanUseAttendanceTracker && Services.FeatureFlags.IsAttendanceTrackerEnabled;
+    public bool CanManageStock => _authService.CanManageStock;
+    public bool IsDeveloper => _authService.IsDeveloper;
 
     public string DatabasePath => DatabaseService.DatabasePath;
     public string AppDataDirectory => DatabaseService.AppDataDirectory;
@@ -232,6 +242,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 _totalSales = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasReportData));
+                OnPropertyChanged(nameof(ReportStatusText));
+                OnPropertyChanged(nameof(ReportStatusTextColor));
             }
         }
     }
@@ -246,6 +258,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 _totalOrders = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasReportData));
+                OnPropertyChanged(nameof(ReportStatusText));
+                OnPropertyChanged(nameof(ReportStatusTextColor));
             }
         }
     }
@@ -259,7 +273,17 @@ public class AdminViewModel : INotifyPropertyChanged
             {
                 _averageOrderValue = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(AverageOrderValueDisplay));
             }
+        }
+    }
+
+    public string AverageOrderValueDisplay
+    {
+        get
+        {
+            var avgText = _localizationService.GetString("Average");
+            return $"{avgText} ${_averageOrderValue:F2}";
         }
     }
 
@@ -315,7 +339,19 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool HasReportData => TotalOrders > 0 || TopProducts.Count > 0;
+    public bool HasReportData => TotalSales > 0 || TotalOrders > 0 || TopProducts.Any();
+
+    public string ReportStatusText
+    {
+        get
+        {
+            return HasReportData 
+                ? _localizationService.GetString("DataReady") 
+                : _localizationService.GetString("NoDataYet");
+        }
+    }
+
+    public string ReportStatusTextColor => HasReportData ? "#1f7a4d" : "#c00000";
 
     public IEnumerable<string> AttendanceStatuses => _attendanceStatuses;
 
@@ -533,6 +569,13 @@ public class AdminViewModel : INotifyPropertyChanged
         await LoadAttendanceAsync();
     }
 
+    public void RefreshLocalizedProperties()
+    {
+        OnPropertyChanged(nameof(AverageOrderValueDisplay));
+        OnPropertyChanged(nameof(ReportStatusText));
+        OnPropertyChanged(nameof(ReportStatusTextColor));
+    }
+
     private async Task LoadUsersAsync()
     {
         IsBusy = true;
@@ -540,7 +583,8 @@ public class AdminViewModel : INotifyPropertyChanged
         {
             var users = await _databaseService.GetUsersAsync();
             Users.Clear();
-            foreach (var user in users)
+            // Filter out Developer users - they should not appear in the list
+            foreach (var user in users.Where(u => !u.IsDeveloper))
                 Users.Add(user);
         }
         finally
@@ -754,6 +798,12 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task OpenAttendancePage()
     {
+        if (!CanUseAttendanceTracker)
+        {
+            ShowStatus("You don't have permission to use the attendance tracker.", true);
+            return;
+        }
+        
         var attendancePage = _serviceProvider.GetService<Views.AttendancePage>();
         if (attendancePage != null)
         {
@@ -764,9 +814,9 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task AddUserAsync()
     {
-        if (!IsAuthorized)
+        if (!CanManageUsers)
         {
-            ShowStatus(_localizationService.GetString("OnlyAdminsCanAddUsers"), true);
+            ShowStatus("You don't have permission to manage users.", true);
             return;
         }
 
@@ -799,12 +849,20 @@ public class AdminViewModel : INotifyPropertyChanged
                 return;
             }
 
+            // Determine role based on selection
+            string selectedRole = "User"; // Default
+            if (NewUserIsAdmin)
+            {
+                selectedRole = "Admin";
+            }
+            // Note: Role picker would be better, but for now using the boolean
+            
             var user = new User
             {
                 Name = NewUserName.Trim(),
                 Username = NewUserUsername.Trim(),
                 Password = PasswordHelper.HashPassword(NewUserPassword.Trim()),
-                Role = NewUserIsAdmin ? "Admin" : "Customer",
+                Role = selectedRole,
                 MonthlySalary = salary
             };
 

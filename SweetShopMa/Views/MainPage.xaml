@@ -48,7 +48,7 @@
                     </Button>
                     <Button x:Name="AdminPanelButton" Text="⚙️ Admin Panel" BackgroundColor="#0f5c66" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
                             Command="{Binding OpenAdminPanelCommand}"
-                            IsVisible="{Binding IsAdmin}"/>
+                            IsVisible="{Binding CanAccessAdminPanel}"/>
                     <Button x:Name="LogoutButton" Text="🚪 Logout" BackgroundColor="#c00000" TextColor="White" Padding="10,8" CornerRadius="6" FontSize="12"
                             Command="{Binding LogoutCommand}">
                         <Button.Triggers>
@@ -73,6 +73,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -88,7 +89,7 @@
                          FontSize="14"
                          Keyboard="Default" 
                          BackgroundColor="White"
-                         ReturnType="Next"
+                         ReturnType="Done"
                          Completed="OnBarcodeEntryCompleted"
                          x:Name="ProductSearchEntry"/>
                 </StackLayout>
@@ -107,6 +108,7 @@
                            Keyboard="Numeric"
                            ReturnType="Done"
                            Completed="OnQuantityEntryCompleted"
+                           Focused="OnQuantityEntryFocused"
                            x:Name="QuantityEntry"/>
                 </StackLayout>
 
@@ -124,8 +126,24 @@
                             x:Name="QuickAddButton"/>
                 </StackLayout>
 
+                <!-- Quick Checkout Button (visible when cart has items) -->
+                <StackLayout Grid.Row="0" Grid.Column="3" Spacing="5" VerticalOptions="End">
+                    <Label Text=" " FontSize="12"/> <!-- Spacer for alignment -->
+                    <Button Text="💳 Checkout (F1)" 
+                            BackgroundColor="#4CAF50" 
+                            TextColor="White" 
+                            Padding="15,12" 
+                            CornerRadius="6" 
+                            FontSize="13" 
+                            FontAttributes="Bold"
+                            Command="{Binding CheckoutCommand}"
+                            IsEnabled="{Binding IsCheckoutEnabled}"
+                            IsVisible="{Binding IsCheckoutEnabled}"
+                            x:Name="QuickCheckoutButton"/>
+                </StackLayout>
+
                 <!-- Notification Message (subtle, non-blocking) -->
-                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
                        Text="{Binding NotificationMessage}"
                        FontSize="12"
                        FontAttributes="Bold"
@@ -309,7 +327,7 @@
                                         CornerRadius="4" Padding="2,4" FontSize="10" Margin="0,2,0,0"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RestockCommand}"
                                         CommandParameter="{Binding .}"
-                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.IsAdmin}"/>
+                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CanRestock}"/>
                             </Grid>
                         </Border>
                     </DataTemplate>

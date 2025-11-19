@@ -10,7 +10,18 @@ public class AuthService
 
     public User CurrentUser => _currentUser;
     public bool IsAuthenticated => _currentUser != null;
+    
+    // Role checks
+    public bool IsDeveloper => _currentUser?.IsDeveloper ?? false;
     public bool IsAdmin => _currentUser?.IsAdmin ?? false;
+    public bool IsModerator => _currentUser?.IsModerator ?? false;
+    public bool IsUser => _currentUser?.IsUser ?? false;
+    
+    // Permission checks
+    public bool CanManageUsers => _currentUser?.CanManageUsers ?? false;
+    public bool CanManageStock => _currentUser?.CanManageStock ?? false;
+    public bool CanUseAttendanceTracker => _currentUser?.CanUseAttendanceTracker ?? false;
+    public bool CanRestock => _currentUser?.CanRestock ?? false;
 
     public event Action<User> OnUserChanged;
 

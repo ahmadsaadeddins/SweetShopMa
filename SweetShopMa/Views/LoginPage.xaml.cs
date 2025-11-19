@@ -79,7 +79,7 @@ public partial class LoginPage : ContentPage
             LoadServices();
         }
         
-        // Seed database when login page appears to ensure users exist
+        // Seed products and users when login page appears (if not already seeded)
         if (_databaseService != null)
         {
             await _databaseService.SeedUsersAsync();
@@ -105,13 +105,20 @@ public partial class LoginPage : ContentPage
         if (_localizationService == null) return;
         
         Title = _localizationService.GetString("Login");
-        AppTitleLabel.Text = _localizationService.GetString("AppTitle");
-        SecureLoginLabel.Text = _localizationService.GetString("SecureLogin");
-        UsernameLabel.Text = _localizationService.GetString("Username");
-        PasswordLabel.Text = _localizationService.GetString("Password");
-        UsernameEntry.Placeholder = _localizationService.GetString("EnterUsername");
-        PasswordEntry.Placeholder = _localizationService.GetString("EnterPassword");
-        LoginButton.Text = _localizationService.GetString("LoginButton");
+        if (AppTitleLabel != null)
+            AppTitleLabel.Text = _localizationService.GetString("AppTitle");
+        if (SecureLoginLabel != null)
+            SecureLoginLabel.Text = _localizationService.GetString("SecureLogin");
+        if (UsernameLabel != null)
+            UsernameLabel.Text = _localizationService.GetString("Username");
+        if (PasswordLabel != null)
+            PasswordLabel.Text = _localizationService.GetString("Password");
+        if (UsernameEntry != null)
+            UsernameEntry.Placeholder = _localizationService.GetString("EnterUsername");
+        if (PasswordEntry != null)
+            PasswordEntry.Placeholder = _localizationService.GetString("EnterPassword");
+        if (LoginButton != null)
+            LoginButton.Text = _localizationService.GetString("LoginButton");
     }
 
     private void UpdateRTL()

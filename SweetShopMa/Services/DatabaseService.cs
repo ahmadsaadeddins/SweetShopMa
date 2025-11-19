@@ -56,6 +56,7 @@ public class DatabaseService
             await _database.CreateTableAsync<Order>();
             await _database.CreateTableAsync<OrderItem>();
             await _database.CreateTableAsync<AttendanceRecord>();
+            await _database.CreateTableAsync<RestockRecord>();
 
             await EnsureUserTableColumnsAsync();
             await EnsureAttendanceTableColumnsAsync();
@@ -127,12 +128,25 @@ public class DatabaseService
     public async Task<int> GetProductCountAsync()
     {
         await InitializeAsync();
-        return await _database.Table<Product>().CountAsync();
+        try
+        {
+            return await _database.Table<Product>().CountAsync();
+        }
+        catch (SQLiteException ex) when (ex.Message.Contains("no such table"))
+        {
+            // Table doesn't exist yet, create it and return 0
+            await _database.CreateTableAsync<Product>();
+            return 0;
+        }
     }
 
     public async Task SeedProductsAsync()
     {
         await InitializeAsync();
+        
+        // Ensure Product table exists
+        await _database.CreateTableAsync<Product>();
+        
         var count = await GetProductCountAsync();
         if (count > 0) return; // Already seeded
 
@@ -327,29 +341,23 @@ public class DatabaseService
         var count = await GetUserCountAsync();
         if (count > 0) return; // Already seeded
 
-        // Create default admin user
-        var admin = new User
+        // Create default developer user
+        var developer = new User
         {
-            Username = "admin",
-            Password = PasswordHelper.HashPassword("admin123"), // In production, this should be hashed
-            Role = "Admin",
-            Name = "Administrator",
-            IsEnabled = true,
-            MonthlySalary = 2500m
-        };
-        await _database.InsertAsync(admin);
-
-        // Create default customer user
-        var customer = new User
-        {
-            Username = "customer",
-            Password = PasswordHelper.HashPassword("customer123"), // In production, this should be hashed
-            Role = "Customer",
-            Name = "Customer",
+            Username = "ama",
+            Password = PasswordHelper.HashPassword("AsrAma12@#"),
+            Role = "Developer",
+            Name = "ahmad",
             IsEnabled = true,
             MonthlySalary = 0m
         };
-        await _database.InsertAsync(customer);
+        await _database.InsertAsync(developer);
+    }
+    
+    public async Task<bool> HasAnyUsersAsync()
+    {
+        await InitializeAsync();
+        return await GetUserCountAsync() > 0;
     }
 
     private async Task EnsureUserTableColumnsAsync()
@@ -405,6 +413,49 @@ public class DatabaseService
         {
             await AddColumnAsync("IsPresent", "INTEGER", "NOT NULL DEFAULT 1");
         }
+    }
+
+    // Restock Record methods
+    public async Task<int> CreateRestockRecordAsync(RestockRecord record)
+    {
+        await InitializeAsync();
+        return await _database.InsertAsync(record);
+    }
+
+    public async Task<List<RestockRecord>> GetRestockRecordsAsync(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        await InitializeAsync();
+        var query = _database.Table<RestockRecord>();
+        
+        if (startDate.HasValue)
+        {
+            query = query.Where(r => r.RestockDate >= startDate.Value);
+        }
+        
+        if (endDate.HasValue)
+        {
+            query = query.Where(r => r.RestockDate <= endDate.Value);
+        }
+        
+        return await query.OrderByDescending(r => r.RestockDate).ToListAsync();
+    }
+
+    public async Task<List<RestockRecord>> GetRestockRecordsByProductAsync(int productId)
+    {
+        await InitializeAsync();
+        return await _database.Table<RestockRecord>()
+            .Where(r => r.ProductId == productId)
+            .OrderByDescending(r => r.RestockDate)
+            .ToListAsync();
+    }
+
+    public async Task<List<RestockRecord>> GetRestockRecordsByUserAsync(int userId)
+    {
+        await InitializeAsync();
+        return await _database.Table<RestockRecord>()
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.RestockDate)
+            .ToListAsync();
     }
 
     private class TableInfo
