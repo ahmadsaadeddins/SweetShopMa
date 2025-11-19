@@ -15,8 +15,41 @@ using SweetShopMa.Views;
 namespace SweetShopMa.ViewModels;
 
 /// <summary>
-/// Main view model for the shopping interface.
-/// Manages products, cart, search, and user authentication.
+/// Main ViewModel for the shopping interface (MainPage).
+/// 
+/// WHAT IS A VIEWMODEL?
+/// A ViewModel is part of the MVVM (Model-View-ViewModel) pattern. It acts as a bridge
+/// between the View (UI) and the Model (data). The ViewModel contains:
+/// - Business logic (what happens when user clicks buttons, etc.)
+/// - Data that the UI displays (products, cart items, totals)
+/// - Commands that the UI can bind to (AddToCartCommand, CheckoutCommand, etc.)
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Display and filter products
+/// - Manage shopping cart (add, remove, update quantities)
+/// - Handle barcode scanning for quick product lookup
+/// - Process checkout (create order, update inventory)
+/// - Restock products (if user has permission)
+/// - Print receipts and open cash drawer
+/// - Manage focus between UI fields (for keyboard navigation)
+/// 
+/// DATA BINDING:
+/// Properties in this ViewModel are bound to UI elements in MainPage.xaml.
+/// When a property changes, the UI automatically updates (thanks to INotifyPropertyChanged).
+/// 
+/// COMMANDS:
+/// Commands are a way to handle user actions (button clicks) in MVVM.
+/// Instead of event handlers in code-behind, we use Commands in the ViewModel.
+/// 
+/// EXAMPLE FLOW:
+/// 1. User types barcode → QuickSearchText property changes
+/// 2. FilterProducts() is called automatically
+/// 3. FilteredProducts collection updates
+/// 4. UI automatically shows matching products (data binding)
+/// 5. User selects product → SelectedQuickProduct property changes
+/// 6. User enters quantity and presses Enter → QuickAddCommand executes
+/// 7. Product is added to cart → CartItems collection updates
+/// 8. UI automatically shows updated cart (data binding)
 /// </summary>
 public class ShopViewModel : INotifyPropertyChanged
 {

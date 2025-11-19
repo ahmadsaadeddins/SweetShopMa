@@ -10,8 +10,54 @@ using SweetShopMa.Services;
 
 namespace SweetShopMa.Platforms.Windows;
 
+/// <summary>
+/// Windows-specific implementation of receipt printing service.
+/// 
+/// WHAT IS WINDOWSPRINTSERVICE?
+/// This service handles printing receipts on Windows platform. It uses a clever approach:
+/// creates an HTML file, opens it in the default browser, and uses JavaScript to
+/// automatically trigger the print dialog.
+/// 
+/// WHY HTML APPROACH?
+/// MAUI doesn't have a built-in cross-platform printing API that works well on Windows.
+/// The HTML approach is reliable because:
+/// - Works with any printer (uses Windows print dialog)
+/// - No special printer drivers needed
+/// - User can choose printer and settings
+/// - Works consistently across Windows versions
+/// 
+/// HOW IT WORKS:
+/// 1. Create temporary HTML file with receipt content
+/// 2. Add CSS for print formatting
+/// 3. Add JavaScript to auto-trigger print dialog when page loads
+/// 4. Open HTML file in default browser
+/// 5. Browser shows print dialog automatically
+/// 6. Clean up temporary file after delay
+/// 
+/// ALTERNATIVE APPROACHES:
+/// - Windows PrintManager API (complex, requires special permissions)
+/// - Direct printer communication (requires printer-specific drivers)
+/// - HTML approach (simple, reliable, user-friendly) ← We use this
+/// </summary>
 public class WindowsPrintService : IPrintService
 {
+    /// <summary>
+    /// Prints a receipt by creating an HTML file and opening it in the browser.
+    /// 
+    /// HOW IT WORKS:
+    /// 1. Ensure we're on the main thread (UI operations require main thread)
+    /// 2. Create temporary HTML file with receipt content
+    /// 3. Add CSS for proper print formatting (monospace font, margins)
+    /// 4. Add JavaScript to auto-trigger print dialog
+    /// 5. Open HTML file in default browser (triggers print dialog)
+    /// 6. Schedule cleanup of temporary file after 30 seconds
+    /// 
+    /// THREAD SAFETY:
+    /// If called from background thread, switches to main thread automatically.
+    /// </summary>
+    /// <param name="receiptText">Receipt content (plain text, will be HTML-encoded)</param>
+    /// <param name="title">Title for the print dialog</param>
+    /// <returns>True if print dialog was opened successfully, false otherwise</returns>
     public async Task<bool> PrintReceiptAsync(string receiptText, string title)
     {
         try

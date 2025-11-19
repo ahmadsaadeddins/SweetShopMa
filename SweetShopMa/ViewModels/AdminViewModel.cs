@@ -15,6 +15,34 @@ using SweetShopMa.Views;
 
 namespace SweetShopMa.ViewModels;
 
+/// <summary>
+/// ViewModel for the Admin Panel (AdminPage).
+/// 
+/// WHAT IS ADMINVIEWMODEL?
+/// AdminViewModel manages all admin functionality including:
+/// - User management (create, enable/disable users)
+/// - Product management (add products)
+/// - Reports and insights (sales, orders, top products)
+/// - Attendance tracking (record and view attendance)
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Load and display users (excluding Developer users)
+/// - Load and display products
+/// - Calculate and display sales reports
+/// - Manage attendance records
+/// - Calculate monthly attendance summaries
+/// 
+/// PERMISSIONS:
+/// This ViewModel checks user permissions to show/hide features:
+/// - CanManageUsers: Show user management section
+/// - CanManageStock: Show product management section
+/// - CanUseAttendanceTracker: Show attendance tracker button
+/// - IsDeveloper: Show Developer Setup button
+/// 
+/// DATA BINDING:
+/// Properties are bound to UI elements in AdminPage.xaml.
+/// ObservableCollections automatically update the UI when items are added/removed.
+/// </summary>
 public class AdminViewModel : INotifyPropertyChanged
 {
     private readonly DatabaseService _databaseService;

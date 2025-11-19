@@ -11,58 +11,144 @@ using System.Threading.Tasks;
 
 namespace SweetShopMa.Services;
 
+/// <summary>
+/// Manages all database operations for the application.
+/// 
+/// WHAT IS DATABASESERVICE?
+/// DatabaseService is the central service that handles all interactions with the SQLite database.
+/// It provides methods for creating, reading, updating, and deleting (CRUD) data.
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Initialize database and create tables
+/// - CRUD operations for all models (User, Product, Order, CartItem, etc.)
+/// - Seed initial data (default Developer user, sample products)
+/// - Thread-safe database initialization
+/// 
+/// DATABASE LOCATION:
+/// Database file: "sweetshop.db3" stored in the app's data directory
+/// - Windows: %AppData%\Local\Packages\[AppName]\LocalState\
+/// - Android: /data/data/[AppName]/files/
+/// - iOS: App's Documents directory
+/// 
+/// THREAD SAFETY:
+/// Uses SemaphoreSlim to ensure only one thread initializes the database at a time.
+/// This prevents race conditions when multiple threads try to access the database simultaneously.
+/// 
+/// WAL MODE:
+/// Uses Write-Ahead Logging (WAL) mode for better concurrency. This allows multiple
+/// readers and one writer to access the database simultaneously without blocking.
+/// </summary>
 public class DatabaseService
 {
+    // ============================================
+    // DATABASE CONNECTION AND CONFIGURATION
+    // ============================================
+    
+    /// <summary>
+    /// SQLite database connection (lazy-initialized).
+    /// null until InitializeAsync() is called.
+    /// </summary>
     private SQLiteAsyncConnection _database;
+    
+    /// <summary>
+    /// Database filename.
+    /// </summary>
     private const string DbFileName = "sweetshop.db3";
+    
+    /// <summary>
+    /// Full path to the database file.
+    /// Uses FileSystem.AppDataDirectory which is platform-specific.
+    /// </summary>
     private static readonly string DbPath = Path.Combine(FileSystem.AppDataDirectory, DbFileName);
 
+    /// <summary>
+    /// Public property to get the database file path (for admin panel display).
+    /// </summary>
     public static string DatabasePath => DbPath;
+    
+    /// <summary>
+    /// Public property to get the app data directory (for admin panel display).
+    /// </summary>
     public static string AppDataDirectory => FileSystem.AppDataDirectory;
 
-    // Ensure only one thread initializes the DB at a time
+    /// <summary>
+    /// Semaphore to ensure thread-safe database initialization.
+    /// Only allows one thread to initialize at a time (prevents race conditions).
+    /// </summary>
     private readonly SemaphoreSlim _initSemaphore = new(1, 1);
 
+    /// <summary>
+    /// Constructor (empty - database is initialized lazily on first use).
+    /// </summary>
     public DatabaseService()
     {
     }
 
+    /// <summary>
+    /// Initializes the database connection and creates all tables if they don't exist.
+    /// This method is called automatically before any database operation.
+    /// 
+    /// HOW IT WORKS:
+    /// 1. Check if database is already initialized (return early if yes)
+    /// 2. Acquire semaphore lock (wait if another thread is initializing)
+    /// 3. Double-check initialization (another thread might have initialized while waiting)
+    /// 4. Create database connection
+    /// 5. Enable WAL mode (for better concurrency)
+    /// 6. Create all tables
+    /// 7. Ensure table columns exist (for database migrations)
+    /// 8. Release semaphore lock
+    /// 
+    /// THREAD SAFETY:
+    /// Uses double-checked locking pattern with SemaphoreSlim to prevent
+    /// multiple threads from initializing the database simultaneously.
+    /// </summary>
     private async Task InitializeAsync()
     {
+        // Fast path: if already initialized, return immediately
         if (_database is not null)
             return;
 
+        // Acquire lock (wait if another thread is initializing)
         await _initSemaphore.WaitAsync();
         try
         {
+            // Double-check: another thread might have initialized while we were waiting
             if (_database is not null)
                 return;
 
+            // Create database connection
             _database = new SQLiteAsyncConnection(DbPath);
 
-            // Use WAL to reduce locking contention for concurrent readers/writers
+            // Enable WAL (Write-Ahead Logging) mode for better concurrency
+            // WAL allows multiple readers and one writer simultaneously
             try
             {
                 await _database.ExecuteAsync("PRAGMA journal_mode=WAL;");
             }
             catch
             {
-                // If PRAGMA fails on a platform, don't crash initialization — WAL is an optimization
+                // If PRAGMA fails on a platform, don't crash initialization
+                // WAL is an optimization, not required for functionality
             }
 
-            await _database.CreateTableAsync<User>();
-            await _database.CreateTableAsync<Product>();
-            await _database.CreateTableAsync<CartItem>();
-            await _database.CreateTableAsync<Order>();
-            await _database.CreateTableAsync<OrderItem>();
-            await _database.CreateTableAsync<AttendanceRecord>();
-            await _database.CreateTableAsync<RestockRecord>();
+            // Create all database tables (if they don't exist)
+            // These correspond to our Model classes
+            await _database.CreateTableAsync<User>();              // User accounts
+            await _database.CreateTableAsync<Product>();            // Products/inventory
+            await _database.CreateTableAsync<CartItem>();           // Shopping cart items
+            await _database.CreateTableAsync<Order>();              // Completed orders
+            await _database.CreateTableAsync<OrderItem>();           // Items in orders
+            await _database.CreateTableAsync<AttendanceRecord>();    // Employee attendance
+            await _database.CreateTableAsync<RestockRecord>();      // Inventory restock history
 
+            // Ensure table columns exist (for database migrations)
+            // These methods add new columns to existing tables if the app is updated
             await EnsureUserTableColumnsAsync();
             await EnsureAttendanceTableColumnsAsync();
         }
         finally
         {
+            // Always release the lock, even if an exception occurs
             _initSemaphore.Release();
         }
     }

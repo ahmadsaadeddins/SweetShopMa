@@ -6,8 +6,20 @@ namespace SweetShopMa.Models;
 
 /// <summary>
 /// Represents an item in the shopping cart.
-/// Implements INotifyPropertyChanged to support real-time UI updates
-/// when quantity or price changes.
+/// 
+/// WHAT IS A CART ITEM?
+/// A CartItem is a temporary record of a product that a customer wants to purchase.
+/// It stores product information and the quantity the customer wants to buy.
+/// 
+/// INotifyPropertyChanged:
+/// Implements INotifyPropertyChanged to support real-time UI updates when quantity
+/// or price changes. When you change the quantity, the UI automatically updates
+/// to show the new total.
+/// 
+/// RELATIONSHIP TO PRODUCT:
+/// CartItem stores a copy of product information (Name, Emoji, Price) so that
+/// even if the product's price changes later, the cart item keeps the original price.
+/// This is called "denormalization" - storing redundant data for performance/consistency.
 /// </summary>
 public class CartItem : INotifyPropertyChanged
 {

@@ -9,6 +9,22 @@ using SweetShopMa.Services;
 
 namespace SweetShopMa.ViewModels;
 
+/// <summary>
+/// ViewModel for the Restock Report page (RestockReportPage).
+/// 
+/// WHAT IS RESTOCKREPORTVIEWMODEL?
+/// This ViewModel manages the display of restock history - showing who restocked
+/// what products, when, and how much was added.
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Load all restock records from database
+/// - Convert RestockRecord models to RestockRecordDisplay (with localized strings)
+/// - Refresh records when language changes
+/// 
+/// LOCALIZATION:
+/// Uses RestockRecordDisplay wrapper class to provide localized display values
+/// (quantities, dates, etc.) that update when language changes.
+/// </summary>
 public class RestockReportViewModel : INotifyPropertyChanged
 {
     private readonly DatabaseService _databaseService;

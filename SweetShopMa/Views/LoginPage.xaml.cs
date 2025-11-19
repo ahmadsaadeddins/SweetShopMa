@@ -3,12 +3,46 @@ using SweetShopMa.Utils;
 
 namespace SweetShopMa.Views;
 
+/// <summary>
+/// Code-behind for the Login Page (LoginPage.xaml).
+/// 
+/// WHAT IS CODE-BEHIND?
+/// Code-behind files contain C# code that handles UI events and interactions.
+/// They work together with XAML files (which define the UI layout).
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Handle user login (validate credentials, navigate to shop)
+/// - Manage keyboard navigation (Enter key moves focus, triggers login)
+/// - Update localized strings when language changes
+/// - Handle RTL (Right-to-Left) layout for Arabic
+/// - Auto-focus username field when page appears
+/// - Seed initial data (users, products) if database is empty
+/// 
+/// KEYBOARD NAVIGATION:
+/// - Enter in UsernameEntry → Moves focus to PasswordEntry
+/// - Enter in PasswordEntry → Triggers login
+/// - Auto-focuses UsernameEntry when page appears
+/// 
+/// SERVICE LOADING:
+/// This page can be created in two ways:
+/// 1. Via dependency injection (constructor with services)
+/// 2. Via Shell DataTemplate (loads services from Handler.MauiContext)
+/// 
+/// NAVIGATION:
+/// On successful login → Navigates to "//shop" (MainPage)
+/// On failed login → Shows error message, refocuses UsernameEntry
+/// </summary>
 public partial class LoginPage : ContentPage
 {
+    // Services loaded via dependency injection or from Handler.MauiContext
     private AuthService? _authService;
     private DatabaseService? _databaseService;
     private LocalizationService? _localizationService;
 
+    /// <summary>
+    /// Parameterless constructor (used by Shell DataTemplate).
+    /// Services will be loaded in OnAppearing when Handler is available.
+    /// </summary>
     public LoginPage()
     {
         InitializeComponent();

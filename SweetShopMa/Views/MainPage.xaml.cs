@@ -11,10 +11,50 @@ using Windows.System;
 
 namespace SweetShopMa.Views;
 
+/// <summary>
+/// Code-behind for the Main Shop Page (MainPage.xaml).
+/// 
+/// WHAT IS MAINPAGE?
+/// MainPage is the primary interface for selling products. It provides:
+/// - Barcode scanning for quick product lookup
+/// - Product grid display
+/// - Shopping cart management
+/// - Checkout functionality
+/// - Keyboard navigation for efficient cashier workflow
+/// 
+/// KEY RESPONSIBILITIES:
+/// - Handle barcode entry and product selection
+/// - Manage keyboard navigation (Enter key moves focus, triggers actions)
+/// - Update localized strings when language changes
+/// - Handle RTL layout for Arabic
+/// - Set up keyboard shortcuts (F1 for quick checkout on Windows)
+/// - Manage focus between barcode and quantity fields
+/// 
+/// KEYBOARD NAVIGATION:
+/// - Enter in barcode field (empty) → Triggers checkout if cart has items, otherwise keeps focus
+/// - Enter in barcode field (with text) → Moves to quantity field if product selected
+/// - Enter in quantity field → Adds to cart, refocuses barcode field
+/// - F1 key (Windows) → Quick checkout if cart has items
+/// 
+/// FOCUS MANAGEMENT:
+/// After checkout or opening drawer, focus is managed to return to barcode field
+/// for the next transaction. This creates a smooth cashier workflow.
+/// 
+/// DATA BINDING:
+/// This page binds to ShopViewModel, which provides:
+/// - Products (ObservableCollection)
+/// - CartItems (ObservableCollection)
+/// - Commands (QuickAddCommand, CheckoutCommand, etc.)
+/// - Properties (Total, IsCheckoutEnabled, etc.)
+/// </summary>
 public partial class MainPage : ContentPage
 {
     private readonly LocalizationService _localizationService;
 
+    /// <summary>
+    /// Constructor - receives ShopViewModel and LocalizationService via dependency injection.
+    /// Sets up keyboard navigation, shortcuts, and initializes UI.
+    /// </summary>
     public MainPage(ShopViewModel viewModel, LocalizationService localizationService)
     {
         InitializeComponent();

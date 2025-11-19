@@ -10,8 +10,51 @@ using SweetShopMa.Services;
 
 namespace SweetShopMa.Platforms.Windows;
 
+/// <summary>
+/// Windows-specific implementation of cash drawer service.
+/// 
+/// WHAT IS WINDOWSCASHDRAWERSERVICE?
+/// This service opens cash drawers connected to receipt printers using ESC/POS commands.
+/// Cash drawers are typically connected to receipt printers via a cable, and the
+/// printer can open the drawer when it receives a specific command.
+/// 
+/// HOW CASH DRAWERS WORK:
+/// Most receipt printers (especially thermal printers) have a cash drawer port.
+/// When the printer receives an ESC/POS command (ESC p 0 25 250), it sends a signal
+/// to the connected cash drawer to open.
+/// 
+/// ESC/POS COMMAND:
+/// - ESC = 0x1B (escape character)
+/// - p = 0x70 (command to open drawer)
+/// - 0 = 0x00 (drawer pin number, usually 0)
+/// - 25 = 0x19 (pulse on time in milliseconds)
+/// - 250 = 0xFA (pulse off time in milliseconds)
+/// 
+/// METHODS USED:
+/// 1. Direct serial/parallel port communication (if printer is on COM/LPT port)
+/// 2. Raw print command via Windows "copy" command (sends raw bytes to printer)
+/// 
+/// LIMITATIONS:
+/// - Only works on Windows (uses Windows-specific APIs)
+/// - Requires printer to support ESC/POS commands
+/// - Cash drawer must be connected to printer
+/// </summary>
 public class WindowsCashDrawerService : ICashDrawerService
 {
+    /// <summary>
+    /// Opens the cash drawer by sending ESC/POS command to the printer.
+    /// 
+    /// HOW IT WORKS:
+    /// 1. Ensure we're on the main thread
+    /// 2. Create ESC/POS command bytes: ESC p 0 25 250
+    /// 3. Try Method 1: Find printer port (COM/LPT) and send command directly
+    /// 4. If Method 1 fails, try Method 2: Send raw print command to default printer
+    /// 5. Return true if either method succeeds
+    /// 
+    /// THREAD SAFETY:
+    /// If called from background thread, switches to main thread automatically.
+    /// </summary>
+    /// <returns>True if drawer command was sent successfully, false otherwise</returns>
     public async Task<bool> OpenDrawerAsync()
     {
         try
