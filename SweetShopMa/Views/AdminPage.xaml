@@ -39,88 +39,120 @@
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
 
-            <!-- Database Info - Hidden -->
-            <!-- <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f8ff" IsVisible="False">
-                <VerticalStackLayout Spacing="8">
-                    <Label x:Name="DatabaseInfoLabel" Text="📁 Database Information" FontSize="14" FontAttributes="Bold" TextColor="#1d7480"/>
-                    <Label Text="{Binding DatabasePath, StringFormat='Path: {0}'}" 
-                           FontSize="11" 
-                           TextColor="#666"
-                           LineBreakMode="TailTruncation"/>
-                    <Label Text="{Binding AppDataDirectory, StringFormat='App Data: {0}'}" 
-                           FontSize="11" 
-                           TextColor="#666"
-                           LineBreakMode="TailTruncation"/>
-                </VerticalStackLayout>
-            </Border> -->
+            <!-- Navigation Buttons -->
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="15" RowSpacing="15" Margin="0,20,0,20">
+                <!-- Users Management Button -->
+                <Border Grid.Row="0" Grid.Column="0" 
+                        Stroke="#1d7480" 
+                        StrokeThickness="2" 
+                        Padding="20" 
+                        BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding CanManageUsers}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnUsersPageTapped"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="👤" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="UsersButtonLabel" Text="User Management" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="#1d7480"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Manage users, roles, and permissions" 
+                               FontSize="12" 
+                               TextColor="#666"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- User Management Section (Only for Developer/Admin) -->
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9"
-                    IsVisible="{Binding CanManageUsers}">
-                <VerticalStackLayout Spacing="10">
-                    <Label x:Name="CreateUserLabel" Text="User Management" FontSize="18" FontAttributes="Bold"/>
-                    <Button x:Name="CreateUserButton" Text="👤 Create New User" 
-                            BackgroundColor="#1d7480"
-                            TextColor="White"
-                            Padding="12"
-                            CornerRadius="6"
-                            FontSize="16"
-                            FontAttributes="Bold"
-                            Clicked="OnCreateUserClicked"/>
-                </VerticalStackLayout>
-            </Border>
+                <!-- Products Management Button -->
+                <Border Grid.Row="0" Grid.Column="1" 
+                        Stroke="#32b8c6" 
+                        StrokeThickness="2" 
+                        Padding="20" 
+                        BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding CanManageStock}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnProductsPageTapped"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="📦" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="ProductsButtonLabel" Text="Product Management" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="#32b8c6"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Add, edit, and manage products" 
+                               FontSize="12" 
+                               TextColor="#666"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
 
-            <Label x:Name="ExistingUsersLabel" Text="Existing Users" FontSize="16" FontAttributes="Bold"
-                   IsVisible="{Binding CanManageUsers}"/>
-            <CollectionView ItemsSource="{Binding Users}" HeightRequest="200"
-                           IsVisible="{Binding CanManageUsers}">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Padding="8">
-                            <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                                <Label Text="{Binding Username}" FontSize="12" TextColor="#555"/>
-                                <Label Text="{Binding MonthlySalary, StringFormat='Salary: ${0:F2}'}" FontSize="12" TextColor="#777"/>
-                                <Label FontSize="12" TextColor="#1f7a4d" Text="Active">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsEnabled}" Value="False">
-                                            <Setter Property="Text" Value="Disabled"/>
-                                            <Setter Property="TextColor" Value="#c00000"/>
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                            </VerticalStackLayout>
-                            <Label Grid.Column="1"
-                                   Text="{Binding Role}"
-                                   HorizontalOptions="End"
-                                   VerticalOptions="Center"
-                                   TextColor="#1d7480">
-                                <Label.Triggers>
-                                    <DataTrigger TargetType="Label" Binding="{Binding Role}" Value="Admin">
-                                        <Setter Property="TextColor" Value="#c00000"/>
-                                    </DataTrigger>
-                                </Label.Triggers>
-                            </Label>
-                            <Button Grid.Column="2"
-                                    Text="Disable"
-                                    Padding="12,6"
-                                    BackgroundColor="#c00000"
-                                    TextColor="White"
-                                    FontSize="12"
-                                    CornerRadius="4"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleUserStatusCommand}"
-                                    CommandParameter="{Binding .}">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsEnabled}" Value="False">
-                                        <Setter Property="Text" Value="Enable"/>
-                                        <Setter Property="BackgroundColor" Value="#1d7480"/>
-                                    </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                <!-- Attendance Tracker Button -->
+                <Border Grid.Row="1" Grid.Column="0" 
+                        Stroke="#4CAF50" 
+                        StrokeThickness="2" 
+                        Padding="20" 
+                        BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding CanUseAttendanceTracker}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAttendanceTrackerTapped"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="⏰" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="AttendanceButtonLabel" Text="Attendance Tracker" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="#4CAF50"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Track employee attendance and hours" 
+                               FontSize="12" 
+                               TextColor="#666"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Restock Report Button -->
+                <Border Grid.Row="1" Grid.Column="1" 
+                        Stroke="#ff9800" 
+                        StrokeThickness="2" 
+                        Padding="20" 
+                        BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding CanManageStock}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnRestockReportTapped"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="📊" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="RestockReportButtonLabel" Text="Restock Report" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="#ff9800"
+                               HorizontalOptions="Center"/>
+                        <Label Text="View inventory restock history" 
+                               FontSize="12" 
+                               TextColor="#666"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
 
             <Label x:Name="ReportsLabel" Text="Reports &amp; Insights" FontSize="16" FontAttributes="Bold"/>
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
@@ -217,120 +249,6 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Attendance Tracker Section (Only if enabled and user has permission) -->
-            <Label x:Name="AttendanceTrackerLabel" Text="Attendance Tracker" FontSize="16" FontAttributes="Bold"
-                   IsVisible="{Binding CanUseAttendanceTracker}"/>
-            <Button x:Name="OpenAttendanceButton" Text="Open Attendance Tracker"
-                    BackgroundColor="#1d7480"
-                    TextColor="White"
-                    Command="{Binding OpenAttendancePageCommand}"
-                    IsVisible="{Binding CanUseAttendanceTracker}"/>
-
-            <!-- Restock Report Section -->
-            <Label x:Name="RestockReportLabel" Text="Restock Report" FontSize="16" FontAttributes="Bold"
-                   IsVisible="{Binding CanManageStock}"/>
-            <Button x:Name="OpenRestockReportButton" Text="📦 View Restock Report"
-                    BackgroundColor="#32b8c6"
-                    TextColor="White"
-                    Padding="12"
-                    CornerRadius="6"
-                    FontSize="16"
-                    FontAttributes="Bold"
-                    Clicked="OnOpenRestockReportClicked"
-                    IsVisible="{Binding CanManageStock}"/>
-
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
-                <VerticalStackLayout Spacing="10">
-                    <Label x:Name="AddProductLabel" Text="Add Product" FontSize="18" FontAttributes="Bold"/>
-                    <Entry Placeholder="Name"
-                           Text="{Binding NewProductName}"/>
-                    <Entry Placeholder="Emoji (e.g., 🍫)"
-                           Text="{Binding NewProductEmoji}"
-                           MaxLength="4"/>
-                    <Entry Placeholder="Barcode"
-                           Text="{Binding NewProductBarcode}"
-                           Keyboard="Numeric"/>
-                    <Entry Placeholder="Price"
-                           Text="{Binding NewProductPrice}"
-                           Keyboard="Numeric"/>
-                    <Entry Placeholder="Starting Stock"
-                           Text="{Binding NewProductStock}"
-                           Keyboard="Numeric"/>
-                    <Entry Placeholder="Category (e.g., Candy, Cakes, Drinks)"
-                           Text="{Binding NewProductCategory}"/>
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="Sold by weight?" VerticalOptions="Center"/>
-                        <Switch IsToggled="{Binding NewProductIsWeight}"/>
-                    </HorizontalStackLayout>
-                    <Button x:Name="AddProductButton"
-                            Text="Add Product"
-                            BackgroundColor="#32b8c6"
-                            TextColor="White"
-                            Command="{Binding AddProductCommand}"/>
-                </VerticalStackLayout>
-            </Border>
-
-            <Label x:Name="ProductsLabel" Text="Products" FontSize="16" FontAttributes="Bold"/>
-            <CollectionView ItemsSource="{Binding Products}" HeightRequest="250">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border StrokeThickness="1" Stroke="#e0e0e0" Padding="8" BackgroundColor="White">
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditProductCommand}"
-                                                      CommandParameter="{Binding .}"/>
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="4">
-                                <Label Grid.Column="0" Text="{Binding Emoji}" FontSize="24"/>
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                                    <Label Text="{Binding Barcode, StringFormat='Barcode: {0}'}" FontSize="12" TextColor="#555"/>
-                                    <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12"/>
-                                    <Label Text="{Binding Category, StringFormat='Category: {0}'}" FontSize="12" TextColor="#777"/>
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
-                                    <Label Text="{Binding Stock, StringFormat='Stock: {0:F2}'}" FontSize="12"/>
-                                    <Label Text="{Binding UnitLabel}" FontSize="12" TextColor="#777"/>
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <!-- Edit Product Form -->
-            <Border Stroke="#32b8c6" StrokeThickness="2" Padding="16" BackgroundColor="#f0f9fa"
-                    IsVisible="{Binding IsEditingProduct}"
-                    Margin="0,10,0,0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8"/>
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Edit Product" FontSize="18" FontAttributes="Bold" TextColor="#1d7480"/>
-                    <Entry Placeholder="Name"
-                           Text="{Binding EditProductName}"/>
-                    <Entry Placeholder="Emoji (e.g., 🍫)"
-                           Text="{Binding EditProductEmoji}"
-                           MaxLength="4"/>
-                    <Entry Placeholder="Category"
-                           Text="{Binding EditProductCategory}"/>
-                    <Entry Placeholder="Price"
-                           Text="{Binding EditProductPrice}"
-                           Keyboard="Numeric"/>
-                    <HorizontalStackLayout Spacing="10">
-                        <Button Text="Update"
-                                BackgroundColor="#32b8c6"
-                                TextColor="White"
-                                Command="{Binding UpdateProductCommand}"
-                                IsEnabled="{Binding IsEditingProduct}"
-                                HorizontalOptions="FillAndExpand"/>
-                        <Button Text="Cancel"
-                                BackgroundColor="#999"
-                                TextColor="White"
-                                Command="{Binding CancelEditProductCommand}"
-                                HorizontalOptions="FillAndExpand"/>
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-            </Border>
 
             <Label Text="{Binding StatusMessage}"
                    FontAttributes="Bold"

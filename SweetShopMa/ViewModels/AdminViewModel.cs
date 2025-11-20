@@ -76,6 +76,9 @@ public class AdminViewModel : INotifyPropertyChanged
     private string _editProductCategory = "";
     private string _editProductPrice = "";
 
+    // Product search
+    private string _productSearchText = "";
+
     // Report metrics
     private decimal _totalSales;
     private int _totalOrders;
@@ -87,6 +90,7 @@ public class AdminViewModel : INotifyPropertyChanged
 
     public ObservableCollection<User> Users { get; } = new();
     public ObservableCollection<Product> Products { get; } = new();
+    public ObservableCollection<Product> FilteredProducts { get; } = new();
     public ObservableCollection<Order> RecentOrders { get; } = new();
     public ObservableCollection<ProductReportItem> TopProducts { get; } = new();
     public ObservableCollection<AttendanceRecord> AttendanceRecords { get; } = new();
@@ -644,6 +648,20 @@ public class AdminViewModel : INotifyPropertyChanged
         set { if (_editProductPrice != value) { _editProductPrice = value; OnPropertyChanged(); } }
     }
 
+    public string ProductSearchText
+    {
+        get => _productSearchText;
+        set
+        {
+            if (_productSearchText != value)
+            {
+                _productSearchText = value;
+                OnPropertyChanged();
+                FilterProducts();
+            }
+        }
+    }
+
     public async Task InitializeAsync()
     {
         if (!IsAuthorized)
@@ -692,10 +710,73 @@ public class AdminViewModel : INotifyPropertyChanged
             Products.Clear();
             foreach (var product in products)
                 Products.Add(product);
+            
+            FilterProducts();
         }
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private void FilterProducts()
+    {
+        FilteredProducts.Clear();
+        
+        // If no search text, show all products
+        if (string.IsNullOrWhiteSpace(ProductSearchText))
+        {
+            foreach (var product in Products)
+                FilteredProducts.Add(product);
+            return;
+        }
+
+        var searchText = ProductSearchText.Trim();
+        
+        // Try to parse as ID (numeric)
+        if (int.TryParse(searchText, out int searchId))
+        {
+            var productById = Products.FirstOrDefault(p => p.Id == searchId);
+            if (productById != null)
+            {
+                FilteredProducts.Add(productById);
+                return;
+            }
+        }
+
+        // Search by barcode (exact match first)
+        var productByBarcode = Products.FirstOrDefault(p => 
+            !string.IsNullOrEmpty(p.Barcode) && 
+            p.Barcode.Equals(searchText, StringComparison.OrdinalIgnoreCase));
+        
+        if (productByBarcode != null)
+        {
+            FilteredProducts.Add(productByBarcode);
+            return;
+        }
+
+        // Search by barcode or name (contains)
+        var searchLower = searchText.ToLowerInvariant();
+        foreach (var product in Products)
+        {
+            bool matches = false;
+            
+            // Check barcode (contains)
+            if (!string.IsNullOrEmpty(product.Barcode) && 
+                product.Barcode.ToLowerInvariant().Contains(searchLower))
+            {
+                matches = true;
+            }
+            // Also check name as fallback
+            else if (product.Name.ToLowerInvariant().Contains(searchLower))
+            {
+                matches = true;
+            }
+            
+            if (matches)
+            {
+                FilteredProducts.Add(product);
+            }
         }
     }
 
@@ -1115,6 +1196,8 @@ public class AdminViewModel : INotifyPropertyChanged
             }
             ShowStatus(string.Format(updatedMsg, productName), false);
 
+            // Clear search and cancel edit
+            ProductSearchText = "";
             CancelEditProduct();
         }
         catch (Exception ex)

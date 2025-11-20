@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SweetShopMa.Views.UsersPage"
+             Title="User Management">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Navigation + Language Selector -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Button x:Name="BackButton"
+                        Text="Back"
+                        BackgroundColor="#f0f4f7"
+                        TextColor="#1d7480"
+                        Padding="10,6"
+                        CornerRadius="6"
+                        Clicked="OnBackButtonClicked"
+                        HorizontalOptions="Start"/>
+                <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                    <Button Text="EN" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                    <Button Text="AR" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                </HorizontalStackLayout>
+            </Grid>
+
+            <Label x:Name="PageTitleLabel" Text="User Management"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <!-- User Management Section -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9"
+                    IsVisible="{Binding CanManageUsers}">
+                <VerticalStackLayout Spacing="10">
+                    <Label x:Name="CreateUserLabel" Text="User Management" FontSize="18" FontAttributes="Bold"/>
+                    <Button x:Name="CreateUserButton" Text="👤 Create New User" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="12"
+                            CornerRadius="6"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            Clicked="OnCreateUserClicked"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label x:Name="ExistingUsersLabel" Text="Existing Users" FontSize="16" FontAttributes="Bold"
+                   IsVisible="{Binding CanManageUsers}"/>
+            <CollectionView ItemsSource="{Binding Users}" HeightRequest="400"
+                           IsVisible="{Binding CanManageUsers}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Padding="8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Username}" FontSize="12" TextColor="#555"/>
+                                <Label Text="{Binding MonthlySalary, StringFormat='Salary: ${0:F2}'}" FontSize="12" TextColor="#777"/>
+                                <Label FontSize="12" TextColor="#1f7a4d" Text="Active">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsEnabled}" Value="False">
+                                            <Setter Property="Text" Value="Disabled"/>
+                                            <Setter Property="TextColor" Value="#c00000"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding Role}"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Center"
+                                   TextColor="#1d7480">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding Role}" Value="Admin">
+                                        <Setter Property="TextColor" Value="#c00000"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Button Grid.Column="2"
+                                    Text="Disable"
+                                    Padding="12,6"
+                                    BackgroundColor="#c00000"
+                                    TextColor="White"
+                                    FontSize="12"
+                                    CornerRadius="4"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleUserStatusCommand}"
+                                    CommandParameter="{Binding .}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsEnabled}" Value="False">
+                                        <Setter Property="Text" Value="Enable"/>
+                                        <Setter Property="BackgroundColor" Value="#1d7480"/>
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontAttributes="Bold"
+                   IsVisible="{Binding HasStatusMessage}"
+                   HorizontalOptions="Center">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
+                        <Setter Property="TextColor" Value="#c00000"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
+                        <Setter Property="TextColor" Value="#1f7a4d"/>
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

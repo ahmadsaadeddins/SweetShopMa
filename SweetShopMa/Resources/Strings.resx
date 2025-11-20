@@ -409,6 +409,9 @@
   <data name="UserManagement" xml:space="preserve">
     <value>User Management</value>
   </data>
+  <data name="ProductManagement" xml:space="preserve">
+    <value>Product Management</value>
+  </data>
   <data name="RestockProduct" xml:space="preserve">
     <value>Restock Product</value>
   </data>

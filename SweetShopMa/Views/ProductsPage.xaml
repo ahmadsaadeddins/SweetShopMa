@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SweetShopMa.Views.ProductsPage"
+             Title="Product Management">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Navigation + Language Selector -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Button x:Name="BackButton"
+                        Text="Back"
+                        BackgroundColor="#f0f4f7"
+                        TextColor="#1d7480"
+                        Padding="10,6"
+                        CornerRadius="6"
+                        Clicked="OnBackButtonClicked"
+                        HorizontalOptions="Start"/>
+                <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                    <Button Text="EN" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                    <Button Text="AR" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                </HorizontalStackLayout>
+            </Grid>
+
+            <Label x:Name="PageTitleLabel" Text="Product Management"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Label x:Name="AddProductLabel" Text="Add Product" FontSize="18" FontAttributes="Bold"/>
+                    <Entry Placeholder="Name"
+                           Text="{Binding NewProductName}"/>
+                    <Entry Placeholder="Emoji (e.g., 🍫)"
+                           Text="{Binding NewProductEmoji}"
+                           MaxLength="4"/>
+                    <Entry Placeholder="Barcode"
+                           Text="{Binding NewProductBarcode}"
+                           Keyboard="Numeric"/>
+                    <Entry Placeholder="Price"
+                           Text="{Binding NewProductPrice}"
+                           Keyboard="Numeric"/>
+                    <Entry Placeholder="Starting Stock"
+                           Text="{Binding NewProductStock}"
+                           Keyboard="Numeric"/>
+                    <Entry Placeholder="Category (e.g., Candy, Cakes, Drinks)"
+                           Text="{Binding NewProductCategory}"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Sold by weight?" VerticalOptions="Center"/>
+                        <Switch IsToggled="{Binding NewProductIsWeight}"/>
+                    </HorizontalStackLayout>
+                    <Button x:Name="AddProductButton"
+                            Text="Add Product"
+                            BackgroundColor="#32b8c6"
+                            TextColor="White"
+                            Command="{Binding AddProductCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Search Bar -->
+            <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White" Margin="0,0,0,10">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="🔍 Search Products" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+                    <Entry Text="{Binding ProductSearchText}" 
+                           Placeholder="Scan barcode, enter ID, or search by name..." 
+                           FontSize="14"
+                           Keyboard="Default" 
+                           BackgroundColor="#f5f5f5"
+                           ReturnType="Search"
+                           Completed="OnProductSearchCompleted"
+                           x:Name="ProductSearchEntry"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Edit Product Form -->
+            <Border Stroke="#32b8c6" StrokeThickness="2" Padding="16" BackgroundColor="#f0f9fa"
+                    Margin="0,0,0,10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Edit Product" FontSize="18" FontAttributes="Bold" TextColor="#1d7480"/>
+                    <Entry Placeholder="Name"
+                           Text="{Binding EditProductName}"
+                           Completed="OnEditNameCompleted"
+                           x:Name="EditProductNameEntry"/>
+                    <Entry Placeholder="Emoji (e.g., 🍫)"
+                           Text="{Binding EditProductEmoji}"
+                           MaxLength="4"
+                           Completed="OnEditEmojiCompleted"
+                           x:Name="EditProductEmojiEntry"/>
+                    <Entry Placeholder="Category"
+                           Text="{Binding EditProductCategory}"
+                           Completed="OnEditCategoryCompleted"
+                           x:Name="EditProductCategoryEntry"/>
+                    <Entry Placeholder="Price"
+                           Text="{Binding EditProductPrice}"
+                           Keyboard="Numeric"
+                           Completed="OnEditPriceCompleted"
+                           x:Name="EditProductPriceEntry"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="Update"
+                                BackgroundColor="#32b8c6"
+                                TextColor="White"
+                                Command="{Binding UpdateProductCommand}"
+                                IsEnabled="{Binding IsEditingProduct}"
+                                HorizontalOptions="FillAndExpand"/>
+                        <Button Text="Cancel"
+                                BackgroundColor="#999"
+                                TextColor="White"
+                                Command="{Binding CancelEditProductCommand}"
+                                HorizontalOptions="FillAndExpand"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label x:Name="ProductsLabel" Text="Products" FontSize="16" FontAttributes="Bold"/>
+            <CollectionView ItemsSource="{Binding FilteredProducts}">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2" VerticalItemSpacing="8" HorizontalItemSpacing="8"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border StrokeThickness="1" Stroke="#e0e0e0" Padding="8" BackgroundColor="White">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6"/>
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditProductCommand}"
+                                                      CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                                <!-- Emoji -->
+                                <Label Grid.Row="0" Text="{Binding Emoji}" FontSize="32" HorizontalTextAlignment="Center"/>
+                                
+                                <!-- Name -->
+                                <Label Grid.Row="1" Text="{Binding Name}" FontSize="12" FontAttributes="Bold" 
+                                       HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="2"/>
+                                
+                                <!-- Barcode and Price -->
+                                <Label Grid.Row="2" FontSize="10" TextColor="#555" HorizontalTextAlignment="Center">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat='{}ID: {0} | {1}'>
+                                            <Binding Path="Id"/>
+                                            <Binding Path="Barcode" TargetNullValue="No Barcode"/>
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                                <Label Grid.Row="3" FontSize="11" FontAttributes="Bold" TextColor="#1d7480" HorizontalTextAlignment="Center">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat='{}${0:F2} / {1}'>
+                                            <Binding Path="Price"/>
+                                            <Binding Path="UnitLabel"/>
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+                                
+                                <!-- Stock -->
+                                <Label Grid.Row="4" FontSize="10" TextColor="#666" HorizontalTextAlignment="Center">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat='{}Stock: {0:F2} {1}'>
+                                            <Binding Path="Stock"/>
+                                            <Binding Path="UnitLabel"/>
+                                        </MultiBinding>
+                                    </Label.Text>
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Stock}" Value="0">
+                                            <Setter Property="Text" Value="Out of Stock"/>
+                                            <Setter Property="TextColor" Value="#c00000"/>
+                                            <Setter Property="FontAttributes" Value="Bold"/>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontAttributes="Bold"
+                   IsVisible="{Binding HasStatusMessage}"
+                   HorizontalOptions="Center">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
+                        <Setter Property="TextColor" Value="#c00000"/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
+                        <Setter Property="TextColor" Value="#1f7a4d"/>
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

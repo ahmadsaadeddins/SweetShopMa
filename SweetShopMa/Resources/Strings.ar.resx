@@ -382,6 +382,9 @@
   <data name="UserManagement" xml:space="preserve">
     <value>إدارة المستخدمين</value>
   </data>
+  <data name="ProductManagement" xml:space="preserve">
+    <value>إدارة المنتجات</value>
+  </data>
   <data name="RestockProduct" xml:space="preserve">
     <value>إعادة تخزين المنتج</value>
   </data>

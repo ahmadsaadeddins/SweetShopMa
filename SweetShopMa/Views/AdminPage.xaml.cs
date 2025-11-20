@@ -58,28 +58,20 @@ public partial class AdminPage : ContentPage
         if (AdminBackButton != null)
             AdminBackButton.Text = _localizationService.GetString("BackButton");
         // DatabaseInfoLabel is now hidden/removed, so we don't update it
-        if (CreateUserLabel != null)
-            CreateUserLabel.Text = _localizationService.GetString("UserManagement") ?? "User Management";
-        if (CreateUserButton != null)
-            CreateUserButton.Text = _localizationService.GetString("CreateNewUser");
-        if (ExistingUsersLabel != null)
-            ExistingUsersLabel.Text = _localizationService.GetString("ExistingUsers");
+        if (UsersButtonLabel != null)
+            UsersButtonLabel.Text = _localizationService.GetString("UserManagement") ?? "User Management";
+        if (ProductsButtonLabel != null)
+            ProductsButtonLabel.Text = _localizationService.GetString("ProductManagement") ?? "Product Management";
+        if (AttendanceButtonLabel != null)
+            AttendanceButtonLabel.Text = _localizationService.GetString("AttendanceTracker") ?? "Attendance Tracker";
+        if (RestockReportButtonLabel != null)
+            RestockReportButtonLabel.Text = _localizationService.GetString("RestockReport") ?? "Restock Report";
         if (ReportsLabel != null)
             ReportsLabel.Text = _localizationService.GetString("ReportsInsights");
         if (TopProductsLabel != null)
             TopProductsLabel.Text = _localizationService.GetString("TopProducts");
         if (RecentOrdersLabel != null)
             RecentOrdersLabel.Text = _localizationService.GetString("RecentOrders");
-        if (AttendanceTrackerLabel != null)
-            AttendanceTrackerLabel.Text = _localizationService.GetString("AttendanceTracker");
-        if (OpenAttendanceButton != null)
-            OpenAttendanceButton.Text = _localizationService.GetString("OpenAttendanceTracker");
-        if (AddProductLabel != null)
-            AddProductLabel.Text = _localizationService.GetString("AddProduct");
-        if (AddProductButton != null)
-            AddProductButton.Text = _localizationService.GetString("AddProduct");
-        if (ProductsLabel != null)
-            ProductsLabel.Text = _localizationService.GetString("Products");
         if (TotalSalesLabel != null)
             TotalSalesLabel.Text = _localizationService.GetString("TotalSales");
         if (OrdersLabel != null)
@@ -92,10 +84,6 @@ public partial class AdminPage : ContentPage
             TopProductLabel.Text = _localizationService.GetString("TopProduct");
         if (ReportStatusLabel != null)
             ReportStatusLabel.Text = _localizationService.GetString("ReportStatus");
-        if (RestockReportLabel != null)
-            RestockReportLabel.Text = _localizationService.GetString("RestockReport");
-        if (OpenRestockReportButton != null)
-            OpenRestockReportButton.Text = _localizationService.GetString("ViewRestockReport");
         
         // Update ViewModel properties that depend on localization
         if (BindingContext is AdminViewModel adminViewModel)
@@ -136,7 +124,27 @@ public partial class AdminPage : ContentPage
         }
     }
 
-    private async void OnOpenRestockReportClicked(object sender, EventArgs e)
+    private async void OnUsersPageTapped(object sender, EventArgs e)
+    {
+        var usersPage = new UsersPage(_viewModel, _localizationService, _serviceProvider);
+        await Shell.Current.Navigation.PushAsync(usersPage);
+    }
+
+    private async void OnProductsPageTapped(object sender, EventArgs e)
+    {
+        var productsPage = new ProductsPage(_viewModel, _localizationService, _serviceProvider);
+        await Shell.Current.Navigation.PushAsync(productsPage);
+    }
+
+    private async void OnAttendanceTrackerTapped(object sender, EventArgs e)
+    {
+        if (_viewModel.OpenAttendancePageCommand.CanExecute(null))
+        {
+            _viewModel.OpenAttendancePageCommand.Execute(null);
+        }
+    }
+
+    private async void OnRestockReportTapped(object sender, EventArgs e)
     {
         var restockReportPage = _serviceProvider.GetService<RestockReportPage>();
         if (restockReportPage != null)
