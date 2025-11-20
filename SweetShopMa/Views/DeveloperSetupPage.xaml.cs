@@ -71,6 +71,12 @@ public partial class DeveloperSetupPage : ContentPage
         UpdateLocalizedStrings();
         UpdateRTL();
         
+        // Set default OT multiplier to 1.5 (index 1)
+        if (OtMultiplierPicker != null && OtMultiplierPicker.SelectedIndex < 0)
+        {
+            OtMultiplierPicker.SelectedIndex = 1; // Default to 1.5
+        }
+        
         // Auto-focus name field
         await Task.Delay(100);
         if (NameEntry != null)
@@ -221,6 +227,7 @@ public partial class DeveloperSetupPage : ContentPage
         var password = PasswordEntry.Text;
         var confirmPassword = ConfirmPasswordEntry.Text;
         var salaryText = SalaryEntry.Text?.Trim() ?? "0";
+        var otMultiplierText = OtMultiplierPicker.SelectedItem?.ToString() ?? "1.5";
         
         // Map localized role back to English role name
         var selectedRole = RolePicker.SelectedItem?.ToString() ?? (_localizationService?.GetString("User") ?? "User");
@@ -280,6 +287,11 @@ public partial class DeveloperSetupPage : ContentPage
             return;
         }
 
+        if (!decimal.TryParse(otMultiplierText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var otMultiplier) || otMultiplier <= 0)
+        {
+            otMultiplier = 1.5m; // Default to 1.5 if invalid
+        }
+
         // Show loading
         LoadingIndicator.IsRunning = true;
         LoadingIndicator.IsVisible = true;
@@ -302,7 +314,8 @@ public partial class DeveloperSetupPage : ContentPage
                 Password = PasswordHelper.HashPassword(password),
                 Role = role,
                 IsEnabled = true,
-                MonthlySalary = salary
+                MonthlySalary = salary,
+                OvertimeMultiplier = otMultiplier
             };
 
             await _databaseService.CreateUserAsync(user);
@@ -320,6 +333,7 @@ public partial class DeveloperSetupPage : ContentPage
             PasswordEntry.Text = "";
             ConfirmPasswordEntry.Text = "";
             SalaryEntry.Text = "0";
+            OtMultiplierPicker.SelectedIndex = 1; // Reset to 1.5 (default)
             RolePicker.SelectedIndex = 2; // Reset to User
 
             // Navigate back to admin page and refresh user list

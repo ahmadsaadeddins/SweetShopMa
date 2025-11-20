@@ -69,6 +69,12 @@ public class User
     /// </summary>
     public decimal MonthlySalary { get; set; } = 0m;
     
+    /// <summary>
+    /// Overtime multiplier for calculating overtime pay (1.0, 1.5, or 2.0).
+    /// Default is 1.5 (time and a half).
+    /// </summary>
+    public decimal OvertimeMultiplier { get; set; } = 1.5m;
+    
     // ============================================
     // ROLE CHECK PROPERTIES (Computed)
     // ============================================

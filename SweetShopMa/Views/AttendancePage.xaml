@@ -204,6 +204,13 @@
                     <Label Text="{Binding MonthlySummaryTotals.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold"/>
                 </VerticalStackLayout>
             </Grid>
+            
+            <Button x:Name="ExportPdfButton"
+                    Text="Export Payroll PDF"
+                    BackgroundColor="#4CAF50"
+                    TextColor="White"
+                    Command="{Binding ExportPayrollPdfCommand}"
+                    Margin="0,0,0,10"/>
 
             <Label x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
             <Grid ColumnDefinitions="*,*,*,*,*,*,*" HorizontalOptions="Fill">

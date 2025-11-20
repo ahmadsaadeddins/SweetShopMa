@@ -436,7 +436,8 @@ public class DatabaseService
             Role = "Developer",
             Name = "ahmad",
             IsEnabled = true,
-            MonthlySalary = 0m
+            MonthlySalary = 0m,
+            OvertimeMultiplier = 1.5m
         };
         await _database.InsertAsync(developer);
     }
@@ -459,6 +460,11 @@ public class DatabaseService
         if (!columns.Any(c => string.Equals(c.name, "MonthlySalary", StringComparison.OrdinalIgnoreCase)))
         {
             await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN MonthlySalary REAL NOT NULL DEFAULT 0;");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "OvertimeMultiplier", StringComparison.OrdinalIgnoreCase)))
+        {
+            await _database.ExecuteAsync("ALTER TABLE User ADD COLUMN OvertimeMultiplier REAL NOT NULL DEFAULT 1.5;");
         }
     }
 
@@ -499,6 +505,11 @@ public class DatabaseService
         if (!columns.Any(c => string.Equals(c.name, "IsPresent", StringComparison.OrdinalIgnoreCase)))
         {
             await AddColumnAsync("IsPresent", "INTEGER", "NOT NULL DEFAULT 1");
+        }
+
+        if (!columns.Any(c => string.Equals(c.name, "AbsencePermissionType", StringComparison.OrdinalIgnoreCase)))
+        {
+            await AddColumnAsync("AbsencePermissionType", "TEXT", "NOT NULL DEFAULT 'None'");
         }
     }
 

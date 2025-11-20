@@ -7,7 +7,9 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
 using SweetShopMa.Utils;
@@ -49,6 +51,7 @@ public class AdminViewModel : INotifyPropertyChanged
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
     private readonly Services.LocalizationService _localizationService;
+    private readonly Services.IPdfService _pdfService;
 
     private bool _isBusy;
     private string _statusMessage = "";
@@ -107,6 +110,7 @@ public class AdminViewModel : INotifyPropertyChanged
     public ICommand EditProductCommand { get; }
     public ICommand UpdateProductCommand { get; }
     public ICommand CancelEditProductCommand { get; }
+    public ICommand ExportPayrollPdfCommand { get; }
 
     // Attendance form fields
     private User _selectedAttendanceUser;
@@ -118,7 +122,7 @@ public class AdminViewModel : INotifyPropertyChanged
     private string _attendancePreview = "Regular: 0h • OT: 0h • Pay $0.00";
 
     private readonly string[] _attendanceStatuses =
-        { "Present", "Absent" };
+        { "Present", "Reset", "Absent (With Permission)", "Absent (Without Permission)" };
 
     private AttendanceSummary _attendanceSummary = new();
     private MonthlyAttendanceTotals _monthlySummaryTotals = new();
@@ -127,12 +131,13 @@ public class AdminViewModel : INotifyPropertyChanged
     private List<AttendanceRecord> _currentMonthRecords = new();
     private string _newUserSalary = "0";
 
-    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService)
+    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService, Services.IPdfService pdfService)
     {
         _databaseService = databaseService;
         _authService = authService;
         _serviceProvider = serviceProvider;
         _localizationService = localizationService;
+        _pdfService = pdfService;
 
         AddUserCommand = new Command(async () => await AddUserAsync(), () => !IsBusy);
         AddProductCommand = new Command(async () => await AddProductAsync(), () => !IsBusy);
@@ -144,6 +149,7 @@ public class AdminViewModel : INotifyPropertyChanged
         EditProductCommand = new Command<Product>(async product => await EditProductAsync(product));
         UpdateProductCommand = new Command(async () => await UpdateProductAsync());
         CancelEditProductCommand = new Command(() => CancelEditProduct());
+        ExportPayrollPdfCommand = new Command(async () => await ExportPayrollPdfAsync(), () => !IsBusy);
 
         _authService.OnUserChanged += _ => OnPropertyChanged(nameof(IsAuthorized));
         TopProducts.CollectionChanged += (_, _) =>
@@ -177,15 +183,31 @@ public class AdminViewModel : INotifyPropertyChanged
 
             int presentDays = 0;
             int absentDays = 0;
+            int absentWithPermission = 0;
+            int absentWithoutPermission = 0;
 
             for (var day = monthStart; day <= monthEnd && day <= today; day = day.AddDays(1))
             {
                 if (recordByDate.TryGetValue(day.Date, out var rec))
                 {
-                    if (rec.IsPresent)
+                    // Reset days don't count as present or absent (they're outside the cycle)
+                    if (rec.AbsencePermissionType == "Reset")
+                    {
+                        // Reset days are paid but don't count in cycle
+                        continue;
+                    }
+                    else if (rec.IsPresent)
+                    {
                         presentDays++;
+                    }
                     else
+                    {
                         absentDays++;
+                        if (rec.AbsencePermissionType == "WithPermission")
+                            absentWithPermission++;
+                        else if (rec.AbsencePermissionType == "WithoutPermission")
+                            absentWithoutPermission++;
+                    }
                 }
                 else
                 {
@@ -193,15 +215,45 @@ public class AdminViewModel : INotifyPropertyChanged
                 }
             }
 
+            // Calculate base payroll from records
+            decimal basePayroll = userRecords.Sum(r => r.DailyPay);
+            
+            // Apply absence deductions
+            // With permission: deduct 1 day's pay per absence
+            // Without permission: deduct 2 days' pay per absence
+            int daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+            decimal dailyRate = user.MonthlySalary > 0 && daysInMonth > 0 
+                ? (user.MonthlySalary / daysInMonth) 
+                : 0m;
+            
+            decimal absenceDeductions = (absentWithPermission * dailyRate) + (absentWithoutPermission * 2m * dailyRate);
+            
+            // Add virtual days for 28-day months (2 extra paid days)
+            decimal virtualDaysPay = 0m;
+            if (daysInMonth == 28)
+            {
+                virtualDaysPay = 2m * dailyRate;
+            }
+            
+            // Final payroll calculation
+            decimal finalPayroll = basePayroll - absenceDeductions + virtualDaysPay;
+            
+            // Add virtual days to present days count for 28-day months
+            int adjustedPresentDays = presentDays;
+            if (daysInMonth == 28)
+            {
+                adjustedPresentDays += 2;
+            }
+
             var summary = new MonthlyAttendanceSummary
             {
                 UserId = user.Id,
                 UserName = user.Name,
-                DaysPresent = presentDays,
+                DaysPresent = adjustedPresentDays,
                 DaysAbsent = absentDays,
                 OvertimeHours = userRecords.Sum(r => r.OvertimeHours),
                 TotalHours = userRecords.Sum(r => r.RegularHours + r.OvertimeHours),
-                Payroll = userRecords.Sum(r => r.DailyPay)
+                Payroll = Math.Max(0m, finalPayroll) // Ensure payroll doesn't go negative
             };
             summaries.Add(summary);
         }
@@ -246,6 +298,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 (EditProductCommand as Command)?.ChangeCanExecute();
                 (RefreshCommand as Command)?.ChangeCanExecute();
                 (ToggleUserStatusCommand as Command)?.ChangeCanExecute();
+                (AddAttendanceCommand as Command)?.ChangeCanExecute();
+                (ExportPayrollPdfCommand as Command)?.ChangeCanExecute();
                 (AddAttendanceCommand as Command)?.ChangeCanExecute();
             }
         }
@@ -925,7 +979,7 @@ public class AdminViewModel : INotifyPropertyChanged
             return;
         }
 
-        var calculation = CalculateAttendanceForEntry();
+        var calculation = await CalculateAttendanceForEntryAsync();
         if (!calculation.IsValid)
         {
             ShowStatus($"⚠️ {calculation.ValidationMessage}", true);
@@ -944,7 +998,8 @@ public class AdminViewModel : INotifyPropertyChanged
             DailyPay = calculation.DailyPay,
             CheckInTime = calculation.CheckIn,
             CheckOutTime = calculation.CheckOut,
-            Notes = AttendanceNotes?.Trim() ?? ""
+            Notes = AttendanceNotes?.Trim() ?? "",
+            AbsencePermissionType = calculation.AbsencePermissionType
         };
 
         IsBusy = true;
@@ -1034,7 +1089,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 Username = NewUserUsername.Trim(),
                 Password = PasswordHelper.HashPassword(NewUserPassword.Trim()),
                 Role = selectedRole,
-                MonthlySalary = salary
+                MonthlySalary = salary,
+                OvertimeMultiplier = 1.5m // Default OT multiplier
             };
 
             await _databaseService.CreateUserAsync(user);
@@ -1259,7 +1315,39 @@ public class AdminViewModel : INotifyPropertyChanged
     }
 
     private bool StatusRequiresTimes(string status) =>
-        string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase);
+        string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase);
+    
+    /// <summary>
+    /// Determines if a date falls on a reset day (every 13 days starting from day 7).
+    /// Reset days: 7, 13 (7+6), 19 (13+6), 25 (19+6), and last day of month.
+    /// Reset days are paid at normal rate (not OT).
+    /// </summary>
+    private bool IsResetDay(DateTime date)
+    {
+        int dayOfMonth = date.Day;
+        // Reset days: 7, 13, 19, 25, and last day of month
+        if (dayOfMonth == 7 || dayOfMonth == 13 || dayOfMonth == 19 || dayOfMonth == 25)
+            return true;
+        
+        // Last day of month (could be 28, 29, 30, or 31)
+        int daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
+        if (dayOfMonth == daysInMonth)
+            return true;
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Determines if a date falls on an OT day (days after reset days: 8, 14, 20, 26).
+    /// These days are counted as OT if worked.
+    /// </summary>
+    private bool IsOvertimeDay(DateTime date)
+    {
+        int dayOfMonth = date.Day;
+        // OT days: 8 (after reset day 7), 14 (after reset day 13), 20 (after reset day 19), 26 (after reset day 25)
+        return dayOfMonth == 8 || dayOfMonth == 14 || dayOfMonth == 20 || dayOfMonth == 26;
+    }
 
     private void UpdateAttendancePreview()
     {
@@ -1279,6 +1367,256 @@ public class AdminViewModel : INotifyPropertyChanged
         AttendancePreview = $"Regular: {calc.RegularHours:F2}h | OT: {calc.OvertimeHours:F2}h | Pay ${calc.DailyPay:F2}";
     }
 
+    /// <summary>
+    /// Checks if a specific date was a reset day by counting working days before it.
+    /// Uses iterative approach to avoid recursion issues.
+    /// </summary>
+    private bool WasResetDay(DateTime date, DateTime monthStart, List<AttendanceRecord> allUserRecords, Dictionary<DateTime, bool> resetDayCache)
+    {
+        // Normalize date to date only (remove time component) for cache lookup
+        var dateNormalized = date.Date;
+        
+        // Check cache first
+        if (resetDayCache.ContainsKey(dateNormalized))
+            return resetDayCache[dateNormalized];
+        
+        // First, count ALL resets that occurred before this date
+        int totalResetCount = 0;
+        DateTime countDate = monthStart;
+        while (countDate < date)
+        {
+            var checkRecord = allUserRecords.FirstOrDefault(r => r.Date.Date == countDate.Date);
+            if (checkRecord != null)
+            {
+                if (checkRecord.AbsencePermissionType == "Reset")
+                {
+                    totalResetCount++;
+                }
+                else if (resetDayCache.ContainsKey(countDate) && resetDayCache[countDate] && checkRecord.IsPresent)
+                {
+                    totalResetCount++;
+                }
+            }
+            countDate = countDate.AddDays(1);
+        }
+        
+        // Now count working days since the last reset
+        var recordsBefore = allUserRecords.Where(r => r.Date < date && r.Date >= monthStart).OrderByDescending(r => r.Date).ToList();
+        
+        int totalWorkingDays = 0;
+        DateTime currentDate = date.AddDays(-1);
+
+        while (currentDate >= monthStart)
+        {
+            var record = recordsBefore.FirstOrDefault(r => r.Date.Date == currentDate.Date);
+            
+            if (record != null)
+            {
+                if (record.AbsencePermissionType == "Reset")
+                {
+                    break; // Found last reset, stop counting
+                }
+                
+                // Check cache for previous reset days (normalize date for lookup)
+                var checkDateNormalized = currentDate.Date;
+                if (resetDayCache.ContainsKey(checkDateNormalized) && resetDayCache[checkDateNormalized] && record.IsPresent)
+                {
+                    break; // Found last reset, stop counting
+                }
+                
+                if (record.IsPresent)
+                {
+                    totalWorkingDays++;
+                }
+            }
+            
+            currentDate = currentDate.AddDays(-1);
+        }
+
+        // Determine required days based on total reset count
+        int requiredDays = 7;
+        for (int i = 0; i < totalResetCount; i++)
+        {
+            requiredDays = (requiredDays == 7) ? 6 : 7;
+        }
+        
+        bool isReset = totalWorkingDays == requiredDays;
+        resetDayCache[dateNormalized] = isReset;
+        return isReset;
+    }
+
+    /// <summary>
+    /// Counts total working days (not consecutive) since last reset and determines if the current day is a reset day.
+    /// Pattern: 7 working days (can have absents) → reset, 6 working days → reset, 7 working days → reset, 6 working days → reset...
+    /// Returns: (totalWorkingDaysSinceLastReset, isResetDay, requiredDaysForThisCycle)
+    /// </summary>
+    private async Task<(int totalWorkingDays, bool isResetDay, int requiredDays)> GetWorkCycleInfoAsync(int userId, DateTime date)
+    {
+        var monthStart = new DateTime(date.Year, date.Month, 1);
+        var records = await _databaseService.GetAttendanceRecordsAsync(monthStart, date.AddDays(-1));
+        var userRecords = records
+            .Where(r => r.UserId == userId && r.Date < date)
+            .OrderByDescending(r => r.Date)
+            .ToList();
+
+        int totalWorkingDays = 0;
+        DateTime currentDate = date.AddDays(-1);
+        int resetCount = 0; // Count how many resets we've encountered
+        Dictionary<DateTime, bool> resetDayCache = new Dictionary<DateTime, bool>();
+
+        // First pass: identify all reset days and cache them
+        // Process days in chronological order to build cache correctly
+        var allDates = Enumerable.Range(1, DateTime.DaysInMonth(date.Year, date.Month))
+            .Select(d => new DateTime(date.Year, date.Month, d))
+            .Where(d => d < date)
+            .OrderBy(d => d)
+            .ToList();
+        
+        foreach (var checkDate in allDates)
+        {
+            WasResetDay(checkDate, monthStart, userRecords, resetDayCache);
+        }
+        
+        // Debug: show cache contents
+        System.Diagnostics.Debug.WriteLine($"Cache for {date:yyyy-MM-dd}: {string.Join(", ", resetDayCache.Where(kvp => kvp.Value).Select(kvp => kvp.Key.Day))}");
+
+        // Count backwards from the day before, counting ALL working days (not consecutive)
+        // Stop when we find a reset day (either Reset status or a day that was a reset day) or reach month start
+        while (currentDate >= monthStart)
+        {
+            var record = userRecords.FirstOrDefault(r => r.Date.Date == currentDate.Date);
+            var currentDateNormalized = currentDate.Date; // Normalize to date only for cache lookup
+            
+            if (record != null)
+            {
+                // Check if this day was a reset day FIRST (before counting it)
+                // Reset status: marks end of previous cycle, stop counting
+                if (record.AbsencePermissionType == "Reset")
+                {
+                    resetCount++; // Found a reset, this marks the end of the previous cycle
+                    System.Diagnostics.Debug.WriteLine($"Found Reset status: {currentDateNormalized:yyyy-MM-dd}, ResetCount now: {resetCount}");
+                    break; // Stop counting, we found the last reset
+                }
+                
+                // Check if this day was a reset day using cache (worked on reset day)
+                bool isCachedResetDay = resetDayCache.ContainsKey(currentDateNormalized) && resetDayCache[currentDateNormalized];
+                if (isCachedResetDay && record.IsPresent)
+                {
+                    resetCount++; // This was a reset day (worked), marks end of cycle
+                    System.Diagnostics.Debug.WriteLine($"Found reset day in cache: {currentDateNormalized:yyyy-MM-dd}, ResetCount now: {resetCount}");
+                    break; // Stop counting - this is the last reset, cycle starts after this
+                }
+                
+                // If present and NOT a reset day, count it as a working day
+                if (record.IsPresent)
+                {
+                    totalWorkingDays++;
+                }
+                // Absent days don't break the count, we just skip them
+            }
+            // No record (absent) doesn't break the count either
+            
+            currentDate = currentDate.AddDays(-1);
+        }
+        
+        // After finding the last reset, count ALL resets that occurred before the current date
+        // This determines which cycle we're in (first=7, second=6, third=7, fourth=6...)
+        int totalResetCount = 0;
+        DateTime countDate = monthStart;
+        while (countDate < date)
+        {
+            var checkRecord = userRecords.FirstOrDefault(r => r.Date.Date == countDate.Date);
+            if (checkRecord != null)
+            {
+                if (checkRecord.AbsencePermissionType == "Reset")
+                {
+                    totalResetCount++;
+                }
+                else if (resetDayCache.ContainsKey(countDate) && resetDayCache[countDate] && checkRecord.IsPresent)
+                {
+                    totalResetCount++;
+                }
+            }
+            countDate = countDate.AddDays(1);
+        }
+        
+        // Use total reset count to determine which cycle we're in
+        resetCount = totalResetCount;
+        System.Diagnostics.Debug.WriteLine($"Total resets before {date:yyyy-MM-dd}: {totalResetCount}");
+
+        // Determine required days for current cycle based on number of resets taken
+        // Pattern: First cycle = 7 days, second = 6 days, third = 7 days, fourth = 6 days...
+        int requiredDays = 7; // Start with 7
+        for (int i = 0; i < resetCount; i++)
+        {
+            requiredDays = (requiredDays == 7) ? 6 : 7; // Alternate after each reset
+        }
+        
+        // Check if current day should be a reset day (reached required total working days)
+        bool isResetDay = (totalWorkingDays == requiredDays);
+        
+        System.Diagnostics.Debug.WriteLine($"GetWorkCycleInfo: Date={date:yyyy-MM-dd}, TotalWorkingDays={totalWorkingDays}, ResetCount={resetCount}, RequiredDays={requiredDays}, IsResetDay={isResetDay}");
+        
+        return (totalWorkingDays, isResetDay, requiredDays);
+    }
+
+    private async Task<AttendanceCalculationResult> CalculateAttendanceForEntryAsync(bool validateOnly = false)
+    {
+        if (SelectedAttendanceUser == null)
+            return AttendanceCalculationResult.Invalid("Select an employee.");
+
+        var status = SelectedAttendanceStatus ?? "Present";
+        bool requiresTimes = StatusRequiresTimes(status);
+
+        DateTime? checkIn = null;
+        DateTime? checkOut = null;
+
+        if (requiresTimes)
+        {
+            checkIn = AttendanceDate.Date + AttendanceCheckInTime;
+            checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
+
+            if (checkOut <= checkIn)
+                return AttendanceCalculationResult.Invalid("Checkout must be after check-in.");
+        }
+
+        // Check work cycle to determine if this is a reset day
+        // Pattern: 7 days work → reset, 6 days work → reset, 7 days work → reset, 6 days work → reset...
+        var (totalWorkingDays, isResetDay, requiredDays) = await GetWorkCycleInfoAsync(SelectedAttendanceUser.Id, AttendanceDate);
+        bool meetsRequirement = false;
+        
+        System.Diagnostics.Debug.WriteLine($"Date: {AttendanceDate:yyyy-MM-dd}, Total Working Days: {totalWorkingDays}, Required: {requiredDays}, IsResetDay: {isResetDay}, Status: {status}");
+        
+        // If it's a reset day (reached 7 or 6 total working days) and status is Present, count as OT
+        if (isResetDay && !string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase))
+        {
+            meetsRequirement = true; // Has worked the required total working days
+            System.Diagnostics.Debug.WriteLine($"Reset day detected! Day {AttendanceDate.Day} will be counted as OT.");
+        }
+
+        var result = AttendanceCalculationResult.From(
+            SelectedAttendanceUser,
+            AttendanceDate,
+            status,
+            checkIn,
+            checkOut,
+            meetsRequirement);
+
+        if (result.NeedsSalaryInput)
+        {
+            result.ValidationMessage = "Set monthly salary to calculate pay.";
+            if (!validateOnly)
+            {
+                result.IsValid = false;
+                return result;
+            }
+        }
+
+        result.IsValid = true;
+        return result;
+    }
+    
+    // Synchronous wrapper for preview (doesn't check consecutive days)
     private AttendanceCalculationResult CalculateAttendanceForEntry(bool validateOnly = false)
     {
         if (SelectedAttendanceUser == null)
@@ -1318,6 +1656,62 @@ public class AdminViewModel : INotifyPropertyChanged
 
         result.IsValid = true;
         return result;
+    }
+
+    private async Task ExportPayrollPdfAsync()
+    {
+        System.Diagnostics.Debug.WriteLine("ExportPayrollPdfAsync called");
+        
+        if (!MonthlyAttendanceSummaries.Any())
+        {
+            ShowStatus("No attendance data to export.", true);
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"Exporting PDF for {MonthlyAttendanceSummaries.Count} users");
+            var summaries = MonthlyAttendanceSummaries.ToList();
+            var pdfPath = await _pdfService.GeneratePayrollPdfAsync(summaries, SummaryMonth, MonthlySummaryTotals);
+            System.Diagnostics.Debug.WriteLine($"PDF generated at: {pdfPath}");
+
+            if (string.IsNullOrEmpty(pdfPath))
+            {
+                ShowStatus("Failed to generate PDF.", true);
+                return;
+            }
+
+            // Open the PDF file
+            try
+            {
+                if (System.IO.File.Exists(pdfPath))
+                {
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        File = new ReadOnlyFile(pdfPath)
+                    });
+                    ShowStatus("PDF exported and opened successfully.", false);
+                }
+                else
+                {
+                    ShowStatus($"PDF file was not created at: {pdfPath}", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowStatus($"PDF generated at {pdfPath}. Error opening: {ex.Message}", true);
+                System.Diagnostics.Debug.WriteLine($"PDF Export Error: {ex}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error exporting PDF: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private void UpdateCalendarForSelection()
@@ -1394,11 +1788,12 @@ public class AttendanceCalculationResult
     public decimal DailyPay { get; set; }
     public DateTime? CheckIn { get; set; }
     public DateTime? CheckOut { get; set; }
+    public string AbsencePermissionType { get; set; } = "None";
 
     public static AttendanceCalculationResult Invalid(string message) =>
         new AttendanceCalculationResult { IsValid = false, ValidationMessage = message };
 
-    public static AttendanceCalculationResult From(User user, DateTime date, string status, DateTime? checkIn, DateTime? checkOut)
+    public static AttendanceCalculationResult From(User user, DateTime date, string status, DateTime? checkIn, DateTime? checkOut, bool meetsConsecutiveDaysRequirement = false)
     {
         var result = new AttendanceCalculationResult
         {
@@ -1408,11 +1803,24 @@ public class AttendanceCalculationResult
             CheckOut = checkOut
         };
 
-        bool isAbsent = string.Equals(status, "Absent", StringComparison.OrdinalIgnoreCase);
-        bool requiresTimes = string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase) ||
-                             string.Equals(status, "Overtime", StringComparison.OrdinalIgnoreCase);
+        // Check for absence types and reset status
+        bool isAbsentWithPermission = status.Contains("Absent (With Permission)", StringComparison.OrdinalIgnoreCase);
+        bool isAbsentWithoutPermission = status.Contains("Absent (Without Permission)", StringComparison.OrdinalIgnoreCase);
+        bool isAbsent = isAbsentWithPermission || isAbsentWithoutPermission;
+        bool isReset = string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase);
+        bool requiresTimes = string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase) || isReset;
 
-        result.IsPresent = !isAbsent;
+        result.IsPresent = !isAbsent && !isReset; // Reset is not counted as present for cycle tracking
+        
+        // Store absence permission type
+        if (isAbsentWithPermission)
+            result.AbsencePermissionType = "WithPermission";
+        else if (isAbsentWithoutPermission)
+            result.AbsencePermissionType = "WithoutPermission";
+        else if (isReset)
+            result.AbsencePermissionType = "Reset";
+        else
+            result.AbsencePermissionType = "None";
 
         if (requiresTimes)
         {
@@ -1438,6 +1846,34 @@ public class AttendanceCalculationResult
                 ? (decimal)(actualOut - scheduleEnd).TotalHours
                 : 0m;
 
+            // Month-based rules
+            int daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
+            
+            // Rule 1: If month has 31 days and this is the 31st day, add 8h OT
+            if (daysInMonth == 31 && date.Day == 31)
+            {
+                overtimeHours += 8m;
+            }
+            
+            // Rule 2: Check if this is a reset day based on work cycle
+            // Reset days are determined by work cycle: 7 days work → reset, 6 days work → reset, 7 days work → reset, 6 days work → reset...
+            // meetsConsecutiveDaysRequirement indicates if this day is a reset day (reached 7 or 6 consecutive working days)
+            
+            // If status is "Reset", pay at normal rate (don't convert to OT, don't count in cycle)
+            // If status is "Present" on a reset day (reached required consecutive days), count all hours as OT
+            if (isReset && regularHours > 0)
+            {
+                // Reset status: paid at normal rate, don't convert to OT
+                // regularHours stays as is
+            }
+            else if (meetsConsecutiveDaysRequirement && !isReset && regularHours > 0)
+            {
+                // Present on reset day (reached required consecutive days): count all hours as OT
+                overtimeHours += regularHours;
+                regularHours = 0m;
+            }
+            // If present but not a reset day, pay at normal rate
+
             result.RegularHours = Math.Round(regularHours, 2);
             result.OvertimeHours = Math.Round(overtimeHours, 2);
         }
@@ -1447,16 +1883,20 @@ public class AttendanceCalculationResult
             result.OvertimeHours = 0m;
         }
 
-        if (!result.IsPresent)
+        // Reset status should still have hours and pay calculated (at normal rate)
+        // Only absent days should have zero hours
+        if (!result.IsPresent && !isReset)
         {
             result.RegularHours = 0m;
             result.OvertimeHours = 0m;
         }
 
+        // Calculate pay using user's OT multiplier
         var salary = user?.MonthlySalary ?? 0m;
-        var daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
-        var hourlyRate = daysInMonth > 0 ? (salary / daysInMonth) / 8m : 0m;
-        var overtimeRate = hourlyRate * 1.5m;
+        var daysInMonthForCalc = DateTime.DaysInMonth(date.Year, date.Month);
+        var hourlyRate = daysInMonthForCalc > 0 ? (salary / daysInMonthForCalc) / 8m : 0m;
+        var otMultiplier = user?.OvertimeMultiplier ?? 1.5m;
+        var overtimeRate = hourlyRate * otMultiplier;
         var pay = (result.RegularHours * hourlyRate) + (result.OvertimeHours * overtimeRate);
 
         result.DailyPay = Math.Round(pay, 2);

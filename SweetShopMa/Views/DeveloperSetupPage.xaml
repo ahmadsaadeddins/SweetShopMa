@@ -112,6 +112,20 @@
                 Completed="OnSalaryEntryCompleted"/>
         </StackLayout>
 
+        <!-- OT Multiplier Field -->
+        <StackLayout Spacing="8">
+            <Label x:Name="OtMultiplierLabel" Text="⏰ Overtime Multiplier" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Picker x:Name="OtMultiplierPicker">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>1.0</x:String>
+                        <x:String>1.5</x:String>
+                        <x:String>2.0</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+        </StackLayout>
+
         <!-- Role Selection -->
         <StackLayout Spacing="8">
             <Label x:Name="RoleLabel" Text="👑 Role" FontSize="14" FontAttributes="Bold" TextColor="#333"/>

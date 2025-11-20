@@ -1,0 +1,17 @@
+namespace SweetShopMa.Services;
+
+/// <summary>
+/// Interface for PDF generation service.
+/// </summary>
+public interface IPdfService
+{
+    /// <summary>
+    /// Generates a payroll PDF report for the specified month.
+    /// </summary>
+    /// <param name="summaries">List of monthly attendance summaries</param>
+    /// <param name="month">The month and year for the report</param>
+    /// <param name="totals">Monthly totals</param>
+    /// <returns>Path to the generated PDF file, or null if generation failed</returns>
+    Task<string?> GeneratePayrollPdfAsync(List<ViewModels.MonthlyAttendanceSummary> summaries, DateTime month, ViewModels.MonthlyAttendanceTotals totals);
+}
+

@@ -63,6 +63,7 @@ public static class MauiProgram
             .AddSingleton<AuthService>()                // User authentication
             .AddSingleton<CartService>()                // Shopping cart management
             .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)  // Multi-language support (uses singleton instance)
+            .AddSingleton<IPdfService, PdfService>()   // PDF generation service
             
             // Platform-Specific Services
             // On Windows, use Windows-specific implementations

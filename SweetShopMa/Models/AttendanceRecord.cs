@@ -84,6 +84,13 @@ public class AttendanceRecord
     public string Notes { get; set; } = "";
     
     /// <summary>
+    /// Absence permission type: "None" (for present days), "WithPermission", "WithoutPermission", or "Reset".
+    /// Used to determine payroll deductions (1 day for with permission, 2 days for without).
+    /// "Reset" means the day is a reset day and doesn't count in the work cycle.
+    /// </summary>
+    public string AbsencePermissionType { get; set; } = "None";
+    
+    /// <summary>
     /// Timestamp when this record was created (for audit purposes).
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
