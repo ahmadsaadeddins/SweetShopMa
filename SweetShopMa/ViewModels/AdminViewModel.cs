@@ -67,6 +67,14 @@ public class AdminViewModel : INotifyPropertyChanged
     private string _newProductPrice = "";
     private string _newProductStock = "";
     private bool _newProductIsWeight;
+    private string _newProductCategory = "All";
+
+    // Edit product fields
+    private Product _selectedProduct;
+    private string _editProductName = "";
+    private string _editProductEmoji = "";
+    private string _editProductCategory = "";
+    private string _editProductPrice = "";
 
     // Report metrics
     private decimal _totalSales;
@@ -92,6 +100,9 @@ public class AdminViewModel : INotifyPropertyChanged
     public ICommand OpenOrderDetailsCommand { get; }
     public ICommand AddAttendanceCommand { get; }
     public ICommand OpenAttendancePageCommand { get; }
+    public ICommand EditProductCommand { get; }
+    public ICommand UpdateProductCommand { get; }
+    public ICommand CancelEditProductCommand { get; }
 
     // Attendance form fields
     private User _selectedAttendanceUser;
@@ -126,6 +137,9 @@ public class AdminViewModel : INotifyPropertyChanged
         OpenOrderDetailsCommand = new Command<Order>(async order => await ShowOrderDetailsAsync(order));
         AddAttendanceCommand = new Command(async () => await AddAttendanceAsync(), () => !IsBusy);
         OpenAttendancePageCommand = new Command(async () => await OpenAttendancePage());
+        EditProductCommand = new Command<Product>(async product => await EditProductAsync(product));
+        UpdateProductCommand = new Command(async () => await UpdateProductAsync());
+        CancelEditProductCommand = new Command(() => CancelEditProduct());
 
         _authService.OnUserChanged += _ => OnPropertyChanged(nameof(IsAuthorized));
         TopProducts.CollectionChanged += (_, _) =>
@@ -224,6 +238,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 OnPropertyChanged();
                 (AddUserCommand as Command)?.ChangeCanExecute();
                 (AddProductCommand as Command)?.ChangeCanExecute();
+                (UpdateProductCommand as Command)?.ChangeCanExecute();
+                (EditProductCommand as Command)?.ChangeCanExecute();
                 (RefreshCommand as Command)?.ChangeCanExecute();
                 (ToggleUserStatusCommand as Command)?.ChangeCanExecute();
                 (AddAttendanceCommand as Command)?.ChangeCanExecute();
@@ -580,6 +596,52 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         get => _newProductIsWeight;
         set { if (_newProductIsWeight != value) { _newProductIsWeight = value; OnPropertyChanged(); } }
+    }
+
+    public string NewProductCategory
+    {
+        get => _newProductCategory;
+        set { if (_newProductCategory != value) { _newProductCategory = value; OnPropertyChanged(); } }
+    }
+
+    public Product SelectedProduct
+    {
+        get => _selectedProduct;
+        set
+        {
+            if (_selectedProduct != value)
+            {
+                _selectedProduct = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsEditingProduct));
+            }
+        }
+    }
+
+    public bool IsEditingProduct => SelectedProduct != null;
+
+    public string EditProductName
+    {
+        get => _editProductName;
+        set { if (_editProductName != value) { _editProductName = value; OnPropertyChanged(); } }
+    }
+
+    public string EditProductEmoji
+    {
+        get => _editProductEmoji;
+        set { if (_editProductEmoji != value) { _editProductEmoji = value; OnPropertyChanged(); } }
+    }
+
+    public string EditProductCategory
+    {
+        get => _editProductCategory;
+        set { if (_editProductCategory != value) { _editProductCategory = value; OnPropertyChanged(); } }
+    }
+
+    public string EditProductPrice
+    {
+        get => _editProductPrice;
+        set { if (_editProductPrice != value) { _editProductPrice = value; OnPropertyChanged(); } }
     }
 
     public async Task InitializeAsync()
@@ -959,7 +1021,8 @@ public class AdminViewModel : INotifyPropertyChanged
                 Barcode = NewProductBarcode?.Trim() ?? "",
                 Price = price,
                 Stock = stock,
-                IsSoldByWeight = NewProductIsWeight
+                IsSoldByWeight = NewProductIsWeight,
+                Category = string.IsNullOrWhiteSpace(NewProductCategory) ? "All" : NewProductCategory.Trim()
             };
 
             await _databaseService.SaveProductAsync(product);
@@ -974,11 +1037,103 @@ public class AdminViewModel : INotifyPropertyChanged
             NewProductPrice = "";
             NewProductStock = "";
             NewProductIsWeight = false;
+            NewProductCategory = "All";
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private async Task EditProductAsync(Product product)
+    {
+        if (product == null) return;
+
+        if (!IsAuthorized)
+        {
+            ShowStatus(_localizationService.GetString("OnlyAdminsCanAddProducts"), true);
+            return;
+        }
+
+        SelectedProduct = product;
+        EditProductName = product.Name;
+        EditProductEmoji = product.Emoji;
+        EditProductCategory = product.Category ?? "All";
+        EditProductPrice = product.Price.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private async Task UpdateProductAsync()
+    {
+        if (SelectedProduct == null) return;
+
+        if (!IsAuthorized)
+        {
+            ShowStatus(_localizationService.GetString("OnlyAdminsCanAddProducts"), true);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(EditProductName) ||
+            string.IsNullOrWhiteSpace(EditProductEmoji) ||
+            string.IsNullOrWhiteSpace(EditProductPrice))
+        {
+            ShowStatus(_localizationService.GetString("PleaseFillAllProductFields"), true);
+            return;
+        }
+
+        if (!decimal.TryParse(EditProductPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var price) || price <= 0)
+        {
+            ShowStatus(_localizationService.GetString("EnterValidPrice"), true);
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var productName = EditProductName.Trim();
+            var productId = SelectedProduct.Id;
+            
+            SelectedProduct.Name = productName;
+            SelectedProduct.Emoji = EditProductEmoji.Trim();
+            SelectedProduct.Category = string.IsNullOrWhiteSpace(EditProductCategory) ? "All" : EditProductCategory.Trim();
+            SelectedProduct.Price = price;
+
+            // Save the product
+            await _databaseService.SaveProductAsync(SelectedProduct);
+            
+            // Always reload products to ensure UI is updated
+            await LoadProductsAsync();
+            
+            // Show success message
+            var updatedMsg = _localizationService.GetString("AddedProduct");
+            if (updatedMsg.Contains("Added"))
+            {
+                updatedMsg = updatedMsg.Replace("Added", "Updated");
+            }
+            else
+            {
+                updatedMsg = $"Updated {productName}";
+            }
+            ShowStatus(string.Format(updatedMsg, productName), false);
+
+            CancelEditProduct();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error updating product: {ex.Message}", true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void CancelEditProduct()
+    {
+        SelectedProduct = null;
+        EditProductName = "";
+        EditProductEmoji = "";
+        EditProductCategory = "";
+        EditProductPrice = "";
     }
 
     private async Task ToggleUserStatusAsync(User user)

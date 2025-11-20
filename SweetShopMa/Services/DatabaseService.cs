@@ -145,6 +145,7 @@ public class DatabaseService
             // These methods add new columns to existing tables if the app is updated
             await EnsureUserTableColumnsAsync();
             await EnsureAttendanceTableColumnsAsync();
+            await EnsureProductTableColumnsAsync();
         }
         finally
         {
@@ -238,18 +239,18 @@ public class DatabaseService
 
         var products = new[]
         {
-            new Product { Name = "Chocolate Cake", Emoji = "🍰", Barcode = "501", Price = 4.99m, Stock = 50m, IsSoldByWeight = false },
-            new Product { Name = "Gummy Bears", Emoji = "🫐", Barcode = "502", Price = 3.49m, Stock = 100m, IsSoldByWeight = false },
-            new Product { Name = "Lollipop", Emoji = "🍭", Barcode = "503", Price = 1.99m, Stock = 200m, IsSoldByWeight = false },
-            new Product { Name = "Donut", Emoji = "🍩", Barcode = "504", Price = 2.49m, Stock = 75m, IsSoldByWeight = false },
-            new Product { Name = "Ice Cream", Emoji = "🍦", Barcode = "505", Price = 3.99m, Stock = 60m, IsSoldByWeight = false },
-            new Product { Name = "Candy Corn", Emoji = "🌽", Barcode = "506", Price = 2.99m, Stock = 150m, IsSoldByWeight = false },
-            new Product { Name = "Cupcake", Emoji = "🧁", Barcode = "507", Price = 3.99m, Stock = 80m, IsSoldByWeight = false },
-            new Product { Name = "Chocolate Bar", Emoji = "🍫", Barcode = "508", Price = 2.49m, Stock = 120m, IsSoldByWeight = true }, // Sold by kilo
-            new Product { Name = "Marshmallow", Emoji = "☁️", Barcode = "509", Price = 1.99m, Stock = 90m, IsSoldByWeight = false },
-            new Product { Name = "Candy Apple", Emoji = "🍎", Barcode = "510", Price = 3.49m, Stock = 40m, IsSoldByWeight = false },
-            new Product { Name = "Waffle", Emoji = "🧇", Barcode = "511", Price = 4.49m, Stock = 30m, IsSoldByWeight = false },
-            new Product { Name = "Croissant", Emoji = "🥐", Barcode = "512", Price = 3.49m, Stock = 55m, IsSoldByWeight = false }
+            new Product { Name = "Chocolate Cake", Emoji = "🍰", Barcode = "501", Price = 4.99m, Stock = 50m, IsSoldByWeight = false, Category = "Cakes" },
+            new Product { Name = "Gummy Bears", Emoji = "🫐", Barcode = "502", Price = 3.49m, Stock = 100m, IsSoldByWeight = false, Category = "Candy" },
+            new Product { Name = "Lollipop", Emoji = "🍭", Barcode = "503", Price = 1.99m, Stock = 200m, IsSoldByWeight = false, Category = "Candy" },
+            new Product { Name = "Donut", Emoji = "🍩", Barcode = "504", Price = 2.49m, Stock = 75m, IsSoldByWeight = false, Category = "Pastries" },
+            new Product { Name = "Ice Cream", Emoji = "🍦", Barcode = "505", Price = 3.99m, Stock = 60m, IsSoldByWeight = false, Category = "Frozen" },
+            new Product { Name = "Candy Corn", Emoji = "🌽", Barcode = "506", Price = 2.99m, Stock = 150m, IsSoldByWeight = false, Category = "Candy" },
+            new Product { Name = "Cupcake", Emoji = "🧁", Barcode = "507", Price = 3.99m, Stock = 80m, IsSoldByWeight = false, Category = "Cakes" },
+            new Product { Name = "Chocolate Bar", Emoji = "🍫", Barcode = "508", Price = 2.49m, Stock = 120m, IsSoldByWeight = true, Category = "Candy" }, // Sold by kilo
+            new Product { Name = "Marshmallow", Emoji = "☁️", Barcode = "509", Price = 1.99m, Stock = 90m, IsSoldByWeight = false, Category = "Candy" },
+            new Product { Name = "Candy Apple", Emoji = "🍎", Barcode = "510", Price = 3.49m, Stock = 40m, IsSoldByWeight = false, Category = "Candy" },
+            new Product { Name = "Waffle", Emoji = "🧇", Barcode = "511", Price = 4.49m, Stock = 30m, IsSoldByWeight = false, Category = "Pastries" },
+            new Product { Name = "Croissant", Emoji = "🥐", Barcode = "512", Price = 3.49m, Stock = 55m, IsSoldByWeight = false, Category = "Pastries" }
         };
 
         foreach (var product in products)
@@ -498,6 +499,16 @@ public class DatabaseService
         if (!columns.Any(c => string.Equals(c.name, "IsPresent", StringComparison.OrdinalIgnoreCase)))
         {
             await AddColumnAsync("IsPresent", "INTEGER", "NOT NULL DEFAULT 1");
+        }
+    }
+
+    private async Task EnsureProductTableColumnsAsync()
+    {
+        var columns = await _database.QueryAsync<TableInfo>("PRAGMA table_info(Product);");
+
+        if (!columns.Any(c => string.Equals(c.name, "Category", StringComparison.OrdinalIgnoreCase)))
+        {
+            await _database.ExecuteAsync("ALTER TABLE Product ADD COLUMN Category TEXT NOT NULL DEFAULT 'All';");
         }
     }
 

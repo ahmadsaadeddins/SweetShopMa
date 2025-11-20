@@ -64,6 +64,7 @@ public class ShopViewModel : INotifyPropertyChanged
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
     public ObservableCollection<Product> FilteredProducts { get; } = new();
+    public ObservableCollection<string> Categories { get; } = new();
 
     private decimal _total;
     public decimal Total
@@ -175,6 +176,21 @@ public class ShopViewModel : INotifyPropertyChanged
 
     public bool HasSelectedProduct => SelectedQuickProduct != null;
 
+    private string _selectedCategory = "All";
+    public string SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            if (_selectedCategory != value)
+            {
+                _selectedCategory = value;
+                OnPropertyChanged();
+                FilterProducts();
+            }
+        }
+    }
+
     // Notification message for subtle feedback
     private string _notificationMessage = "";
     public string NotificationMessage
@@ -219,6 +235,7 @@ public class ShopViewModel : INotifyPropertyChanged
     public ICommand QuickAddCommand { get; }
     public ICommand OpenAdminPanelCommand { get; }
     public ICommand OpenDrawerCommand { get; }
+    public ICommand SelectCategoryCommand { get; }
 
     public ShopViewModel(CartService cartService,
                          DatabaseService databaseService,
@@ -258,6 +275,7 @@ public class ShopViewModel : INotifyPropertyChanged
         QuickAddCommand = new Command(QuickAddToCart, () => !_isPostCheckout && SelectedQuickProduct != null);
         OpenAdminPanelCommand = new Command(async () => await OpenAdminPanel());
         OpenDrawerCommand = new Command(async () => await OpenDrawer());
+        SelectCategoryCommand = new Command<string>(category => SelectedCategory = category);
 
         _cartService.OnCartChanged += UpdateCart;
         _authService.OnUserChanged += OnUserChanged;
@@ -278,9 +296,11 @@ public class ShopViewModel : INotifyPropertyChanged
             foreach (var product in products)
                 Products.Add(product);
 
-            FilteredProducts.Clear();
-            foreach (var product in products)
-                FilteredProducts.Add(product);
+            // Update categories
+            UpdateCategories();
+            
+            // Filter products
+            FilterProducts();
         }
         else
         {
@@ -290,14 +310,40 @@ public class ShopViewModel : INotifyPropertyChanged
                 foreach (var product in products)
                     Products.Add(product);
 
-                FilteredProducts.Clear();
-                foreach (var product in products)
-                    FilteredProducts.Add(product);
+                // Update categories
+                UpdateCategories();
+                
+                // Filter products
+                FilterProducts();
             });
         }
 
         await _cartService.InitializeAsync();
         UpdateCart();
+    }
+
+    private void UpdateCategories()
+    {
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateCategories);
+            return;
+        }
+        
+        Categories.Clear();
+        Categories.Add("All");
+        
+        var uniqueCategories = Products
+            .Where(p => !string.IsNullOrWhiteSpace(p.Category) && p.Category != "All")
+            .Select(p => p.Category)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        
+        foreach (var category in uniqueCategories)
+        {
+            Categories.Add(category);
+        }
     }
 
     private void FilterProducts()
@@ -309,10 +355,19 @@ public class ShopViewModel : INotifyPropertyChanged
             return;
         }
         
+        // First filter by category
+        var categoryFiltered = Products.AsEnumerable();
+        if (SelectedCategory != "All")
+        {
+            categoryFiltered = categoryFiltered.Where(p => p.Category == SelectedCategory);
+        }
+        
         FilteredProducts.Clear();
+        
+        // If no search text, show all products in selected category
         if (string.IsNullOrWhiteSpace(QuickSearchText))
         {
-            foreach (var product in Products)
+            foreach (var product in categoryFiltered)
                 FilteredProducts.Add(product);
             SelectedQuickProduct = null;
             return;
@@ -323,7 +378,7 @@ public class ShopViewModel : INotifyPropertyChanged
         // Try to parse as ID (numeric)
         if (int.TryParse(searchText, out int searchId))
         {
-            var productById = Products.FirstOrDefault(p => p.Id == searchId);
+            var productById = categoryFiltered.FirstOrDefault(p => p.Id == searchId);
             if (productById != null)
             {
                 FilteredProducts.Add(productById);
@@ -333,7 +388,7 @@ public class ShopViewModel : INotifyPropertyChanged
         }
 
         // Search by barcode (exact match first)
-        var productByBarcode = Products.FirstOrDefault(p => 
+        var productByBarcode = categoryFiltered.FirstOrDefault(p => 
             !string.IsNullOrEmpty(p.Barcode) && 
             p.Barcode.Equals(searchText, StringComparison.OrdinalIgnoreCase));
         
@@ -346,7 +401,7 @@ public class ShopViewModel : INotifyPropertyChanged
 
         // Search by barcode (contains)
         var searchLower = searchText.ToLowerInvariant();
-        foreach (var product in Products)
+        foreach (var product in categoryFiltered)
         {
             bool matches = false;
             
@@ -720,6 +775,9 @@ public class ShopViewModel : INotifyPropertyChanged
         Products.Clear();
         foreach (var product in products)
             Products.Add(product);
+        
+        // Update categories
+        UpdateCategories();
         
         // Refresh filtered products
         FilterProducts();

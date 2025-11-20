@@ -67,6 +67,12 @@ public class Product : INotifyPropertyChanged
     /// </summary>
     public bool IsSoldByWeight { get; set; } = false;
     
+    /// <summary>
+    /// Product category (e.g., "Candy", "Cakes", "Drinks").
+    /// Used for organizing and filtering products in the shop.
+    /// </summary>
+    public string Category { get; set; } = "All";
+    
     // ============================================
     // UI-ONLY PROPERTIES (Not stored in database)
     // ============================================

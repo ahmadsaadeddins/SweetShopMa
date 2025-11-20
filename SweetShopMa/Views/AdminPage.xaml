@@ -256,6 +256,8 @@
                     <Entry Placeholder="Starting Stock"
                            Text="{Binding NewProductStock}"
                            Keyboard="Numeric"/>
+                    <Entry Placeholder="Category (e.g., Candy, Cakes, Drinks)"
+                           Text="{Binding NewProductCategory}"/>
                     <HorizontalStackLayout Spacing="10">
                         <Label Text="Sold by weight?" VerticalOptions="Center"/>
                         <Switch IsToggled="{Binding NewProductIsWeight}"/>
@@ -272,21 +274,63 @@
             <CollectionView ItemsSource="{Binding Products}" HeightRequest="250">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid ColumnDefinitions="Auto,*,Auto" Padding="8">
-                            <Label Grid.Column="0" Text="{Binding Emoji}" FontSize="24"/>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                                <Label Text="{Binding Barcode, StringFormat='Barcode: {0}'}" FontSize="12" TextColor="#555"/>
-                                <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12"/>
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
-                                <Label Text="{Binding Stock, StringFormat='Stock: {0:F2}'}" FontSize="12"/>
-                                <Label Text="{Binding UnitLabel}" FontSize="12" TextColor="#777"/>
-                            </VerticalStackLayout>
-                        </Grid>
+                        <Border StrokeThickness="1" Stroke="#e0e0e0" Padding="8" BackgroundColor="White">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditProductCommand}"
+                                                      CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="4">
+                                <Label Grid.Column="0" Text="{Binding Emoji}" FontSize="24"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                                    <Label Text="{Binding Barcode, StringFormat='Barcode: {0}'}" FontSize="12" TextColor="#555"/>
+                                    <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12"/>
+                                    <Label Text="{Binding Category, StringFormat='Category: {0}'}" FontSize="12" TextColor="#777"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                                    <Label Text="{Binding Stock, StringFormat='Stock: {0:F2}'}" FontSize="12"/>
+                                    <Label Text="{Binding UnitLabel}" FontSize="12" TextColor="#777"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <!-- Edit Product Form -->
+            <Border Stroke="#32b8c6" StrokeThickness="2" Padding="16" BackgroundColor="#f0f9fa"
+                    IsVisible="{Binding IsEditingProduct}"
+                    Margin="0,10,0,0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Edit Product" FontSize="18" FontAttributes="Bold" TextColor="#1d7480"/>
+                    <Entry Placeholder="Name"
+                           Text="{Binding EditProductName}"/>
+                    <Entry Placeholder="Emoji (e.g., 🍫)"
+                           Text="{Binding EditProductEmoji}"
+                           MaxLength="4"/>
+                    <Entry Placeholder="Category"
+                           Text="{Binding EditProductCategory}"/>
+                    <Entry Placeholder="Price"
+                           Text="{Binding EditProductPrice}"
+                           Keyboard="Numeric"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="Update"
+                                BackgroundColor="#32b8c6"
+                                TextColor="White"
+                                Command="{Binding UpdateProductCommand}"
+                                IsEnabled="{Binding IsEditingProduct}"
+                                HorizontalOptions="FillAndExpand"/>
+                        <Button Text="Cancel"
+                                BackgroundColor="#999"
+                                TextColor="White"
+                                Command="{Binding CancelEditProductCommand}"
+                                HorizontalOptions="FillAndExpand"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
 
             <Label Text="{Binding StatusMessage}"
                    FontAttributes="Bold"
