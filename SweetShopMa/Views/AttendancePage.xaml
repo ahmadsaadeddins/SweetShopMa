@@ -206,7 +206,7 @@
                         </Grid>
                         <Entry Placeholder="Search by name or notes..." Text="{Binding SearchText}"/>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <Picker Title="Status" ItemsSource="{Binding Source={x:Static sys:Enum.GetValues}, Path={x:Type sys:String}}" SelectedItem="{Binding FilterStatus}">
+                            <Picker Title="Status" SelectedItem="{Binding FilterStatus}">
                                 <Picker.ItemsSource>
                                     <x:Array Type="{x:Type x:String}">
                                         <x:String>All</x:String>

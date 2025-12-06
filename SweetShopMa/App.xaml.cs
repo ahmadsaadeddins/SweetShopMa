@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using System;
+using System.Diagnostics;
 using Microsoft.Maui.ApplicationModel;
 using SweetShopMa;
 using SweetShopMa.Services;
@@ -44,11 +46,25 @@ public partial class App : Application
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(Utils.AppConstants.NavigationDelayMs); // Small delay to ensure Shell is ready
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                try
                 {
-                    await shell.GoToAsync("//login");
-                });
+                    await Task.Delay(Utils.AppConstants.NavigationDelayMs); // Small delay to ensure Shell is ready
+                    try
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            await shell.GoToAsync("//login");
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Navigation scheduling error: {ex.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Background navigation error: {ex}");
+                }
             });
         }
         
@@ -56,6 +72,9 @@ public partial class App : Application
         var localizationService = LocalizationService.Instance;
         localizationService.LanguageChanged += OnLanguageChanged;
         OnLanguageChanged();
+
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
     }
 
     private void OnLanguageChanged()
@@ -67,5 +86,33 @@ public partial class App : Application
                 ? FlowDirection.RightToLeft 
                 : FlowDirection.LeftToRight;
         }
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        var ex = e.ExceptionObject as Exception;
+        var message = ex?.Message ?? e.ExceptionObject?.ToString() ?? "Unhandled exception";
+        Debug.WriteLine(ex?.ToString() ?? message);
+        try
+        {
+            if (MainThread.IsMainThread && MainPage != null)
+            {
+                var loc = LocalizationService.Instance;
+                var title = loc.GetString("Error");
+                var ok = loc.GetString("OK");
+                MainPage.DisplayAlert(title, message, ok);
+            }
+        }
+        catch {}
+    }
+
+    private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Debug.WriteLine(e.Exception?.ToString());
+        e.SetObserved();
+        var message = e.Exception?.Message ?? "Unobserved task exception";
+        // Avoid UI calls here; finalizer thread may not have main thread access
+        // Log for diagnostics only
+        Debug.WriteLine($"UnobservedTaskException: {message}\n{e.Exception}");
     }
 }
