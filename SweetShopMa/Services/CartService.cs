@@ -1,4 +1,4 @@
-﻿using SweetShopMa.Models;
+using SweetShopMa.Models;
 
 namespace SweetShopMa.Services;
 
@@ -27,7 +27,15 @@ public class CartService
     /// </summary>
     public async Task InitializeAsync()
     {
-        _cartItems = await _databaseService.GetCartItemsAsync();
+        try
+        {
+            _cartItems = await _databaseService.GetCartItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error initializing cart: {ex}");
+            _cartItems = new List<CartItem>(); // Fallback to empty cart
+        }
     }
 
     /// <summary>
@@ -44,53 +52,61 @@ public class CartService
     /// Adds a product to the cart or increments quantity if already present.
     /// Validates stock availability before adding.
     /// </summary>
-    /// <returns>True if successful, false if insufficient stock</returns>
+    /// <returns>True if successful, false if insufficient stock or error occurred</returns>
     public async Task<bool> AddToCartAsync(Product product, decimal quantity)
     {
-        if (quantity <= 0) 
-            return false;
+        try
+        {
+            if (product == null || quantity <= 0) 
+                return false;
 
-        // Calculate new quantity if product already in cart
-        var newQuantity = quantity;
-        var existingItem = _cartItems.FirstOrDefault(x => x.ProductId == product.Id);
-        if (existingItem is not null)
-        {
-            newQuantity += existingItem.Quantity;
-        }
-
-        // Check stock availability
-        var isAvailable = await _databaseService.CheckStockAvailabilityAsync(product.Id, newQuantity);
-        if (!isAvailable)
-        {
-            return false; // Not enough stock
-        }
-
-        if (existingItem is not null)
-        {
-            // Update existing item - CartItem's INotifyPropertyChanged will notify UI
-            existingItem.Quantity += quantity;
-            await _databaseService.SaveCartItemAsync(existingItem);
-            // UI will automatically update because CartItem.Quantity triggers PropertyChanged
-        }
-        else
-        {
-            // Create new cart item
-            var cartItem = new CartItem
+            // Calculate new quantity if product already in cart
+            var newQuantity = quantity;
+            var existingItem = _cartItems.FirstOrDefault(x => x.ProductId == product.Id);
+            if (existingItem is not null)
             {
-                ProductId = product.Id,
-                Name = product.Name,
-                Emoji = product.Emoji,
-                Price = product.Price,
-                Quantity = quantity,
-                IsSoldByWeight = product.IsSoldByWeight
-            };
-            await _databaseService.SaveCartItemAsync(cartItem);
-            _cartItems.Add(cartItem);
-        }
+                newQuantity += existingItem.Quantity;
+            }
 
-        // Notify UI that cart has changed
-        OnCartChanged?.Invoke();
-        return true;
+            // Check stock availability
+            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(product.Id, newQuantity);
+            if (!isAvailable)
+            {
+                return false; // Not enough stock
+            }
+
+            if (existingItem is not null)
+            {
+                // Update existing item - CartItem's INotifyPropertyChanged will notify UI
+                existingItem.Quantity += quantity;
+                await _databaseService.SaveCartItemAsync(existingItem);
+                // UI will automatically update because CartItem.Quantity triggers PropertyChanged
+            }
+            else
+            {
+                // Create new cart item
+                var cartItem = new CartItem
+                {
+                    ProductId = product.Id,
+                    Name = product.Name,
+                    Emoji = product.Emoji,
+                    Price = product.Price,
+                    Quantity = quantity,
+                    IsSoldByWeight = product.IsSoldByWeight
+                };
+                await _databaseService.SaveCartItemAsync(cartItem);
+                _cartItems.Add(cartItem);
+            }
+
+            // Notify UI that cart has changed
+            OnCartChanged?.Invoke();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error adding to cart: {ex}");
+            return false;
+        }
     }
 
     /// <summary>
@@ -98,86 +114,102 @@ public class CartService
     /// </summary>
     public async Task RemoveFromCartAsync(CartItem item)
     {
-        await _databaseService.DeleteCartItemAsync(item);
-        _cartItems.Remove(item);
-        OnCartChanged?.Invoke();
+        try
+        {
+            if (item == null) return;
+            
+            await _databaseService.DeleteCartItemAsync(item);
+            _cartItems.Remove(item);
+            OnCartChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error removing from cart: {ex}");
+            // Still try to remove from memory even if database operation fails
+            _cartItems.Remove(item);
+            OnCartChanged?.Invoke();
+        }
     }
 
     /// <summary>
     /// Updates the quantity of an item already in the cart.
     /// Validates stock availability before updating.
     /// </summary>
-    /// <returns>True if successful, false if insufficient stock</returns>
+    /// <returns>True if successful, false if insufficient stock or error occurred</returns>
     public async Task<bool> UpdateCartItemQuantityAsync(CartItem item, decimal newQuantity)
     {
-        if (newQuantity <= 0)
+        try
         {
-            await RemoveFromCartAsync(item);
+            if (item == null) return false;
+            
+            if (newQuantity <= 0)
+            {
+                await RemoveFromCartAsync(item);
+                return true;
+            }
+
+            // Check stock availability
+            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(item.ProductId, newQuantity);
+            if (!isAvailable)
+            {
+                return false; // Not enough stock
+            }
+
+            item.Quantity = newQuantity;
+            await _databaseService.SaveCartItemAsync(item);
+            OnCartChanged?.Invoke();
             return true;
         }
-
-        // Check stock availability
-        var isAvailable = await _databaseService.CheckStockAvailabilityAsync(item.ProductId, newQuantity);
-        if (!isAvailable)
+        catch (Exception ex)
         {
-            return false; // Not enough stock
+            System.Diagnostics.Debug.WriteLine($"Error updating cart item quantity: {ex}");
+            return false;
         }
-
-        item.Quantity = newQuantity;
-        await _databaseService.SaveCartItemAsync(item);
-        OnCartChanged?.Invoke();
-        return true;
     }
 
     /// <summary>
     /// Completes the checkout process: creates an order, updates inventory, and clears cart.
     /// </summary>
-    /// <returns>Created Order object if successful, null if cart is empty</returns>
+    /// <returns>Created Order object if successful, null if cart is empty or error occurred</returns>
     public async Task<Order> CheckoutAsync(int userId, string userName)
     {
-        if (_cartItems.Count == 0) 
-            return null;
-
-        // Create order with current cart totals
-        var order = new Order
+        try
         {
-            UserId = userId,           // ← NEW
-            UserName = userName,       // ← NEW
-            OrderDate = DateTime.Now,
-            Total = GetTotal(),
-            ItemCount = (int)Math.Ceiling(_cartItems.Sum(x => x.Quantity)), // Round up for display
-            Status = "Completed"
-        };
+            if (_cartItems.Count == 0) 
+                return null;
 
-        // Save order and get its ID
-        var orderId = await _databaseService.CreateOrderAsync(order);
-        order.Id = orderId;
-
-        // Create order items and update inventory
-        foreach (var cartItem in _cartItems)
-        {
-            // Create order item record
-            var orderItem = new OrderItem
+            // Create order with current cart totals
+            var order = new Order
             {
-                OrderId = order.Id,
-                ProductId = cartItem.ProductId,
-                Name = cartItem.Name,
-                Emoji = cartItem.Emoji,
-                Price = cartItem.Price,
-                Quantity = cartItem.Quantity,
-                IsSoldByWeight = cartItem.IsSoldByWeight
+                UserId = userId,
+                UserName = userName,
+                OrderDate = DateTime.Now,
+                Total = GetTotal(),
+                ItemCount = (int)Math.Ceiling(_cartItems.Sum(x => x.Quantity)), // Round up for display
+                Status = "Completed"
             };
-            await _databaseService.CreateOrderItemAsync(orderItem);
 
-            // Reduce product stock by quantity sold
-            await _databaseService.UpdateProductStockAsync(cartItem.ProductId, -cartItem.Quantity);
+            // Save order and get its ID
+            // Use transaction to ensure data integrity
+            var resultOrder = await _databaseService.ProcessCheckoutAsync(order, _cartItems);
+            
+            if (resultOrder == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Checkout failed: ProcessCheckoutAsync returned null");
+                return null;
+            }
+
+            // Clear cart memory only after successful checkout
+            _cartItems.Clear();
+            OnCartChanged?.Invoke();
+
+            return resultOrder;
         }
-
-        // Clear cart
-        await _databaseService.ClearCartAsync();
-        _cartItems.Clear();
-        OnCartChanged?.Invoke();
-
-        return order;
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error during checkout: {ex}");
+            // Don't clear cart on error - allow user to retry
+            return null;
+        }
     }
 }

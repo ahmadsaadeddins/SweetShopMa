@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SweetShopMa.Views.ExpensesPage"
+             Title="Employee Expenses">
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="16">
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Button Text="Back"
+                        BackgroundColor="#f0f4f7"
+                        TextColor="#1d7480"
+                        Padding="10,6"
+                        CornerRadius="6"
+                        Clicked="OnBackButtonClicked"
+                        HorizontalOptions="Start"/>
+            </Grid>
+
+            <Label Text="Employee Expenses" FontSize="20" FontAttributes="Bold"/>
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Picker Grid.Column="0"
+                                Title="Employee"
+                                ItemsSource="{Binding Users}"
+                                ItemDisplayBinding="{Binding Name}"
+                                SelectedItem="{Binding SelectedExpenseUser}"/>
+                        <DatePicker Grid.Column="1"
+                                    Date="{Binding ExpenseDate}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                        <Entry Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
+                    </Grid>
+                    <Entry Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
+                    <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <CollectionView ItemsSource="{Binding EmployeeExpenses}" HeightRequest="320">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Padding="8" ColumnSpacing="10">
+                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding ExpenseDate, StringFormat='{0:yyyy-MM-dd}'}" FontAttributes="Bold"/>
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='{0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
+                            <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
+                                <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
+                                        CommandParameter="{Binding .}"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

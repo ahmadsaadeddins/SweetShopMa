@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SweetShopMa.Views.AdminDashboardPage"
+             Title="Dashboard">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+            <Label Text="Admin Dashboard" FontSize="24" FontAttributes="Bold"/>
+            <Label Text="Overview and quick statistics" FontSize="14" TextColor="#666"/>
+            
+            <!-- Quick Stats -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Quick Stats" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Padding="10">
+                    <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Total Sales" FontSize="12" TextColor="#666"/>
+                            <Label Text="{Binding TotalSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Total Orders" FontSize="12" TextColor="#666"/>
+                            <Label Text="{Binding TotalOrders}" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Items Sold" FontSize="12" TextColor="#666"/>
+                            <Label Text="{Binding TotalItemsSold, StringFormat='{0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Last 7 Days" FontSize="12" TextColor="#666"/>
+                            <Label Text="{Binding Last7DaysSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+                </VerticalStackLayout>
+            </Border>
+            
+            <!-- Recent Activity -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Recent Activity" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <CollectionView ItemsSource="{Binding RecentOrders}" HeightRequest="200" Padding="10">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="8" ColumnSpacing="10">
+                                <Label Grid.Column="0" Text="{Binding Id, StringFormat='# {0}'}" FontAttributes="Bold" VerticalOptions="Center"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding OrderDate, StringFormat='{0:MMM dd, HH:mm}'}" FontAttributes="Bold"/>
+                                    <Label Text="{Binding UserName, StringFormat='Cashier: {0}'}" FontSize="12" TextColor="#555"/>
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="{Binding Total, StringFormat='${0:F2}'}" FontAttributes="Bold" VerticalOptions="Center" HorizontalOptions="End"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

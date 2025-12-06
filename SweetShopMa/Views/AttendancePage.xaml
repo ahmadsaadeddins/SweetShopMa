@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:sys="clr-namespace:System;assembly=netstandard"
              x:Class="SweetShopMa.Views.AttendancePage"
+             x:Name="AttendancePageRoot"
              Title="Attendance Tracker">
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
@@ -39,180 +40,390 @@
                    FontSize="24"
                    FontAttributes="Bold"/>
 
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="16" BackgroundColor="#f9f9f9">
-                <VerticalStackLayout Spacing="10">
-                    <Picker x:Name="EmployeePicker" Title="Employee"
-                            ItemsSource="{Binding Users}"
-                            ItemDisplayBinding="{Binding Name}"
-                            SelectedItem="{Binding SelectedAttendanceUser}"/>
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <DatePicker Grid.Column="0"
-                                    Date="{Binding AttendanceDate}"
-                                    Format="MMM dd, yyyy"
-                                    MaximumDate="{x:Static sys:DateTime.Today}"/>
-                        <Picker x:Name="StatusPicker" Grid.Column="1"
-                                Title="Status"
-                                ItemsSource="{Binding AttendanceStatuses}"
-                                SelectedItem="{Binding SelectedAttendanceStatus}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <TimePicker Grid.Column="0"
-                                    Time="{Binding AttendanceCheckInTime}"
-                                    IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
-                        <TimePicker Grid.Column="1"
-                                    Time="{Binding AttendanceCheckOutTime}"
-                                    IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
-                    </Grid>
-                    <Entry x:Name="NotesEntry" Placeholder="Notes (optional)"
-                           Text="{Binding AttendanceNotes}"/>
-                    <Label Text="{Binding AttendancePreview}"
-                           FontAttributes="Italic"
-                           TextColor="#1d7480"/>
-                    <Label Text="{Binding StatusMessage}"
-                           FontAttributes="Bold"
-                           IsVisible="{Binding HasStatusMessage}"
-                           HorizontalOptions="Center">
-                        <Label.Triggers>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
-                                <Setter Property="TextColor" Value="#c00000"/>
-                            </DataTrigger>
-                            <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
-                                <Setter Property="TextColor" Value="#1f7a4d"/>
-                            </DataTrigger>
-                        </Label.Triggers>
-                    </Label>
-                    <Button x:Name="RecordAttendanceButton"
-                            Text="Record Attendance"
-                            BackgroundColor="#1d7480"
-                            TextColor="White"
-                            Command="{Binding AddAttendanceCommand}"/>
+            <!-- Add/Edit Attendance Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Add/Edit Attendance" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <Border Stroke="#e0e0e0" StrokeThickness="0" Padding="16" BackgroundColor="#f9f9f9">
+                    <VerticalStackLayout Spacing="10">
+                        <Picker x:Name="EmployeePicker" Title="Employee"
+                                ItemsSource="{Binding Users}"
+                                ItemDisplayBinding="{Binding Name}"
+                                SelectedItem="{Binding SelectedAttendanceUser}"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <DatePicker Grid.Column="0"
+                                        Date="{Binding AttendanceDate}"
+                                        Format="MMM dd, yyyy"
+                                        MaximumDate="{x:Static sys:DateTime.Today}"/>
+                            <Picker x:Name="StatusPicker" Grid.Column="1"
+                                    Title="Status"
+                                    ItemsSource="{Binding AttendanceStatuses}"
+                                    SelectedItem="{Binding SelectedAttendanceStatus}"/>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <TimePicker Grid.Column="0"
+                                        Time="{Binding AttendanceCheckInTime}"
+                                        IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
+                            <TimePicker Grid.Column="1"
+                                        Time="{Binding AttendanceCheckOutTime}"
+                                        IsEnabled="{Binding IsAttendanceTimeEntryEnabled}"/>
+                        </Grid>
+                        <Entry x:Name="NotesEntry" Placeholder="Notes (optional)"
+                               Text="{Binding AttendanceNotes}"/>
+                        <Label Text="{Binding AttendancePreview}"
+                               FontAttributes="Italic"
+                               TextColor="#1d7480"/>
+                        <Label Text="{Binding StatusMessage}"
+                               FontAttributes="Bold"
+                               IsVisible="{Binding HasStatusMessage}"
+                               HorizontalOptions="Center">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="True">
+                                    <Setter Property="TextColor" Value="#c00000"/>
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label" Binding="{Binding IsErrorStatus}" Value="False">
+                                    <Setter Property="TextColor" Value="#1f7a4d"/>
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                        <Button x:Name="RecordAttendanceButton"
+                                Text="Record Attendance"
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Command="{Binding AddAttendanceCommand}"/>
+                        <Button x:Name="UpdateAttendanceButton"
+                                Text="Update Attendance"
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Command="{Binding UpdateAttendanceRecordCommand}"
+                                IsVisible="{Binding IsEditingAttendance}"/>
+                    </VerticalStackLayout>
+                    </Border>
                 </VerticalStackLayout>
             </Border>
 
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Present" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.PresentCount}" FontAttributes="Bold" FontSize="20"/>
+            <!-- Statistics Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Statistics" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <!-- Basic Statistics -->
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Present" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.PresentCount}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Absent" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.AbsentCount}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Overtime Entries" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.OvertimeCount}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Regular Hours" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.TotalRegularHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Overtime Hours" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Payroll (30d)" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding AttendanceSummary.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold" FontSize="20"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- Enhanced Statistics (only shown when employee is selected) -->
+                    <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f8ff" IsVisible="{Binding SelectedAttendanceUser, Converter={StaticResource IsNotNullConverter}}">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Enhanced Statistics" FontSize="14" FontAttributes="Bold" TextColor="#1d7480"/>
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                                <Border Grid.Row="0" Grid.Column="0" Stroke="#d0e0f0" StrokeThickness="1" Padding="8" BackgroundColor="White">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Avg Hours/Day" FontSize="11" TextColor="#666"/>
+                                        <Label Text="{Binding AverageHoursPerDay, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="16"/>
+                                    </VerticalStackLayout>
+                                </Border>
+                                <Border Grid.Row="0" Grid.Column="1" Stroke="#d0e0f0" StrokeThickness="1" Padding="8" BackgroundColor="White">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Consecutive Days" FontSize="11" TextColor="#666"/>
+                                        <Label Text="{Binding ConsecutiveWorkingDays}" FontAttributes="Bold" FontSize="16"/>
+                                    </VerticalStackLayout>
+                                </Border>
+                                <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Stroke="#d0e0f0" StrokeThickness="1" Padding="8" BackgroundColor="White">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="Monthly Comparison" FontSize="11" TextColor="#666"/>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                <Label Text="Days:" FontSize="10" TextColor="#999"/>
+                                                <Label Text="{Binding MonthlyComparison.DaysComparison}" FontSize="12"/>
+                                                <Label Text="Hours:" FontSize="10" TextColor="#999"/>
+                                                <Label Text="{Binding MonthlyComparison.HoursComparison}" FontSize="12"/>
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="Payroll:" FontSize="10" TextColor="#999"/>
+                                                <Label Text="{Binding MonthlyComparison.PayrollComparison}" FontSize="12"/>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
                     </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Absent" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.AbsentCount}" FontAttributes="Bold" FontSize="20"/>
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Overtime Entries" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.OvertimeCount}" FontAttributes="Bold" FontSize="20"/>
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Regular Hours" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.TotalRegularHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Overtime Hours" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold" FontSize="20"/>
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Payroll (30d)" FontSize="12" TextColor="#666"/>
-                        <Label Text="{Binding AttendanceSummary.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold" FontSize="20"/>
-                    </VerticalStackLayout>
-                </Border>
-            </Grid>
+                </VerticalStackLayout>
+            </Border>
 
-            <CollectionView ItemsSource="{Binding AttendanceRecords}" HeightRequest="280">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
-                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
-                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Date, StringFormat='{0:MMM dd}'}" HorizontalOptions="End" TextColor="#666"/>
-                            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="10">
-                                <Label Text="{Binding Status}" FontAttributes="Bold" TextColor="#1d7480">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsPresent}" Value="False">
-                                            <Setter Property="TextColor" Value="#c00000"/>
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                                <Label Text="{Binding Notes}" FontSize="12" TextColor="#999"/>
-                            </HorizontalStackLayout>
-                            <Label Grid.Row="1" Grid.Column="1"
-                                   Text="{Binding DailyPay, StringFormat='${0:F2}'}"
-                                   FontAttributes="Bold"
-                                   HorizontalOptions="End"/>
-                            <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="12">
-                                <Label Text="{Binding CheckInDisplay, StringFormat='In {0}'}" FontSize="12" TextColor="#555"/>
-                                <Label Text="{Binding CheckOutDisplay, StringFormat='Out {0}'}" FontSize="12" TextColor="#555"/>
-                            </HorizontalStackLayout>
-                            <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="10" HorizontalOptions="End">
-                                <Label Text="{Binding RegularHours, StringFormat='Reg {0:F1}h'}" FontSize="12" TextColor="#555"/>
-                                <Label Text="{Binding OvertimeHours, StringFormat='OT {0:F1}h'}" FontSize="12" TextColor="#555"/>
+            <!-- Filtering Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="False">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Filters &amp; Search" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <Border Stroke="#e0e0e0" StrokeThickness="0" Padding="16" BackgroundColor="#f9f9f9">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <DatePicker Grid.Column="0" Date="{Binding FilterStartDate}" Format="MMM dd, yyyy"/>
+                            <DatePicker Grid.Column="1" Date="{Binding FilterEndDate}" Format="MMM dd, yyyy"/>
+                        </Grid>
+                        <Entry Placeholder="Search by name or notes..." Text="{Binding SearchText}"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Picker Title="Status" ItemsSource="{Binding Source={x:Static sys:Enum.GetValues}, Path={x:Type sys:String}}" SelectedItem="{Binding FilterStatus}">
+                                <Picker.ItemsSource>
+                                    <x:Array Type="{x:Type x:String}">
+                                        <x:String>All</x:String>
+                                        <x:String>Present</x:String>
+                                        <x:String>Absent</x:String>
+                                    </x:Array>
+                                </Picker.ItemsSource>
+                            </Picker>
+                            <Picker Title="Overtime" SelectedItem="{Binding FilterOvertime}">
+                                <Picker.ItemsSource>
+                                    <x:Array Type="{x:Type x:String}">
+                                        <x:String>All</x:String>
+                                        <x:String>With OT</x:String>
+                                        <x:String>Without OT</x:String>
+                                    </x:Array>
+                                </Picker.ItemsSource>
+                            </Picker>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Apply Filters" BackgroundColor="#1d7480" TextColor="White" Command="{Binding ApplyFiltersCommand}"/>
+                            <Button Text="Clear Filters" BackgroundColor="#666" TextColor="White" Command="{Binding ClearFiltersCommand}"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Records List Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Attendance Records" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <!-- Bulk Operations -->
+                    <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="#fff3cd" IsVisible="{Binding HasSelectedRecords}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="{Binding SelectedRecords.Count, StringFormat='{0} record(s) selected'}" VerticalOptions="Center"/>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                                <Button Text="Delete Selected" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White" Command="{Binding BulkDeleteCommand}"/>
+                                <Button Text="Clear Selection" FontSize="12" Padding="8,4" BackgroundColor="#666" TextColor="White" Command="{Binding ClearSelectionCommand}"/>
                             </HorizontalStackLayout>
                         </Grid>
+                    </Border>
+                    <!-- Export Buttons -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Export to Excel" BackgroundColor="#4CAF50" TextColor="White" Command="{Binding ExportAttendanceToExcelCommand}"/>
+                        <Button Text="Export to PDF" BackgroundColor="#2196F3" TextColor="White" Command="{Binding ExportAttendanceToPdfCommand}"/>
+                    </Grid>
+                    <CollectionView ItemsSource="{Binding AttendanceRecords}" HeightRequest="280">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+                                    <SwipeItem Text="Edit" BackgroundColor="#1d7480" Command="{Binding Source={x:Reference AttendancePageRoot}, Path=BindingContext.EditAttendanceRecordCommand}" CommandParameter="{Binding}" />
+                                    <SwipeItem Text="Delete" BackgroundColor="#c00000" Command="{Binding Source={x:Reference AttendancePageRoot}, Path=BindingContext.DeleteAttendanceRecordCommand}" CommandParameter="{Binding}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Date, StringFormat='{0:MMM dd}'}" HorizontalOptions="End" TextColor="#666"/>
+                                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="10">
+                                    <Label Text="{Binding Status}" FontAttributes="Bold" TextColor="#1d7480">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsPresent}" Value="False">
+                                                <Setter Property="TextColor" Value="#c00000"/>
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    <Label Text="{Binding Notes}" FontSize="12" TextColor="#999"/>
+                                </HorizontalStackLayout>
+                                <Label Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding DailyPay, StringFormat='${0:F2}'}"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="End"/>
+                                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="12">
+                                    <Label Text="{Binding CheckInDisplay, StringFormat='In {0}'}" FontSize="12" TextColor="#555"/>
+                                    <Label Text="{Binding CheckOutDisplay, StringFormat='Out {0}'}" FontSize="12" TextColor="#555"/>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="10" HorizontalOptions="End">
+                                    <Label Text="{Binding RegularHours, StringFormat='Reg {0:F1}h'}" FontSize="12" TextColor="#555"/>
+                                    <Label Text="{Binding OvertimeHours, StringFormat='OT {0:F1}h'}" FontSize="12" TextColor="#555"/>
+                                </HorizontalStackLayout>
+                                <!-- Desktop-friendly action buttons -->
+                                <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Spacing="8" HorizontalOptions="End">
+                                    <Button Text="Edit" FontSize="12" Padding="8,4" BackgroundColor="#1d7480" TextColor="White"
+                                            Command="{Binding Source={x:Reference AttendancePageRoot}, Path=BindingContext.EditAttendanceRecordCommand}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                            Command="{Binding Source={x:Reference AttendancePageRoot}, Path=BindingContext.DeleteAttendanceRecordCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
 
-            <Label x:Name="MonthlySummaryLabel" Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Label x:Name="MonthLabel" Text="Month:" VerticalOptions="Center"/>
-                <DatePicker Grid.Column="1"
-                            Date="{Binding SummaryMonth}"
-                            Format="MMM yyyy"/>
-            </Grid>
-            <CollectionView ItemsSource="{Binding MonthlyAttendanceSummaries}"
-                            HeightRequest="220"
-                            SelectionMode="Single"
-                            SelectedItem="{Binding SelectedMonthlySummary}">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
-                            <Label Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
-                            <Label Grid.Column="1" Text="{Binding DaysPresent, StringFormat='Present {0}'}" FontSize="12" TextColor="#555"/>
-                            <Label Grid.Column="2" Text="{Binding DaysAbsent, StringFormat='Absent {0}'}" FontSize="12" TextColor="#c00000" HorizontalOptions="End"/>
-                            <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="End">
-                                <Label Text="{Binding OvertimeDisplay}" FontSize="12" TextColor="#666"/>
-                                <Label Text="{Binding PayrollDisplay}" FontSize="12" FontAttributes="Bold"/>
+            <!-- Monthly Summary Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label x:Name="MonthlySummaryLabel" Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Label x:Name="MonthLabel" Text="Month:" VerticalOptions="Center"/>
+                            <DatePicker Grid.Column="1"
+                                        Date="{Binding SummaryMonth}"
+                                        Format="MMM yyyy"/>
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding MonthlyAttendanceSummaries}"
+                                        HeightRequest="220"
+                                        SelectionMode="Single"
+                                        SelectedItem="{Binding SelectedMonthlySummary}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="10" ColumnSpacing="10">
+                                        <Label Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
+                                        <Label Grid.Column="1" Text="{Binding DaysPresent, StringFormat='Present {0}'}" FontSize="12" TextColor="#555"/>
+                                        <Label Grid.Column="2" Text="{Binding DaysAbsent, StringFormat='Absent {0}'}" FontSize="12" TextColor="#c00000" HorizontalOptions="End"/>
+                                        <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="End">
+                                            <Label Text="{Binding OvertimeDisplay}" FontSize="12" TextColor="#666"/>
+                                            <Label Text="{Binding PayrollDisplay}" FontSize="12" FontAttributes="Bold"/>
+                                            <Label Text="{Binding RestDayPayout, StringFormat='Rest ${0:F2}'}" FontSize="12" TextColor="#666"/>
+                                            <Label Text="{Binding AbsenceDeductions, StringFormat='Deduct -${0:F2}'}" FontSize="12" TextColor="#c00000"/>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <Button Text="Export Selected Employee Payroll PDF"
+                                BackgroundColor="#4CAF50"
+                                TextColor="White"
+                                Command="{Binding ExportSelectedEmployeePayrollPdfCommand}"
+                                Margin="0,10,0,0"/>
+
+                        <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
+                        <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Label Grid.Column="0" Text="Selected:" FontSize="12" TextColor="#666"/>
+                                    <Label Grid.Column="1" Text="{Binding SelectedMonthlySummary.UserName}" FontAttributes="Bold"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <DatePicker Grid.Column="0"
+                                                Date="{Binding ExpenseDate}"/>
+                                    <Entry Grid.Column="1" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Entry Grid.Column="0" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
+                                    <Entry Grid.Column="1" Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
+                                </Grid>
+                                <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <CollectionView ItemsSource="{Binding EmployeeExpenses}" HeightRequest="220">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Padding="8" ColumnSpacing="10">
+                                        <Label Grid.Row="0" Grid.Column="0" Text="{Binding ExpenseDate, StringFormat='{0:yyyy-MM-dd}'}" FontAttributes="Bold"/>
+                                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='${0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
+                                        <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
+                                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
+                                            <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" Padding="0,0,0,10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="Total Present" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalPresentDays}" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Total Absent" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalAbsentDays}" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                <Label Text="OT Hours" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="3" Spacing="2">
+                                <Label Text="Payroll" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold"/>
+                                <Label Text="Rest Payout" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalRestPayout, StringFormat='${0:F2}'}" FontAttributes="Bold"/>
+                                <Label Text="Absence Deductions" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding MonthlySummaryTotals.TotalAbsenceDeductions, StringFormat='-${0:F2}'}" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" Padding="0,0,0,10">
-                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                    <Label Text="Total Present" FontSize="12" TextColor="#666"/>
-                    <Label Text="{Binding MonthlySummaryTotals.TotalPresentDays}" FontAttributes="Bold"/>
+                        
+                        <Button x:Name="ExportPdfButton"
+                                Text="Export Payroll PDF"
+                                BackgroundColor="#4CAF50"
+                                TextColor="White"
+                                Command="{Binding ExportPayrollPdfCommand}"
+                                Margin="0,0,0,10"/>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label Text="Total Absent" FontSize="12" TextColor="#666"/>
-                    <Label Text="{Binding MonthlySummaryTotals.TotalAbsentDays}" FontAttributes="Bold"/>
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="2" Spacing="2">
-                    <Label Text="OT Hours" FontSize="12" TextColor="#666"/>
-                    <Label Text="{Binding MonthlySummaryTotals.TotalOvertimeHours, StringFormat='{0:F1}h'}" FontAttributes="Bold"/>
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="3" Spacing="2">
-                    <Label Text="Payroll" FontSize="12" TextColor="#666"/>
-                    <Label Text="{Binding MonthlySummaryTotals.TotalPayroll, StringFormat='${0:F2}'}" FontAttributes="Bold"/>
-                </VerticalStackLayout>
-            </Grid>
-            
-            <Button x:Name="ExportPdfButton"
-                    Text="Export Payroll PDF"
-                    BackgroundColor="#4CAF50"
-                    TextColor="White"
-                    Command="{Binding ExportPayrollPdfCommand}"
-                    Margin="0,0,0,10"/>
+            </Border>
 
-            <Label x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
+            <!-- Calendar Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
             <Grid ColumnDefinitions="*,*,*,*,*,*,*" HorizontalOptions="Fill">
                 <Label Text="Sun" HorizontalTextAlignment="Center" />
                 <Label Text="Mon" Grid.Column="1" HorizontalTextAlignment="Center" />
@@ -231,6 +442,10 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="4" BackgroundColor="#f7f7f7">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CalendarDayTappedCommand}"
+                                                      CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
                             <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
                                 <Label Text="{Binding DayText}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
                                 <Label Text="{Binding DetailText}" FontSize="10" TextColor="#555" HorizontalTextAlignment="Center"/>
@@ -258,8 +473,46 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Employee Comparison Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Employee Comparison" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <CollectionView ItemsSource="{Binding EmployeeComparisonData}" HeightRequest="300" Padding="10">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" Margin="0,0,0,8" BackgroundColor="White">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+                                    <Label Grid.Column="0" Text="{Binding UserName}" FontAttributes="Bold"/>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="Days" FontSize="10" TextColor="#666"/>
+                                        <Label Text="{Binding DaysWorked}" FontAttributes="Bold"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                        <Label Text="Hours" FontSize="10" TextColor="#666"/>
+                                        <Label Text="{Binding HoursDisplay}" FontAttributes="Bold"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="3" Spacing="2">
+                                        <Label Text="Avg/Day" FontSize="10" TextColor="#666"/>
+                                        <Label Text="{Binding AvgHoursDisplay}" FontAttributes="Bold"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="4" Spacing="2">
+                                        <Label Text="Rate" FontSize="10" TextColor="#666"/>
+                                        <Label Text="{Binding AttendanceRateDisplay}" FontAttributes="Bold"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+                </VerticalStackLayout>
+            </Border>
 
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

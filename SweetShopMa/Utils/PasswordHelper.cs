@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Security.Cryptography;
 
 namespace SweetShopMa.Utils;
@@ -55,44 +55,47 @@ public static class PasswordHelper
             byte[] salt = new byte[16];
             rng.GetBytes(salt);
 
-            // Derive a 32-byte key using PBKDF2 (10,000 iterations, SHA-256)
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256))
+            // Derive a 32-byte key using PBKDF2 (configurable iterations, SHA-256)
+            int iterations = AppConstants.PasswordHashIterations;
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256))
             {
                 byte[] hash = pbkdf2.GetBytes(32);
-                return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}"; // store as salt:hash
+                return $"{iterations}:{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}"; // store as iterations:salt:hash
             }
         }
     }
 
     /// <summary>
     /// Verifies an entered password against a stored hash.
-    /// 
-    /// HOW IT WORKS:
-    /// 1. Split stored "salt:hash" string
-    /// 2. Extract salt and hash (Base64 decode)
-    /// 3. Hash the entered password with the same salt
-    /// 4. Compare the new hash with stored hash (using fixed-time comparison)
-    /// 5. Return true if they match, false otherwise
-    /// 
-    /// SECURITY:
-    /// - Uses CryptographicOperations.FixedTimeEquals for comparison
-    /// - Fixed-time comparison prevents timing attacks (attacker can't learn which byte differs)
-    /// 
-    /// EXAMPLE:
-    /// VerifyPassword("mypassword", "dGVzdHNhbHQ=:YWJjZGVmZ2hpams=")
-    /// Returns true if password matches, false otherwise
+    /// Supports both legacy format (salt:hash) with 10,000 iterations and new format (iterations:salt:hash).
     /// </summary>
-    /// <param name="password">Plain text password to verify</param>
-    /// <param name="hashedPassword">Stored hash in format "salt:hash"</param>
-    /// <returns>True if password matches, false otherwise</returns>
     public static bool VerifyPassword(string password, string hashedPassword)
     {
         var parts = hashedPassword.Split(':');
-        if (parts.Length != 2) return false;
-        var salt = Convert.FromBase64String(parts[0]);
-        var storedHash = Convert.FromBase64String(parts[1]);
+        
+        int iterations = 10000; // Default for legacy hashes
+        byte[] salt;
+        byte[] storedHash;
 
-        using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256))
+        if (parts.Length == 3)
+        {
+            // New format: iterations:salt:hash
+            if (!int.TryParse(parts[0], out iterations)) return false;
+            salt = Convert.FromBase64String(parts[1]);
+            storedHash = Convert.FromBase64String(parts[2]);
+        }
+        else if (parts.Length == 2)
+        {
+            // Legacy format: salt:hash
+            salt = Convert.FromBase64String(parts[0]);
+            storedHash = Convert.FromBase64String(parts[1]);
+        }
+        else
+        {
+            return false;
+        }
+
+        using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256))
         {
             var hash = pbkdf2.GetBytes(32);
             return CryptographicOperations.FixedTimeEquals(hash, storedHash);

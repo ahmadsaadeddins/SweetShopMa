@@ -9,6 +9,7 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <utils:IsNotNullConverter x:Key="IsNotNullConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

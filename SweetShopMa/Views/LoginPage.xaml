@@ -102,13 +102,7 @@
             Color="#32b8c6"
             Scale="1.5"/>
 
-        <!-- Demo Credentials Info -->
-        <Label 
-            Text="Demo Credentials:&#10;admin / admin123&#10;customer / customer123"
-            FontSize="11"
-            TextColor="#999"
-            HorizontalTextAlignment="Center"
-            Margin="0,20,0,0"/>
+        
 
     </VerticalStackLayout>
 

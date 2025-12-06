@@ -44,7 +44,7 @@ public partial class App : Application
         {
             _ = Task.Run(async () =>
             {
-                await Task.Delay(200); // Small delay to ensure Shell is ready
+                await Task.Delay(Utils.AppConstants.NavigationDelayMs); // Small delay to ensure Shell is ready
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await shell.GoToAsync("//login");

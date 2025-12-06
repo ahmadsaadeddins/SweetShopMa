@@ -1,4 +1,4 @@
-﻿using SweetShopMa.Services;
+using SweetShopMa.Services;
 using SweetShopMa.ViewModels;
 using SweetShopMa.Views;
 using SweetShopMa;
@@ -62,6 +62,7 @@ public static class MauiProgram
             .Services.AddSingleton<DatabaseService>()  // Database operations (CRUD)
             .AddSingleton<AuthService>()                // User authentication
             .AddSingleton<CartService>()                // Shopping cart management
+            .AddSingleton<AttendanceRulesService>()     // Attendance rules
             .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)  // Multi-language support (uses singleton instance)
             .AddSingleton<IPdfService, PdfService>()   // PDF generation service
             

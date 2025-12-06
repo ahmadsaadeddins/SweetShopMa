@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -51,6 +50,7 @@ public class AdminViewModel : INotifyPropertyChanged
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
     private readonly Services.LocalizationService _localizationService;
+    private readonly AttendanceRulesService _attendanceRulesService;
     private readonly Services.IPdfService _pdfService;
 
     private bool _isBusy;
@@ -99,6 +99,7 @@ public class AdminViewModel : INotifyPropertyChanged
     public ObservableCollection<AttendanceRecord> AttendanceRecords { get; } = new();
     public ObservableCollection<DailyAttendanceEntry> AttendanceCalendarDays { get; } = new();
     public ObservableCollection<MonthlyAttendanceSummary> MonthlyAttendanceSummaries { get; } = new();
+    public ObservableCollection<EmployeeExpense> EmployeeExpenses { get; } = new();
 
     public ICommand AddUserCommand { get; }
     public ICommand AddProductCommand { get; }
@@ -106,11 +107,34 @@ public class AdminViewModel : INotifyPropertyChanged
     public ICommand ToggleUserStatusCommand { get; }
     public ICommand OpenOrderDetailsCommand { get; }
     public ICommand AddAttendanceCommand { get; }
+    public ICommand DeleteAttendanceRecordCommand { get; }
+    public ICommand EditAttendanceRecordCommand { get; }
+    public ICommand UpdateAttendanceRecordCommand { get; }
     public ICommand OpenAttendancePageCommand { get; }
+    public ICommand CalendarDayTappedCommand { get; }
     public ICommand EditProductCommand { get; }
     public ICommand UpdateProductCommand { get; }
     public ICommand CancelEditProductCommand { get; }
     public ICommand ExportPayrollPdfCommand { get; }
+    public ICommand AddExpenseCommand { get; }
+    public ICommand DeleteExpenseCommand { get; }
+    public ICommand ExportSelectedEmployeePayrollPdfCommand { get; }
+    
+    // Export commands
+    public ICommand ExportAttendanceToExcelCommand { get; }
+    public ICommand ExportAttendanceToPdfCommand { get; }
+    public ICommand ExportSalesReportCommand { get; }
+    public ICommand ExportInventoryReportCommand { get; }
+    
+    // Bulk operation commands
+    public ICommand BulkDeleteCommand { get; }
+    public ICommand BulkEditCommand { get; }
+    public ICommand SelectAllRecordsCommand { get; }
+    public ICommand ClearSelectionCommand { get; }
+    
+    // Filter commands
+    public ICommand ApplyFiltersCommand { get; }
+    public ICommand ClearFiltersCommand { get; }
 
     // Attendance form fields
     private User _selectedAttendanceUser;
@@ -120,6 +144,32 @@ public class AdminViewModel : INotifyPropertyChanged
     private TimeSpan _attendanceCheckInTime = new(8, 0, 0);
     private TimeSpan _attendanceCheckOutTime = new(16, 0, 0);
     private string _attendancePreview = "Regular: 0h • OT: 0h • Pay $0.00";
+    private AttendanceRecord _editingAttendanceRecord;
+    private bool _isEditingAttendance;
+
+    // Employee expenses fields
+    private User _selectedExpenseUser;
+    private string _expenseAmount = "";
+    private string _expenseCategory = "";
+    private string _expenseNotes = "";
+    private DateTime _expenseDate = DateTime.Today;
+
+    // Filtering properties for attendance
+    private DateTime _filterStartDate = DateTime.Today.AddDays(-30);
+    private DateTime _filterEndDate = DateTime.Today;
+    private List<User> _selectedFilterEmployees = new();
+    private string _filterStatus = "All";
+    private string _filterOvertime = "All"; // "All", "With OT", "Without OT"
+    private string _searchText = "";
+
+    // Enhanced statistics properties
+    private decimal _averageHoursPerDay = 0m;
+    private int _consecutiveWorkingDays = 0;
+    private MonthlyComparisonData _monthlyComparison = new();
+    private List<EmployeeComparisonItem> _employeeComparisonData = new();
+    
+    // Bulk operations
+    private List<AttendanceRecord> _selectedRecords = new();
 
     private readonly string[] _attendanceStatuses =
         { "Present", "Reset", "Absent (With Permission)", "Absent (Without Permission)" };
@@ -131,13 +181,14 @@ public class AdminViewModel : INotifyPropertyChanged
     private List<AttendanceRecord> _currentMonthRecords = new();
     private string _newUserSalary = "0";
 
-    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService, Services.IPdfService pdfService)
+    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService, Services.IPdfService pdfService, AttendanceRulesService attendanceRulesService)
     {
         _databaseService = databaseService;
         _authService = authService;
         _serviceProvider = serviceProvider;
         _localizationService = localizationService;
         _pdfService = pdfService;
+        _attendanceRulesService = attendanceRulesService;
 
         AddUserCommand = new Command(async () => await AddUserAsync(), () => !IsBusy);
         AddProductCommand = new Command(async () => await AddProductAsync(), () => !IsBusy);
@@ -145,11 +196,34 @@ public class AdminViewModel : INotifyPropertyChanged
         ToggleUserStatusCommand = new Command<User>(async user => await ToggleUserStatusAsync(user), _ => !IsBusy);
         OpenOrderDetailsCommand = new Command<Order>(async order => await ShowOrderDetailsAsync(order));
         AddAttendanceCommand = new Command(async () => await AddAttendanceAsync(), () => !IsBusy);
+        DeleteAttendanceRecordCommand = new Command<AttendanceRecord>(async r => await DeleteAttendanceRecordAsync(r));
+        EditAttendanceRecordCommand = new Command<AttendanceRecord>(async r => await EditAttendanceRecordAsync(r));
+        UpdateAttendanceRecordCommand = new Command(async () => await UpdateAttendanceRecordAsync(), () => IsEditingAttendance);
         OpenAttendancePageCommand = new Command(async () => await OpenAttendancePage());
+        CalendarDayTappedCommand = new Command<DailyAttendanceEntry>(async entry => await HandleCalendarDayTappedAsync(entry));
         EditProductCommand = new Command<Product>(async product => await EditProductAsync(product));
         UpdateProductCommand = new Command(async () => await UpdateProductAsync());
         CancelEditProductCommand = new Command(() => CancelEditProduct());
         ExportPayrollPdfCommand = new Command(async () => await ExportPayrollPdfAsync(), () => !IsBusy);
+        AddExpenseCommand = new Command(async () => await AddExpenseAsync());
+        DeleteExpenseCommand = new Command<EmployeeExpense>(async e => await DeleteExpenseAsync(e));
+        ExportSelectedEmployeePayrollPdfCommand = new Command(async () => await ExportSelectedEmployeePayrollPdfAsync(), () => SelectedMonthlySummary != null);
+        
+        // Export commands
+        ExportAttendanceToExcelCommand = new Command(async () => await ExportAttendanceToExcelAsync(), () => !IsBusy);
+        ExportAttendanceToPdfCommand = new Command(async () => await ExportAttendanceToPdfAsync(), () => !IsBusy);
+        ExportSalesReportCommand = new Command(async () => await ExportSalesReportAsync(), () => !IsBusy);
+        ExportInventoryReportCommand = new Command(async () => await ExportInventoryReportAsync(), () => !IsBusy);
+        
+        // Bulk operation commands
+        BulkDeleteCommand = new Command(async () => await BulkDeleteRecordsAsync(), () => SelectedRecords.Count > 0);
+        BulkEditCommand = new Command(async () => await BulkEditRecordsAsync(), () => SelectedRecords.Count > 0);
+        SelectAllRecordsCommand = new Command(() => SelectAllRecords());
+        ClearSelectionCommand = new Command(() => ClearSelection());
+        
+        // Filter commands
+        ApplyFiltersCommand = new Command(async () => await ApplyFiltersAsync());
+        ClearFiltersCommand = new Command(() => ClearFilters());
 
         _authService.OnUserChanged += _ => OnPropertyChanged(nameof(IsAuthorized));
         TopProducts.CollectionChanged += (_, _) =>
@@ -159,118 +233,279 @@ public class AdminViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ReportStatusTextColor));
         };
 
-        UpdateAttendancePreview();
+        _ = UpdateAttendancePreviewAsync();
+    }
+
+    public User SelectedExpenseUser
+    {
+        get => _selectedExpenseUser;
+        set { if (_selectedExpenseUser != value) { _selectedExpenseUser = value; OnPropertyChanged(); _ = LoadEmployeeExpensesAsync(); } }
+    }
+
+    public string ExpenseAmount
+    {
+        get => _expenseAmount;
+        set { if (_expenseAmount != value) { _expenseAmount = value; OnPropertyChanged(); } }
+    }
+
+    public string ExpenseCategory
+    {
+        get => _expenseCategory;
+        set { if (_expenseCategory != value) { _expenseCategory = value; OnPropertyChanged(); } }
+    }
+
+    public string ExpenseNotes
+    {
+        get => _expenseNotes;
+        set { if (_expenseNotes != value) { _expenseNotes = value; OnPropertyChanged(); } }
+    }
+
+    public DateTime ExpenseDate
+    {
+        get => _expenseDate;
+        set { if (_expenseDate != value) { _expenseDate = value; OnPropertyChanged(); } }
     }
 
     private async Task LoadMonthlySummaryAsync()
     {
-        var monthStart = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
-        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-        var today = DateTime.Today;
-
-        _currentMonthRecords = await _databaseService.GetAttendanceRecordsAsync(monthStart, monthEnd);
-
-        var userSnapshot = Users.Any()
-            ? Users.ToList()
-            : await _databaseService.GetUsersAsync();
-
-        var summaries = new List<MonthlyAttendanceSummary>();
-
-        foreach (var user in userSnapshot)
+        try
         {
-            var userRecords = _currentMonthRecords.Where(r => r.UserId == user.Id).ToList();
-            var recordByDate = userRecords.ToDictionary(r => r.Date.Date, r => r);
+            var monthStart = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var today = DateTime.Today;
 
-            int presentDays = 0;
-            int absentDays = 0;
-            int absentWithPermission = 0;
-            int absentWithoutPermission = 0;
+            _currentMonthRecords = await _databaseService.GetAttendanceRecordsAsync(monthStart, monthEnd);
+            if (_currentMonthRecords == null)
+                _currentMonthRecords = new List<AttendanceRecord>();
 
-            for (var day = monthStart; day <= monthEnd && day <= today; day = day.AddDays(1))
+            List<User> userSnapshot = null;
+            try
             {
-                if (recordByDate.TryGetValue(day.Date, out var rec))
+                if (Users != null && Users.Count > 0)
                 {
-                    // Reset days don't count as present or absent (they're outside the cycle)
-                    if (rec.AbsencePermissionType == "Reset")
-                    {
-                        // Reset days are paid but don't count in cycle
-                        continue;
-                    }
-                    else if (rec.IsPresent)
-                    {
-                        presentDays++;
-                    }
-                    else
-                    {
-                        absentDays++;
-                        if (rec.AbsencePermissionType == "WithPermission")
-                            absentWithPermission++;
-                        else if (rec.AbsencePermissionType == "WithoutPermission")
-                            absentWithoutPermission++;
-                    }
+                    userSnapshot = Users.ToList();
                 }
                 else
                 {
-                    absentDays++;
+                    var usersFromDb = await _databaseService.GetUsersAsync();
+                    userSnapshot = usersFromDb?.ToList() ?? new List<User>();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting users in LoadMonthlySummaryAsync: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                userSnapshot = new List<User>();
+            }
+            
+            if (userSnapshot == null)
+                userSnapshot = new List<User>();
+
+            var summaries = new List<MonthlyAttendanceSummary>();
+
+            if (userSnapshot == null || !userSnapshot.Any())
+            {
+                MonthlyAttendanceSummaries.Clear();
+                MonthlySummaryTotals = new MonthlyAttendanceTotals();
+                SelectedMonthlySummary = null;
+                return;
+            }
+
+            foreach (var user in userSnapshot)
+            {
+                if (user == null) continue;
+                
+                try
+                {
+                    var userRecords = _currentMonthRecords
+                        .Where(r => r != null && r.UserId == user.Id)
+                        .ToList();
+                    
+                    // Create dictionary for quick lookups, handling duplicate dates by taking the first
+                    var recordByDate = new Dictionary<DateTime, AttendanceRecord>();
+                    try
+                    {
+                        if (userRecords != null && userRecords.Any())
+                        {
+                            var grouped = userRecords
+                                .Where(r => r != null)
+                                .GroupBy(r => r.Date.Date)
+                                .ToList();
+                            
+                            foreach (var group in grouped)
+                            {
+                                if (group != null)
+                                {
+                                    try
+                                    {
+                                        var firstRecord = group.FirstOrDefault();
+                                        if (firstRecord != null)
+                                            recordByDate[group.Key] = firstRecord;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        System.Diagnostics.Debug.WriteLine($"Error getting first record from group: {ex}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error creating recordByDate dictionary: {ex}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                        // Continue with empty dictionary
+                    }
+
+                    int presentDays = 0;
+                    int absentDays = 0;
+                    int absentWithPermission = 0;
+                    int absentWithoutPermission = 0;
+
+                    for (var day = monthStart; day <= monthEnd && day <= today; day = day.AddDays(1))
+                    {
+                        if (recordByDate.TryGetValue(day.Date, out var rec))
+                        {
+                            if (rec == null) continue;
+                            
+                            // Reset days don't count as present or absent (they're outside the cycle)
+                            if (rec.AbsencePermissionType == "Reset")
+                            {
+                                // Reset days are paid but don't count in cycle
+                                continue;
+                            }
+                            else if (rec.IsPresent)
+                            {
+                                presentDays++;
+                            }
+                            else
+                            {
+                                absentDays++;
+                                if (rec.AbsencePermissionType == "WithPermission")
+                                    absentWithPermission++;
+                                else if (rec.AbsencePermissionType == "WithoutPermission")
+                                    absentWithoutPermission++;
+                            }
+                        }
+                        // Do not count missing days as absent; only recorded absences
+                    }
+
+                    // Compute monthly stats with fixed daily rate (/30) and rest rules
+                    var stats = _attendanceRulesService.ComputeMonthly(user, SummaryMonth, userRecords ?? new List<AttendanceRecord>());
+                    
+                    // Start with full monthly salary
+                    decimal fullSalary = user?.MonthlySalary ?? 0m;
+                    
+                    // Calculate overtime pay from records (additional to base salary)
+                    decimal overtimePay = 0m;
+                    try
+                    {
+                        overtimePay = userRecords
+                            .Where(r => r != null && r.IsPresent)
+                            .Sum(r => 
+                            {
+                                if (r != null && r.OvertimeHours > 0)
+                                {
+                                    var hourlyRate = stats.dailyRate / 8m;
+                                    var otMultiplier = user?.OvertimeMultiplier ?? 1.5m;
+                                    return r.OvertimeHours * hourlyRate * otMultiplier;
+                                }
+                                return 0m;
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error calculating overtime pay: {ex}");
+                        overtimePay = 0m;
+                    }
+                    
+                    // Subtract absence deductions (penalties for absences)
+                    // Subtract expenses
+                    int daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+                    decimal virtualDaysPay = daysInMonth == 28 ? (2m * stats.dailyRate) : 0m;
+                    var expenses = await _databaseService.GetEmployeeExpensesAsync(user.Id, monthStart, monthEnd);
+                    decimal expensesTotal = expenses != null ? expenses.Sum(e => e?.Amount ?? 0m) : 0m;
+                    
+                    // Final calculation: Full Salary + Overtime + Rest Bonus - Absence Deductions - Expenses + Virtual Days (if 28-day month)
+                    decimal finalPayroll = fullSalary + overtimePay + stats.restPayout - stats.absenceDeductions - expensesTotal + virtualDaysPay;
+
+                    var summary = new MonthlyAttendanceSummary
+                    {
+                        UserId = user.Id,
+                        UserName = user.Name,
+                        DaysPresent = userRecords.Count(r => r != null && r.IsPresent),
+                        DaysAbsent = userRecords.Count(r => r != null && !r.IsPresent),
+                        WorkedDays = stats.workedDays,
+                        EarnedRestDays = stats.restDays,
+                        RestDayPayout = stats.restPayout,
+                        AbsenceWithPermission = stats.withPermissionAbsences,
+                        AbsenceWithoutPermission = stats.withoutPermissionAbsences,
+                        AbsenceDeductions = stats.absenceDeductions,
+                        OvertimeHours = userRecords.Where(r => r != null).Sum(r => r.OvertimeHours),
+                        TotalHours = userRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours),
+                        ExpensesTotal = expensesTotal,
+                        Payroll = Math.Max(0m, finalPayroll)
+                    };
+                    summaries.Add(summary);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error processing user {user?.Name ?? "Unknown"} in LoadMonthlySummaryAsync: {ex}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException}");
+                    // Continue with next user
                 }
             }
 
-            // Calculate base payroll from records
-            decimal basePayroll = userRecords.Sum(r => r.DailyPay);
-            
-            // Apply absence deductions
-            // With permission: deduct 1 day's pay per absence
-            // Without permission: deduct 2 days' pay per absence
-            int daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
-            decimal dailyRate = user.MonthlySalary > 0 && daysInMonth > 0 
-                ? (user.MonthlySalary / daysInMonth) 
-                : 0m;
-            
-            decimal absenceDeductions = (absentWithPermission * dailyRate) + (absentWithoutPermission * 2m * dailyRate);
-            
-            // Add virtual days for 28-day months (2 extra paid days)
-            decimal virtualDaysPay = 0m;
-            if (daysInMonth == 28)
+            MonthlyAttendanceSummaries.Clear();
+        if (summaries != null && summaries.Any())
+        {
+            foreach (var summary in summaries.OrderBy(s => s?.UserName ?? ""))
             {
-                virtualDaysPay = 2m * dailyRate;
+                if (summary != null)
+                    MonthlyAttendanceSummaries.Add(summary);
             }
-            
-            // Final payroll calculation
-            decimal finalPayroll = basePayroll - absenceDeductions + virtualDaysPay;
-            
-            // Add virtual days to present days count for 28-day months
-            int adjustedPresentDays = presentDays;
-            if (daysInMonth == 28)
-            {
-                adjustedPresentDays += 2;
-            }
-
-            var summary = new MonthlyAttendanceSummary
-            {
-                UserId = user.Id,
-                UserName = user.Name,
-                DaysPresent = adjustedPresentDays,
-                DaysAbsent = absentDays,
-                OvertimeHours = userRecords.Sum(r => r.OvertimeHours),
-                TotalHours = userRecords.Sum(r => r.RegularHours + r.OvertimeHours),
-                Payroll = Math.Max(0m, finalPayroll) // Ensure payroll doesn't go negative
-            };
-            summaries.Add(summary);
         }
 
-        MonthlyAttendanceSummaries.Clear();
-        foreach (var summary in summaries.OrderBy(s => s.UserName))
-            MonthlyAttendanceSummaries.Add(summary);
-
+        // Calculate totals correctly - sum all components from individual summaries
+        // The Payroll field in each summary already includes: basePayroll + restPayout - absenceDeductions - expenses + virtualDaysPay
+        // So we can simply sum the Payroll values, but we need to recalculate to ensure accuracy
+        decimal totalRestPayout = summaries?.Where(s => s != null).Sum(s => s.RestDayPayout) ?? 0m;
+        decimal totalAbsenceDeductions = summaries?.Where(s => s != null).Sum(s => s.AbsenceDeductions) ?? 0m;
+        decimal totalExpenses = summaries?.Where(s => s != null).Sum(s => s.ExpensesTotal) ?? 0m;
+        
+        // Recalculate total payroll from individual summaries (which already have correct calculations)
+        decimal totalPayroll = summaries?.Where(s => s != null).Sum(s => s.Payroll) ?? 0m;
+        
         MonthlySummaryTotals = new MonthlyAttendanceTotals
         {
-            TotalPayroll = summaries.Sum(s => s.Payroll),
-            TotalOvertimeHours = summaries.Sum(s => s.OvertimeHours),
-            TotalPresentDays = summaries.Sum(s => s.DaysPresent),
-            TotalAbsentDays = summaries.Sum(s => s.DaysAbsent)
+            TotalPayroll = totalPayroll,
+            TotalOvertimeHours = summaries?.Where(s => s != null).Sum(s => s.OvertimeHours) ?? 0m,
+            TotalPresentDays = summaries?.Where(s => s != null).Sum(s => s.DaysPresent) ?? 0,
+            TotalAbsentDays = summaries?.Where(s => s != null).Sum(s => s.DaysAbsent) ?? 0,
+            TotalRestPayout = totalRestPayout,
+            TotalAbsenceDeductions = totalAbsenceDeductions
         };
 
-        SelectedMonthlySummary = MonthlyAttendanceSummaries.FirstOrDefault();
+        SelectedMonthlySummary = MonthlyAttendanceSummaries?.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadMonthlySummaryAsync: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException}");
+            // Ensure collections are initialized even on error
+            // MonthlyAttendanceSummaries is read-only, so we can't assign to it
+            // Just ensure _currentMonthRecords is initialized
+            if (_currentMonthRecords == null)
+                _currentMonthRecords = new List<AttendanceRecord>();
+            
+            // Initialize empty summaries to prevent null reference errors
+            if (MonthlyAttendanceSummaries == null || !MonthlyAttendanceSummaries.Any())
+            {
+                MonthlySummaryTotals = new MonthlyAttendanceTotals();
+            }
+        }
     }
 
     // Permission properties
@@ -466,7 +701,14 @@ public class AdminViewModel : INotifyPropertyChanged
             {
                 _selectedAttendanceUser = value;
                 OnPropertyChanged();
-                UpdateAttendancePreview();
+                _ = UpdateAttendancePreviewAsync();
+                SelectedExpenseUser = value;
+                
+                // Only load expenses if we have a valid user
+                if (value != null)
+                {
+                    _ = LoadEmployeeExpensesAsync();
+                }
             }
         }
     }
@@ -480,7 +722,7 @@ public class AdminViewModel : INotifyPropertyChanged
             {
                 _attendanceDate = value;
                 OnPropertyChanged();
-                UpdateAttendancePreview();
+                _ = UpdateAttendancePreviewAsync();
             }
         }
     }
@@ -495,7 +737,7 @@ public class AdminViewModel : INotifyPropertyChanged
                 _selectedAttendanceStatus = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsAttendanceTimeEntryEnabled));
-                UpdateAttendancePreview();
+                _ = UpdateAttendancePreviewAsync();
             }
         }
     }
@@ -515,7 +757,7 @@ public class AdminViewModel : INotifyPropertyChanged
             {
                 _attendanceCheckInTime = value;
                 OnPropertyChanged();
-                UpdateAttendancePreview();
+                _ = UpdateAttendancePreviewAsync();
             }
         }
     }
@@ -529,7 +771,7 @@ public class AdminViewModel : INotifyPropertyChanged
             {
                 _attendanceCheckOutTime = value;
                 OnPropertyChanged();
-                UpdateAttendancePreview();
+                _ = UpdateAttendancePreviewAsync();
             }
         }
     }
@@ -549,11 +791,88 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsEditingAttendance
+    {
+        get => _isEditingAttendance;
+        set { if (_isEditingAttendance != value) { _isEditingAttendance = value; OnPropertyChanged(); (UpdateAttendanceRecordCommand as Command)?.ChangeCanExecute(); } }
+    }
+
     public AttendanceSummary AttendanceSummary
     {
         get => _attendanceSummary;
         set { if (_attendanceSummary != value) { _attendanceSummary = value; OnPropertyChanged(); } }
     }
+
+    // Filtering properties
+    public DateTime FilterStartDate
+    {
+        get => _filterStartDate;
+        set { if (_filterStartDate != value) { _filterStartDate = value; OnPropertyChanged(); } }
+    }
+
+    public DateTime FilterEndDate
+    {
+        get => _filterEndDate;
+        set { if (_filterEndDate != value) { _filterEndDate = value; OnPropertyChanged(); } }
+    }
+
+    public List<User> SelectedFilterEmployees
+    {
+        get => _selectedFilterEmployees;
+        set { if (_selectedFilterEmployees != value) { _selectedFilterEmployees = value ?? new List<User>(); OnPropertyChanged(); } }
+    }
+
+    public string FilterStatus
+    {
+        get => _filterStatus;
+        set { if (_filterStatus != value) { _filterStatus = value; OnPropertyChanged(); } }
+    }
+
+    public string FilterOvertime
+    {
+        get => _filterOvertime;
+        set { if (_filterOvertime != value) { _filterOvertime = value; OnPropertyChanged(); } }
+    }
+
+    public string SearchText
+    {
+        get => _searchText;
+        set { if (_searchText != value) { _searchText = value; OnPropertyChanged(); } }
+    }
+
+    // Enhanced statistics properties
+    public decimal AverageHoursPerDay
+    {
+        get => _averageHoursPerDay;
+        set { if (_averageHoursPerDay != value) { _averageHoursPerDay = value; OnPropertyChanged(); } }
+    }
+
+    public int ConsecutiveWorkingDays
+    {
+        get => _consecutiveWorkingDays;
+        set { if (_consecutiveWorkingDays != value) { _consecutiveWorkingDays = value; OnPropertyChanged(); } }
+    }
+
+    public MonthlyComparisonData MonthlyComparison
+    {
+        get => _monthlyComparison;
+        set { if (_monthlyComparison != value) { _monthlyComparison = value; OnPropertyChanged(); } }
+    }
+
+    public List<EmployeeComparisonItem> EmployeeComparisonData
+    {
+        get => _employeeComparisonData;
+        set { if (_employeeComparisonData != value) { _employeeComparisonData = value ?? new List<EmployeeComparisonItem>(); OnPropertyChanged(); } }
+    }
+
+    // Bulk operations
+    public List<AttendanceRecord> SelectedRecords
+    {
+        get => _selectedRecords;
+        set { if (_selectedRecords != value) { _selectedRecords = value ?? new List<AttendanceRecord>(); OnPropertyChanged(); OnPropertyChanged(nameof(HasSelectedRecords)); (BulkDeleteCommand as Command)?.ChangeCanExecute(); (BulkEditCommand as Command)?.ChangeCanExecute(); } }
+    }
+
+    public bool HasSelectedRecords => SelectedRecords.Count > 0;
 
     public MonthlyAttendanceTotals MonthlySummaryTotals
     {
@@ -586,6 +905,12 @@ public class AdminViewModel : INotifyPropertyChanged
                 _selectedMonthlySummary = value;
                 OnPropertyChanged();
                 UpdateCalendarForSelection();
+                if (_selectedMonthlySummary != null)
+                {
+                    SelectedExpenseUser = Users.FirstOrDefault(u => u.Id == _selectedMonthlySummary.UserId) ?? SelectedExpenseUser;
+                    _ = LoadEmployeeExpensesAsync();
+                }
+                (ExportSelectedEmployeePayrollPdfCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -729,6 +1054,7 @@ public class AdminViewModel : INotifyPropertyChanged
         await LoadProductsAsync();
         await LoadReportsAsync();
         await LoadAttendanceAsync();
+        await LoadEmployeeExpensesAsync();
     }
 
     public void RefreshLocalizedProperties()
@@ -745,9 +1071,23 @@ public class AdminViewModel : INotifyPropertyChanged
         {
             var users = await _databaseService.GetUsersAsync();
             Users.Clear();
+            
             // Filter out Developer users - they should not appear in the list
-            foreach (var user in users.Where(u => !u.IsDeveloper))
-                Users.Add(user);
+            if (users != null)
+            {
+                foreach (var user in users.Where(u => u != null && !u.IsDeveloper))
+                    Users.Add(user);
+            }
+            
+            if (SelectedExpenseUser == null)
+            {
+                SelectedExpenseUser = Users?.FirstOrDefault();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadUsersAsync: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
         finally
         {
@@ -840,6 +1180,9 @@ public class AdminViewModel : INotifyPropertyChanged
         try
         {
             var orders = await _databaseService.GetOrdersAsync();
+            if (orders == null)
+                orders = new List<Order>();
+                
             TotalOrders = orders.Count;
             TotalSales = orders.Sum(o => o.Total);
             AverageOrderValue = TotalOrders > 0 ? TotalSales / TotalOrders : 0m;
@@ -854,6 +1197,9 @@ public class AdminViewModel : INotifyPropertyChanged
                 RecentOrders.Add(order);
 
             var orderItems = await _databaseService.GetAllOrderItemsAsync();
+            if (orderItems == null)
+                orderItems = new List<OrderItem>();
+                
             TotalItemsSold = orderItems.Sum(oi => oi.Quantity);
 
             var groupedProducts = orderItems
@@ -873,11 +1219,19 @@ public class AdminViewModel : INotifyPropertyChanged
             foreach (var product in groupedProducts.Take(5))
                 TopProducts.Add(product);
 
-            if (groupedProducts.Any())
+            if (groupedProducts != null && groupedProducts.Any())
             {
-                var top = groupedProducts.First();
-                TopProductName = $"{top.Emoji} {top.Name}";
-                TopProductDetails = $"{top.Quantity:F2} {top.UnitLabel} • ${top.TotalSales:F2}";
+                var top = groupedProducts.FirstOrDefault();
+                if (top != null)
+                {
+                    TopProductName = $"{top.Emoji} {top.Name}";
+                    TopProductDetails = $"{top.Quantity:F2} {top.UnitLabel} • ${top.TotalSales:F2}";
+                }
+                else
+                {
+                    TopProductName = "No sales yet";
+                    TopProductDetails = "Add items to see insights";
+                }
             }
             else
             {
@@ -900,27 +1254,212 @@ public class AdminViewModel : INotifyPropertyChanged
         {
             var start = DateTime.Today.AddDays(-30);
             var records = await _databaseService.GetAttendanceRecordsAsync(start, DateTime.Today);
+            if (records == null)
+                records = new List<AttendanceRecord>();
+                
             AttendanceRecords.Clear();
             foreach (var record in records)
-                AttendanceRecords.Add(record);
+            {
+                if (record != null)
+                    AttendanceRecords.Add(record);
+            }
 
             AttendanceSummary = new AttendanceSummary
             {
-                PresentCount = records.Count(r => string.Equals(r.Status, "Present", StringComparison.OrdinalIgnoreCase)),
-                AbsentCount = records.Count(r => string.Equals(r.Status, "Absent", StringComparison.OrdinalIgnoreCase)),
-                OvertimeCount = records.Count(r => string.Equals(r.Status, "Overtime", StringComparison.OrdinalIgnoreCase)),
-                TotalRegularHours = records.Sum(r => r.RegularHours),
-                TotalOvertimeHours = records.Sum(r => r.OvertimeHours),
-                TotalPayroll = records.Sum(r => r.DailyPay),
+                PresentCount = records.Count(r => r != null && r.IsPresent),
+                AbsentCount = records.Count(r => r != null && !r.IsPresent),
+                OvertimeCount = records.Count(r => r != null && r.OvertimeHours > 0m),
+                TotalRegularHours = records.Where(r => r != null).Sum(r => r.RegularHours),
+                TotalOvertimeHours = records.Where(r => r != null).Sum(r => r.OvertimeHours),
+                TotalPayroll = records.Where(r => r != null).Sum(r => r.DailyPay),
                 LastUpdated = DateTime.Now
             };
+
+            // Calculate enhanced statistics
+            await CalculateEnhancedStatisticsAsync(records);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadAttendanceAsync: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            ShowStatus("Error loading attendance data", true);
         }
         finally
         {
             IsBusy = false;
         }
 
-        await LoadMonthlySummaryAsync();
+        try
+        {
+            await LoadMonthlySummaryAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadMonthlySummaryAsync from LoadAttendanceAsync: {ex}");
+        }
+    }
+
+    private async Task CalculateEnhancedStatisticsAsync(List<AttendanceRecord> records)
+    {
+        try
+        {
+            if (SelectedAttendanceUser == null || records == null || !records.Any())
+            {
+                AverageHoursPerDay = 0m;
+                ConsecutiveWorkingDays = 0;
+                MonthlyComparison = new MonthlyComparisonData();
+                EmployeeComparisonData = new List<EmployeeComparisonItem>();
+                return;
+            }
+
+            var userRecords = records
+                .Where(r => r != null && r.UserId == SelectedAttendanceUser.Id && r.IsPresent)
+                .OrderBy(r => r.Date)
+                .ToList();
+            
+            // Calculate average hours per day
+            if (userRecords != null && userRecords.Any())
+            {
+                var totalDays = userRecords.Count;
+                var totalHours = userRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours);
+                AverageHoursPerDay = totalDays > 0 ? totalHours / totalDays : 0m;
+            }
+            else
+            {
+                AverageHoursPerDay = 0m;
+            }
+
+            // Calculate consecutive working days
+            ConsecutiveWorkingDays = CalculateConsecutiveWorkingDays(userRecords);
+
+            // Calculate monthly comparison
+            var currentMonth = DateTime.Today;
+            var previousMonth = currentMonth.AddMonths(-1);
+            var currentMonthRecords = userRecords
+                .Where(r => r != null && r.Date.Year == currentMonth.Year && r.Date.Month == currentMonth.Month)
+                .ToList();
+            var previousMonthRecords = records
+                .Where(r => r != null && r.UserId == SelectedAttendanceUser.Id && r.IsPresent && r.Date.Year == previousMonth.Year && r.Date.Month == previousMonth.Month)
+                .ToList();
+
+            MonthlyComparison = new MonthlyComparisonData
+            {
+                CurrentMonthDays = currentMonthRecords.Count,
+                PreviousMonthDays = previousMonthRecords.Count,
+                CurrentMonthHours = currentMonthRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours),
+                PreviousMonthHours = previousMonthRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours),
+                CurrentMonthPayroll = currentMonthRecords.Where(r => r != null).Sum(r => r.DailyPay),
+                PreviousMonthPayroll = previousMonthRecords.Where(r => r != null).Sum(r => r.DailyPay)
+            };
+
+            // Calculate employee comparison
+            await CalculateEmployeeComparisonAsync(records);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error calculating enhanced statistics: {ex}");
+        }
+    }
+
+    private int CalculateConsecutiveWorkingDays(List<AttendanceRecord> userRecords)
+    {
+        try
+        {
+            if (userRecords == null || !userRecords.Any())
+                return 0;
+
+            var sortedRecords = userRecords
+                .Where(r => r != null)
+                .OrderByDescending(r => r.Date)
+                .ToList();
+            
+            if (!sortedRecords.Any())
+                return 0;
+
+            int maxConsecutive = 0;
+            int currentConsecutive = 0;
+            DateTime? lastDate = null;
+
+            foreach (var record in sortedRecords)
+            {
+                if (record == null) continue;
+                
+                if (lastDate == null)
+                {
+                    currentConsecutive = 1;
+                    lastDate = record.Date;
+                }
+                else
+                {
+                    var daysDiff = (lastDate.Value - record.Date).Days;
+                    if (daysDiff == 1)
+                    {
+                        currentConsecutive++;
+                    }
+                    else
+                    {
+                        maxConsecutive = Math.Max(maxConsecutive, currentConsecutive);
+                        currentConsecutive = 1;
+                    }
+                    lastDate = record.Date;
+                }
+            }
+
+            return Math.Max(maxConsecutive, currentConsecutive);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in CalculateConsecutiveWorkingDays: {ex}");
+            return 0;
+        }
+    }
+
+    private async Task CalculateEmployeeComparisonAsync(List<AttendanceRecord> allRecords)
+    {
+        try
+        {
+            var comparisonData = new List<EmployeeComparisonItem>();
+            var users = await _databaseService.GetUsersAsync();
+            
+            if (users == null || !users.Any())
+            {
+                EmployeeComparisonData = new List<EmployeeComparisonItem>();
+                return;
+            }
+
+            foreach (var user in users.Where(u => u != null && !u.IsDeveloper))
+            {
+                var userRecords = allRecords
+                    .Where(r => r != null && r.UserId == user.Id && r.IsPresent)
+                    .ToList();
+                var totalDays = userRecords.Count;
+                var totalHours = userRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours);
+                var totalPayroll = userRecords.Where(r => r != null).Sum(r => r.DailyPay);
+                
+                var userTotalRecords = allRecords.Count(r => r != null && r.UserId == user.Id);
+                var attendanceRate = userTotalRecords > 0 
+                    ? (decimal)totalDays / userTotalRecords * 100m 
+                    : 0m;
+
+                comparisonData.Add(new EmployeeComparisonItem
+                {
+                    UserId = user.Id,
+                    UserName = user.Name,
+                    DaysWorked = totalDays,
+                    TotalHours = totalHours,
+                    AverageHoursPerDay = totalDays > 0 ? totalHours / totalDays : 0m,
+                    AttendanceRate = attendanceRate,
+                    TotalPayroll = totalPayroll
+                });
+            }
+
+            EmployeeComparisonData = comparisonData.OrderByDescending(e => e.DaysWorked).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error calculating employee comparison: {ex}");
+            EmployeeComparisonData = new List<EmployeeComparisonItem>();
+        }
     }
 
     private async Task ShowOrderDetailsAsync(Order order)
@@ -1014,7 +1553,7 @@ public class AdminViewModel : INotifyPropertyChanged
             AttendanceCheckOutTime = new TimeSpan(16, 0, 0);
 
             await LoadAttendanceAsync();
-            UpdateAttendancePreview();
+            _ = UpdateAttendancePreviewAsync();
         }
         finally
         {
@@ -1024,18 +1563,147 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task OpenAttendancePage()
     {
+        System.Diagnostics.Debug.WriteLine($"OpenAttendancePage called. CanUseAttendanceTracker: {CanUseAttendanceTracker}");
+        System.Diagnostics.Debug.WriteLine($"AuthService.CanUseAttendanceTracker: {_authService.CanUseAttendanceTracker}");
+        System.Diagnostics.Debug.WriteLine($"FeatureFlags.IsAttendanceTrackerEnabled: {Services.FeatureFlags.IsAttendanceTrackerEnabled}");
+        
         if (!CanUseAttendanceTracker)
         {
-            ShowStatus("You don't have permission to use the attendance tracker.", true);
+            var reason = !_authService.CanUseAttendanceTracker 
+                ? "You don't have permission to use the attendance tracker." 
+                : "Attendance tracker is currently disabled.";
+            ShowStatus(reason, true);
             return;
         }
         
-        var attendancePage = _serviceProvider.GetService<Views.AttendancePage>();
-        if (attendancePage != null)
+        try
         {
-            await LoadAttendanceAsync();
-            await Shell.Current.Navigation.PushAsync(attendancePage);
+            System.Diagnostics.Debug.WriteLine("Creating AttendancePage...");
+            // Create the page directly with required dependencies
+            var attendancePage = new Views.AttendancePage(this, _localizationService);
+            System.Diagnostics.Debug.WriteLine("AttendancePage created successfully");
+            
+            // Navigate first, then load data (page will load data in OnAppearing)
+            if (Application.Current?.MainPage != null)
+            {
+                System.Diagnostics.Debug.WriteLine("Navigating via Application.Current.MainPage.Navigation");
+                await Application.Current.MainPage.Navigation.PushAsync(attendancePage);
+                System.Diagnostics.Debug.WriteLine("Navigation completed");
+                
+                // Load data after navigation to avoid blocking
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await LoadAttendanceAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error loading attendance data after navigation: {ex}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                });
+            }
+            else if (Shell.Current?.Navigation != null)
+            {
+                System.Diagnostics.Debug.WriteLine("Navigating via Shell.Current.Navigation");
+                await Shell.Current.Navigation.PushAsync(attendancePage);
+                System.Diagnostics.Debug.WriteLine("Navigation completed");
+                
+                // Load data after navigation to avoid blocking
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await LoadAttendanceAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error loading attendance data after navigation: {ex}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("ERROR: No navigation available");
+                ShowStatus("Cannot navigate. Please try again.", true);
+            }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error opening attendance page: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException}");
+            
+            var errorMsg = $"Error: {ex.Message}";
+            if (Application.Current?.MainPage != null)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", errorMsg, "OK");
+            }
+            ShowStatus("Error opening attendance page. Please try again.", true);
+        }
+    }
+
+    private async Task LoadEmployeeExpensesAsync()
+    {
+        if (SelectedExpenseUser == null) return;
+        
+        try
+        {
+            var monthStart = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var items = await _databaseService.GetEmployeeExpensesAsync(SelectedExpenseUser.Id, monthStart, monthEnd);
+            
+            EmployeeExpenses.Clear();
+            if (items != null)
+            {
+                foreach (var it in items.Where(e => e != null)) 
+                    EmployeeExpenses.Add(it);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in LoadEmployeeExpensesAsync: {ex}");
+            EmployeeExpenses.Clear();
+        }
+    }
+
+    private async Task AddExpenseAsync()
+    {
+        if (SelectedExpenseUser == null)
+        {
+            ShowStatus("Select employee for expense.", true);
+            return;
+        }
+        if (!decimal.TryParse(ExpenseAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
+        {
+            ShowStatus("Enter valid amount.", true);
+            return;
+        }
+        var expense = new EmployeeExpense
+        {
+            UserId = SelectedExpenseUser.Id,
+            Amount = amount,
+            Category = string.IsNullOrWhiteSpace(ExpenseCategory) ? "General" : ExpenseCategory.Trim(),
+            Notes = ExpenseNotes?.Trim() ?? "",
+            ExpenseDate = ExpenseDate
+        };
+        await _databaseService.CreateEmployeeExpenseAsync(expense);
+        await LoadEmployeeExpensesAsync();
+        ShowStatus("Expense added.", false);
+        ExpenseAmount = "";
+        ExpenseCategory = "";
+        ExpenseNotes = "";
+        ExpenseDate = DateTime.Today;
+    }
+
+    private async Task DeleteExpenseAsync(EmployeeExpense expense)
+    {
+        if (expense == null) return;
+        await _databaseService.DeleteEmployeeExpenseAsync(expense);
+        await LoadEmployeeExpensesAsync();
+        ShowStatus("Expense removed.", false);
     }
 
     private async Task AddUserAsync()
@@ -1349,7 +2017,50 @@ public class AdminViewModel : INotifyPropertyChanged
         return dayOfMonth == 8 || dayOfMonth == 14 || dayOfMonth == 20 || dayOfMonth == 26;
     }
 
-    private void UpdateAttendancePreview()
+    
+
+    /// <summary>
+    /// Checks if a specific date was a reset day by counting working days before it.
+    /// Uses iterative approach to avoid recursion issues.
+    /// </summary>
+
+    private async Task<AttendanceCalculationResult> CalculateAttendanceForEntryAsync(bool validateOnly = false)
+    {
+        if (SelectedAttendanceUser == null)
+            return AttendanceCalculationResult.Invalid("Select an employee.");
+
+        try
+        {
+            var status = SelectedAttendanceStatus ?? "Present";
+            DateTime? checkIn = null;
+            DateTime? checkOut = null;
+            if (StatusRequiresTimes(status))
+            {
+                checkIn = AttendanceDate.Date + AttendanceCheckInTime;
+                checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
+            }
+
+            var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, status, checkIn, checkOut);
+            if (calc.NeedsSalaryInput)
+            {
+                calc.ValidationMessage = "Set monthly salary to calculate pay.";
+                if (!validateOnly)
+                {
+                    calc.IsValid = false;
+                    return calc;
+                }
+            }
+            calc.IsValid = true;
+            return calc;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in CalculateAttendanceForEntryAsync: {ex}");
+            return AttendanceCalculationResult.Invalid($"Error calculating attendance: {ex.Message}");
+        }
+    }
+    
+    private async Task UpdateAttendancePreviewAsync()
     {
         if (SelectedAttendanceUser == null)
         {
@@ -1357,7 +2068,16 @@ public class AdminViewModel : INotifyPropertyChanged
             return;
         }
 
-        var calc = CalculateAttendanceForEntry(validateOnly: true);
+        DateTime? checkIn = null;
+        DateTime? checkOut = null;
+        var status = SelectedAttendanceStatus ?? "Present";
+        if (StatusRequiresTimes(status))
+        {
+            checkIn = AttendanceDate.Date + AttendanceCheckInTime;
+            checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
+        }
+
+        var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, status, checkIn, checkOut);
         if (!calc.IsValid || !string.IsNullOrWhiteSpace(calc.ValidationMessage))
         {
             AttendancePreview = calc.ValidationMessage;
@@ -1367,302 +2087,11 @@ public class AdminViewModel : INotifyPropertyChanged
         AttendancePreview = $"Regular: {calc.RegularHours:F2}h | OT: {calc.OvertimeHours:F2}h | Pay ${calc.DailyPay:F2}";
     }
 
-    /// <summary>
-    /// Checks if a specific date was a reset day by counting working days before it.
-    /// Uses iterative approach to avoid recursion issues.
-    /// </summary>
-    private bool WasResetDay(DateTime date, DateTime monthStart, List<AttendanceRecord> allUserRecords, Dictionary<DateTime, bool> resetDayCache)
-    {
-        // Normalize date to date only (remove time component) for cache lookup
-        var dateNormalized = date.Date;
-        
-        // Check cache first
-        if (resetDayCache.ContainsKey(dateNormalized))
-            return resetDayCache[dateNormalized];
-        
-        // First, count ALL resets that occurred before this date
-        int totalResetCount = 0;
-        DateTime countDate = monthStart;
-        while (countDate < date)
-        {
-            var checkRecord = allUserRecords.FirstOrDefault(r => r.Date.Date == countDate.Date);
-            if (checkRecord != null)
-            {
-                if (checkRecord.AbsencePermissionType == "Reset")
-                {
-                    totalResetCount++;
-                }
-                else if (resetDayCache.ContainsKey(countDate) && resetDayCache[countDate] && checkRecord.IsPresent)
-                {
-                    totalResetCount++;
-                }
-            }
-            countDate = countDate.AddDays(1);
-        }
-        
-        // Now count working days since the last reset
-        var recordsBefore = allUserRecords.Where(r => r.Date < date && r.Date >= monthStart).OrderByDescending(r => r.Date).ToList();
-        
-        int totalWorkingDays = 0;
-        DateTime currentDate = date.AddDays(-1);
-
-        while (currentDate >= monthStart)
-        {
-            var record = recordsBefore.FirstOrDefault(r => r.Date.Date == currentDate.Date);
-            
-            if (record != null)
-            {
-                if (record.AbsencePermissionType == "Reset")
-                {
-                    break; // Found last reset, stop counting
-                }
-                
-                // Check cache for previous reset days (normalize date for lookup)
-                var checkDateNormalized = currentDate.Date;
-                if (resetDayCache.ContainsKey(checkDateNormalized) && resetDayCache[checkDateNormalized] && record.IsPresent)
-                {
-                    break; // Found last reset, stop counting
-                }
-                
-                if (record.IsPresent)
-                {
-                    totalWorkingDays++;
-                }
-            }
-            
-            currentDate = currentDate.AddDays(-1);
-        }
-
-        // Determine required days based on total reset count
-        int requiredDays = 7;
-        for (int i = 0; i < totalResetCount; i++)
-        {
-            requiredDays = (requiredDays == 7) ? 6 : 7;
-        }
-        
-        bool isReset = totalWorkingDays == requiredDays;
-        resetDayCache[dateNormalized] = isReset;
-        return isReset;
-    }
-
-    /// <summary>
-    /// Counts total working days (not consecutive) since last reset and determines if the current day is a reset day.
-    /// Pattern: 7 working days (can have absents) → reset, 6 working days → reset, 7 working days → reset, 6 working days → reset...
-    /// Returns: (totalWorkingDaysSinceLastReset, isResetDay, requiredDaysForThisCycle)
-    /// </summary>
-    private async Task<(int totalWorkingDays, bool isResetDay, int requiredDays)> GetWorkCycleInfoAsync(int userId, DateTime date)
-    {
-        var monthStart = new DateTime(date.Year, date.Month, 1);
-        var records = await _databaseService.GetAttendanceRecordsAsync(monthStart, date.AddDays(-1));
-        var userRecords = records
-            .Where(r => r.UserId == userId && r.Date < date)
-            .OrderByDescending(r => r.Date)
-            .ToList();
-
-        int totalWorkingDays = 0;
-        DateTime currentDate = date.AddDays(-1);
-        int resetCount = 0; // Count how many resets we've encountered
-        Dictionary<DateTime, bool> resetDayCache = new Dictionary<DateTime, bool>();
-
-        // First pass: identify all reset days and cache them
-        // Process days in chronological order to build cache correctly
-        var allDates = Enumerable.Range(1, DateTime.DaysInMonth(date.Year, date.Month))
-            .Select(d => new DateTime(date.Year, date.Month, d))
-            .Where(d => d < date)
-            .OrderBy(d => d)
-            .ToList();
-        
-        foreach (var checkDate in allDates)
-        {
-            WasResetDay(checkDate, monthStart, userRecords, resetDayCache);
-        }
-        
-        // Debug: show cache contents
-        System.Diagnostics.Debug.WriteLine($"Cache for {date:yyyy-MM-dd}: {string.Join(", ", resetDayCache.Where(kvp => kvp.Value).Select(kvp => kvp.Key.Day))}");
-
-        // Count backwards from the day before, counting ALL working days (not consecutive)
-        // Stop when we find a reset day (either Reset status or a day that was a reset day) or reach month start
-        while (currentDate >= monthStart)
-        {
-            var record = userRecords.FirstOrDefault(r => r.Date.Date == currentDate.Date);
-            var currentDateNormalized = currentDate.Date; // Normalize to date only for cache lookup
-            
-            if (record != null)
-            {
-                // Check if this day was a reset day FIRST (before counting it)
-                // Reset status: marks end of previous cycle, stop counting
-                if (record.AbsencePermissionType == "Reset")
-                {
-                    resetCount++; // Found a reset, this marks the end of the previous cycle
-                    System.Diagnostics.Debug.WriteLine($"Found Reset status: {currentDateNormalized:yyyy-MM-dd}, ResetCount now: {resetCount}");
-                    break; // Stop counting, we found the last reset
-                }
-                
-                // Check if this day was a reset day using cache (worked on reset day)
-                bool isCachedResetDay = resetDayCache.ContainsKey(currentDateNormalized) && resetDayCache[currentDateNormalized];
-                if (isCachedResetDay && record.IsPresent)
-                {
-                    resetCount++; // This was a reset day (worked), marks end of cycle
-                    System.Diagnostics.Debug.WriteLine($"Found reset day in cache: {currentDateNormalized:yyyy-MM-dd}, ResetCount now: {resetCount}");
-                    break; // Stop counting - this is the last reset, cycle starts after this
-                }
-                
-                // If present and NOT a reset day, count it as a working day
-                if (record.IsPresent)
-                {
-                    totalWorkingDays++;
-                }
-                // Absent days don't break the count, we just skip them
-            }
-            // No record (absent) doesn't break the count either
-            
-            currentDate = currentDate.AddDays(-1);
-        }
-        
-        // After finding the last reset, count ALL resets that occurred before the current date
-        // This determines which cycle we're in (first=7, second=6, third=7, fourth=6...)
-        int totalResetCount = 0;
-        DateTime countDate = monthStart;
-        while (countDate < date)
-        {
-            var checkRecord = userRecords.FirstOrDefault(r => r.Date.Date == countDate.Date);
-            if (checkRecord != null)
-            {
-                if (checkRecord.AbsencePermissionType == "Reset")
-                {
-                    totalResetCount++;
-                }
-                else if (resetDayCache.ContainsKey(countDate) && resetDayCache[countDate] && checkRecord.IsPresent)
-                {
-                    totalResetCount++;
-                }
-            }
-            countDate = countDate.AddDays(1);
-        }
-        
-        // Use total reset count to determine which cycle we're in
-        resetCount = totalResetCount;
-        System.Diagnostics.Debug.WriteLine($"Total resets before {date:yyyy-MM-dd}: {totalResetCount}");
-
-        // Determine required days for current cycle based on number of resets taken
-        // Pattern: First cycle = 7 days, second = 6 days, third = 7 days, fourth = 6 days...
-        int requiredDays = 7; // Start with 7
-        for (int i = 0; i < resetCount; i++)
-        {
-            requiredDays = (requiredDays == 7) ? 6 : 7; // Alternate after each reset
-        }
-        
-        // Check if current day should be a reset day (reached required total working days)
-        bool isResetDay = (totalWorkingDays == requiredDays);
-        
-        System.Diagnostics.Debug.WriteLine($"GetWorkCycleInfo: Date={date:yyyy-MM-dd}, TotalWorkingDays={totalWorkingDays}, ResetCount={resetCount}, RequiredDays={requiredDays}, IsResetDay={isResetDay}");
-        
-        return (totalWorkingDays, isResetDay, requiredDays);
-    }
-
-    private async Task<AttendanceCalculationResult> CalculateAttendanceForEntryAsync(bool validateOnly = false)
-    {
-        if (SelectedAttendanceUser == null)
-            return AttendanceCalculationResult.Invalid("Select an employee.");
-
-        var status = SelectedAttendanceStatus ?? "Present";
-        bool requiresTimes = StatusRequiresTimes(status);
-
-        DateTime? checkIn = null;
-        DateTime? checkOut = null;
-
-        if (requiresTimes)
-        {
-            checkIn = AttendanceDate.Date + AttendanceCheckInTime;
-            checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
-
-            if (checkOut <= checkIn)
-                return AttendanceCalculationResult.Invalid("Checkout must be after check-in.");
-        }
-
-        // Check work cycle to determine if this is a reset day
-        // Pattern: 7 days work → reset, 6 days work → reset, 7 days work → reset, 6 days work → reset...
-        var (totalWorkingDays, isResetDay, requiredDays) = await GetWorkCycleInfoAsync(SelectedAttendanceUser.Id, AttendanceDate);
-        bool meetsRequirement = false;
-        
-        System.Diagnostics.Debug.WriteLine($"Date: {AttendanceDate:yyyy-MM-dd}, Total Working Days: {totalWorkingDays}, Required: {requiredDays}, IsResetDay: {isResetDay}, Status: {status}");
-        
-        // If it's a reset day (reached 7 or 6 total working days) and status is Present, count as OT
-        if (isResetDay && !string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase))
-        {
-            meetsRequirement = true; // Has worked the required total working days
-            System.Diagnostics.Debug.WriteLine($"Reset day detected! Day {AttendanceDate.Day} will be counted as OT.");
-        }
-
-        var result = AttendanceCalculationResult.From(
-            SelectedAttendanceUser,
-            AttendanceDate,
-            status,
-            checkIn,
-            checkOut,
-            meetsRequirement);
-
-        if (result.NeedsSalaryInput)
-        {
-            result.ValidationMessage = "Set monthly salary to calculate pay.";
-            if (!validateOnly)
-            {
-                result.IsValid = false;
-                return result;
-            }
-        }
-
-        result.IsValid = true;
-        return result;
-    }
-    
-    // Synchronous wrapper for preview (doesn't check consecutive days)
-    private AttendanceCalculationResult CalculateAttendanceForEntry(bool validateOnly = false)
-    {
-        if (SelectedAttendanceUser == null)
-            return AttendanceCalculationResult.Invalid("Select an employee.");
-
-        var status = SelectedAttendanceStatus ?? "Present";
-        bool requiresTimes = StatusRequiresTimes(status);
-
-        DateTime? checkIn = null;
-        DateTime? checkOut = null;
-
-        if (requiresTimes)
-        {
-            checkIn = AttendanceDate.Date + AttendanceCheckInTime;
-            checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
-
-            if (checkOut <= checkIn)
-                return AttendanceCalculationResult.Invalid("Checkout must be after check-in.");
-        }
-
-        var result = AttendanceCalculationResult.From(
-            SelectedAttendanceUser,
-            AttendanceDate,
-            status,
-            checkIn,
-            checkOut);
-
-        if (result.NeedsSalaryInput)
-        {
-            result.ValidationMessage = "Set monthly salary to calculate pay.";
-            if (!validateOnly)
-            {
-                result.IsValid = false;
-                return result;
-            }
-        }
-
-        result.IsValid = true;
-        return result;
-    }
-
     private async Task ExportPayrollPdfAsync()
     {
         System.Diagnostics.Debug.WriteLine("ExportPayrollPdfAsync called");
         
-        if (!MonthlyAttendanceSummaries.Any())
+        if (MonthlyAttendanceSummaries == null || !MonthlyAttendanceSummaries.Any())
         {
             ShowStatus("No attendance data to export.", true);
             return;
@@ -1714,6 +2143,125 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task ExportSelectedEmployeePayrollPdfAsync()
+    {
+        if (SelectedMonthlySummary == null)
+        {
+            ShowStatus("Select an employee in monthly summary first.", true);
+            return;
+        }
+        
+        try
+        {
+            var monthStart = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var expenses = await _databaseService.GetEmployeeExpensesAsync(SelectedMonthlySummary.UserId, monthStart, monthEnd);
+            
+            if (expenses == null)
+                expenses = new List<EmployeeExpense>();
+                
+            var pdfPath = await _pdfService.GenerateEmployeePayrollPdfAsync(SelectedMonthlySummary, SummaryMonth, expenses);
+            if (string.IsNullOrEmpty(pdfPath))
+            {
+                ShowStatus("Failed to generate PDF.", true);
+                return;
+            }
+            try
+            {
+                if (System.IO.File.Exists(pdfPath))
+                {
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        File = new ReadOnlyFile(pdfPath)
+                    });
+                    ShowStatus("Employee payroll PDF exported and opened.", false);
+                }
+                else
+                {
+                    ShowStatus($"PDF file was not created at: {pdfPath}", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowStatus($"PDF generated at {pdfPath}. Error opening: {ex.Message}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in ExportSelectedEmployeePayrollPdfAsync: {ex}");
+            ShowStatus($"Error generating employee payroll PDF: {ex.Message}", true);
+        }
+    }
+
+    private async Task DeleteAttendanceRecordAsync(AttendanceRecord record)
+    {
+        if (record == null) return;
+        IsBusy = true;
+        try
+        {
+            await _databaseService.DeleteAttendanceRecordAsync(record);
+            await LoadAttendanceAsync();
+            ShowStatus("Deleted attendance record.", false);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task EditAttendanceRecordAsync(AttendanceRecord record)
+    {
+        if (record == null) return;
+        _editingAttendanceRecord = record;
+        IsEditingAttendance = true;
+        SelectedAttendanceUser = Users?.FirstOrDefault(u => u.Id == record.UserId) ?? SelectedAttendanceUser;
+        AttendanceDate = record.Date;
+        SelectedAttendanceStatus = record.Status;
+        AttendanceNotes = record.Notes;
+        AttendanceCheckInTime = record.CheckInTime.HasValue ? record.CheckInTime.Value.TimeOfDay : new TimeSpan(8,0,0);
+        AttendanceCheckOutTime = record.CheckOutTime.HasValue ? record.CheckOutTime.Value.TimeOfDay : new TimeSpan(16,0,0);
+        _ = UpdateAttendancePreviewAsync();
+    }
+
+    private async Task UpdateAttendanceRecordAsync()
+    {
+        if (_editingAttendanceRecord == null) return;
+        var calc = await CalculateAttendanceForEntryAsync();
+        if (!calc.IsValid)
+        {
+            ShowStatus($"⚠️ {calc.ValidationMessage}", true);
+            return;
+        }
+        var record = _editingAttendanceRecord;
+        record.UserId = SelectedAttendanceUser.Id;
+        record.UserName = SelectedAttendanceUser.Name;
+        record.Date = AttendanceDate.Date;
+        record.Status = SelectedAttendanceStatus;
+        record.IsPresent = calc.IsPresent;
+        record.RegularHours = calc.RegularHours;
+        record.OvertimeHours = calc.OvertimeHours;
+        record.DailyPay = calc.DailyPay;
+        record.CheckInTime = calc.CheckIn;
+        record.CheckOutTime = calc.CheckOut;
+        record.Notes = AttendanceNotes?.Trim() ?? "";
+        record.AbsencePermissionType = calc.AbsencePermissionType;
+
+        IsBusy = true;
+        try
+        {
+            await _databaseService.SaveAttendanceRecordAsync(record);
+            ShowStatus("Updated attendance record.", false);
+            IsEditingAttendance = false;
+            _editingAttendanceRecord = null;
+            await LoadAttendanceAsync();
+            _ = UpdateAttendancePreviewAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private void UpdateCalendarForSelection()
     {
         AttendanceCalendarDays.Clear();
@@ -1724,9 +2272,46 @@ public class AdminViewModel : INotifyPropertyChanged
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
         var today = DateTime.Today;
 
-        var userRecords = _currentMonthRecords
-            .Where(r => r.UserId == SelectedMonthlySummary.UserId)
-            .ToDictionary(r => r.Date.Date, r => r);
+        if (_currentMonthRecords == null)
+            _currentMonthRecords = new List<AttendanceRecord>();
+
+        var userRecords = new Dictionary<DateTime, AttendanceRecord>();
+        if (_currentMonthRecords != null && SelectedMonthlySummary != null)
+        {
+            try
+            {
+                var filtered = _currentMonthRecords
+                    .Where(r => r != null && r.UserId == SelectedMonthlySummary.UserId)
+                    .ToList();
+                
+                if (filtered.Any())
+                {
+                    var grouped = filtered.GroupBy(r => r.Date.Date).ToList();
+                    foreach (var group in grouped)
+                    {
+                        if (group != null)
+                        {
+                            try
+                            {
+                                var firstRecord = group.FirstOrDefault();
+                                if (firstRecord != null)
+                                    userRecords[group.Key] = firstRecord;
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Error getting first record from group in UpdateCalendarForSelection: {ex}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating userRecords dictionary in UpdateCalendarForSelection: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                // Continue with empty dictionary
+            }
+        }
 
         int leadingPlaceholders = (int)monthStart.DayOfWeek;
         for (int i = 0; i < leadingPlaceholders; i++)
@@ -1746,6 +2331,273 @@ public class AdminViewModel : INotifyPropertyChanged
 
         while (AttendanceCalendarDays.Count % 7 != 0)
             AttendanceCalendarDays.Add(DailyAttendanceEntry.Placeholder());
+    }
+
+    private async Task HandleCalendarDayTappedAsync(DailyAttendanceEntry entry)
+    {
+        try
+        {
+            // Ignore placeholder days and future days
+            if (entry == null || entry.IsPlaceholder || entry.IsFuture)
+                return;
+
+            // If no record exists, allow adding new one
+            if (entry.Record == null)
+            {
+                // Set the selected user and date, then user can add attendance
+                if (SelectedMonthlySummary != null)
+                {
+                    var user = Users.FirstOrDefault(u => u.Id == SelectedMonthlySummary.UserId);
+                    if (user != null)
+                    {
+                        SelectedAttendanceUser = user;
+                        AttendanceDate = entry.Date;
+                        ShowStatus("Select status and add attendance", false);
+                    }
+                }
+                return;
+            }
+
+            // Record exists - show options to edit or delete
+            var editText = _localizationService.GetString("Edit");
+            var deleteText = _localizationService.GetString("Delete");
+            var cancelText = _localizationService.GetString("Cancel");
+            var recordDate = entry.Record.Date.ToString("yyyy-MM-dd");
+            var recordStatus = entry.Record.Status;
+
+            if (Application.Current?.MainPage == null) return;
+
+            var action = await Application.Current.MainPage.DisplayActionSheet(
+                $"Attendance Record - {recordDate}",
+                cancelText,
+                deleteText, // Destructive action (delete) as cancel button
+                editText);
+
+            if (action == editText)
+            {
+                // Edit the record
+                await EditAttendanceRecordAsync(entry.Record);
+            }
+            else if (action == deleteText)
+            {
+                // Confirm deletion
+                var confirmText = _localizationService.GetString("Yes");
+                var noText = _localizationService.GetString("No");
+                
+                var confirmed = await Application.Current.MainPage.DisplayAlert(
+                    "Delete Attendance",
+                    $"Are you sure you want to delete the attendance record for {recordDate}?",
+                    confirmText,
+                    noText);
+
+                if (confirmed)
+                {
+                    await DeleteAttendanceRecordAsync(entry.Record);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error handling calendar day tap: {ex}");
+            if (Application.Current?.MainPage != null)
+            {
+                await Application.Current.MainPage.DisplayAlert(
+                    _localizationService.GetString("Error"),
+                    "An error occurred while processing the request",
+                    _localizationService.GetString("OK"));
+            }
+        }
+    }
+
+    // Filter and search methods
+    private async Task ApplyFiltersAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            var records = await _databaseService.GetAttendanceRecordsAsync(FilterStartDate, FilterEndDate);
+            if (records == null)
+                records = new List<AttendanceRecord>();
+            
+            // Apply employee filter
+            if (SelectedFilterEmployees != null && SelectedFilterEmployees.Any())
+            {
+                var employeeIds = SelectedFilterEmployees.Select(e => e.Id).ToHashSet();
+                records = records.Where(r => employeeIds.Contains(r.UserId)).ToList();
+            }
+
+            // Apply status filter
+            if (FilterStatus != "All")
+            {
+                if (FilterStatus == "Present")
+                    records = records.Where(r => r.IsPresent).ToList();
+                else if (FilterStatus == "Absent")
+                    records = records.Where(r => !r.IsPresent).ToList();
+            }
+
+            // Apply overtime filter
+            if (FilterOvertime == "With OT")
+                records = records.Where(r => r.OvertimeHours > 0).ToList();
+            else if (FilterOvertime == "Without OT")
+                records = records.Where(r => r.OvertimeHours == 0).ToList();
+
+            // Apply search text
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var searchLower = SearchText.ToLowerInvariant();
+                records = records.Where(r => 
+                    r.UserName.ToLowerInvariant().Contains(searchLower) ||
+                    (r.Notes ?? "").ToLowerInvariant().Contains(searchLower)
+                ).ToList();
+            }
+
+            AttendanceRecords.Clear();
+            foreach (var record in records.OrderByDescending(r => r.Date))
+                AttendanceRecords.Add(record);
+
+            await CalculateEnhancedStatisticsAsync(records);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ClearFilters()
+    {
+        FilterStartDate = DateTime.Today.AddDays(-30);
+        FilterEndDate = DateTime.Today;
+        SelectedFilterEmployees = new List<User>();
+        FilterStatus = "All";
+        FilterOvertime = "All";
+        SearchText = "";
+        _ = ApplyFiltersAsync();
+    }
+
+    // Bulk operations
+    private async Task BulkDeleteRecordsAsync()
+    {
+        if (SelectedRecords == null || !SelectedRecords.Any())
+            return;
+
+        try
+        {
+            var confirmText = _localizationService.GetString("Yes");
+            var noText = _localizationService.GetString("No");
+            
+            if (Application.Current?.MainPage != null)
+            {
+                var confirmed = await Application.Current.MainPage.DisplayAlert(
+                    "Confirm Delete",
+                    $"Are you sure you want to delete {SelectedRecords.Count} attendance record(s)?",
+                    confirmText,
+                    noText);
+
+                if (!confirmed) return;
+            }
+
+            IsBusy = true;
+            var count = SelectedRecords.Count;
+            foreach (var record in SelectedRecords)
+            {
+                await _databaseService.DeleteAttendanceRecordAsync(record);
+            }
+
+            SelectedRecords.Clear();
+            await LoadAttendanceAsync();
+            ShowStatus($"Deleted {count} record(s)", false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in bulk delete: {ex}");
+            ShowStatus("Error deleting records", true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task BulkEditRecordsAsync()
+    {
+        if (SelectedRecords == null || !SelectedRecords.Any())
+            return;
+
+        // For now, show a message - can be enhanced later
+        if (Application.Current?.MainPage != null)
+        {
+            await Application.Current.MainPage.DisplayAlert(
+                "Bulk Edit",
+                "Bulk edit functionality will be implemented. Please edit records individually for now.",
+                _localizationService.GetString("OK"));
+        }
+    }
+
+    private void SelectAllRecords()
+    {
+        SelectedRecords = AttendanceRecords.ToList();
+    }
+
+    private void ClearSelection()
+    {
+        SelectedRecords.Clear();
+    }
+
+    // Export methods (stubs - will be implemented with ExportService)
+    private async Task ExportAttendanceToExcelAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            ShowStatus("Excel export will be implemented soon", false);
+            // TODO: Implement Excel export
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ExportAttendanceToPdfAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            ShowStatus("PDF export will be implemented soon", false);
+            // TODO: Implement PDF export
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ExportSalesReportAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            ShowStatus("Sales report export will be implemented soon", false);
+            // TODO: Implement sales report export
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ExportInventoryReportAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            ShowStatus("Inventory report export will be implemented soon", false);
+            // TODO: Implement inventory report export
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public event PropertyChangedEventHandler PropertyChanged;
@@ -1917,6 +2769,13 @@ public class MonthlyAttendanceSummary
     public string UserName { get; set; }
     public int DaysPresent { get; set; }
     public int DaysAbsent { get; set; }
+    public int WorkedDays { get; set; }
+    public int EarnedRestDays { get; set; }
+    public decimal RestDayPayout { get; set; }
+    public int AbsenceWithPermission { get; set; }
+    public int AbsenceWithoutPermission { get; set; }
+    public decimal AbsenceDeductions { get; set; }
+    public decimal ExpensesTotal { get; set; }
     public decimal TotalHours { get; set; }
     public decimal OvertimeHours { get; set; }
     public decimal Payroll { get; set; }
@@ -1932,6 +2791,8 @@ public class MonthlyAttendanceTotals
     public int TotalAbsentDays { get; set; }
     public decimal TotalOvertimeHours { get; set; }
     public decimal TotalPayroll { get; set; }
+    public decimal TotalRestPayout { get; set; }
+    public decimal TotalAbsenceDeductions { get; set; }
 }
 
 public class DailyAttendanceEntry : INotifyPropertyChanged
@@ -1960,7 +2821,7 @@ public class DailyAttendanceEntry : INotifyPropertyChanged
 
     public bool IsPresent => Record?.IsPresent == true;
     public bool HasOvertime => (Record?.OvertimeHours ?? 0) > 0;
-    public bool IsAbsent => !IsPlaceholder && !IsFuture && !IsPresent;
+    public bool IsAbsent => Record != null && !IsPlaceholder && !IsFuture && !IsPresent;
 
     public static DailyAttendanceEntry Placeholder() => new()
     {
@@ -1974,3 +2835,36 @@ public class DailyAttendanceEntry : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
+// Enhanced statistics classes
+public class MonthlyComparisonData
+{
+    public int CurrentMonthDays { get; set; }
+    public int PreviousMonthDays { get; set; }
+    public decimal CurrentMonthHours { get; set; }
+    public decimal PreviousMonthHours { get; set; }
+    public decimal CurrentMonthPayroll { get; set; }
+    public decimal PreviousMonthPayroll { get; set; }
+
+    public string DaysComparison => $"{CurrentMonthDays} vs {PreviousMonthDays}";
+    public string HoursComparison => $"{CurrentMonthHours:F1}h vs {PreviousMonthHours:F1}h";
+    public string PayrollComparison => $"${CurrentMonthPayroll:F2} vs ${PreviousMonthPayroll:F2}";
+    public decimal DaysChange => CurrentMonthDays - PreviousMonthDays;
+    public decimal HoursChange => CurrentMonthHours - PreviousMonthHours;
+    public decimal PayrollChange => CurrentMonthPayroll - PreviousMonthPayroll;
+}
+
+public class EmployeeComparisonItem
+{
+    public int UserId { get; set; }
+    public string UserName { get; set; }
+    public int DaysWorked { get; set; }
+    public decimal TotalHours { get; set; }
+    public decimal AverageHoursPerDay { get; set; }
+    public decimal AttendanceRate { get; set; }
+    public decimal TotalPayroll { get; set; }
+
+    public string HoursDisplay => $"{TotalHours:F1}h";
+    public string AvgHoursDisplay => $"{AverageHoursPerDay:F1}h/day";
+    public string AttendanceRateDisplay => $"{AttendanceRate:F1}%";
+    public string PayrollDisplay => $"${TotalPayroll:F2}";
+}

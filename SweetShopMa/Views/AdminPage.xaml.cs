@@ -152,5 +152,11 @@ public partial class AdminPage : ContentPage
             await Shell.Current.Navigation.PushAsync(restockReportPage);
         }
     }
+
+    private async void OnExpensesTapped(object sender, EventArgs e)
+    {
+        var expensesPage = new ExpensesPage(_viewModel, _localizationService);
+        await Shell.Current.Navigation.PushAsync(expensesPage);
+    }
 }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.Storage;
+using Microsoft.Maui.Storage;
 using SQLite;
 using SweetShopMa.Models;
 using SweetShopMa.Utils;
@@ -140,12 +140,24 @@ public class DatabaseService
             await _database.CreateTableAsync<OrderItem>();           // Items in orders
             await _database.CreateTableAsync<AttendanceRecord>();    // Employee attendance
             await _database.CreateTableAsync<RestockRecord>();      // Inventory restock history
+            await _database.CreateTableAsync<EmployeeExpense>();
 
             // Ensure table columns exist (for database migrations)
             // These methods add new columns to existing tables if the app is updated
             await EnsureUserTableColumnsAsync();
             await EnsureAttendanceTableColumnsAsync();
             await EnsureProductTableColumnsAsync();
+            try
+            {
+                await _database.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_order_orderdate ON \"Order\"(OrderDate);");
+                await _database.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_orderitem_orderid ON \"OrderItem\"(OrderId);");
+                await _database.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_orderitem_productid ON \"OrderItem\"(ProductId);");
+                await _database.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_user_date ON \"AttendanceRecord\"(UserId, Date);");
+                await _database.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_attendance_user_date_range ON \"AttendanceRecord\"(UserId, Date);");
+            }
+            catch
+            {
+            }
         }
         finally
         {
@@ -180,22 +192,37 @@ public class DatabaseService
         return await _database.DeleteAllAsync<CartItem>();
     }
 
+    /// <summary>
+    /// Executes a database transaction safely.
+    /// </summary>
+    public async Task RunInTransactionAsync(Action<SQLiteConnection> action)
+    {
+        await InitializeAsync();
+        await _database.RunInTransactionAsync(action);
+    }
+
     // Product methods
     public async Task<List<Product>> GetProductsAsync()
     {
         await InitializeAsync();
         var products = await _database.Table<Product>().ToListAsync();
         
-        // Get sales data for each product from OrderItems
-        var orderItems = await _database.Table<OrderItem>().ToListAsync();
-        var salesByProduct = orderItems
-            .GroupBy(oi => oi.ProductId)
-            .ToDictionary(g => g.Key, g => g.Sum(oi => oi.Quantity)); // Keep as decimal for accurate weight-based sorting
+        // Optimized: Use SQL aggregation instead of loading all order items
+        var salesData = await _database.QueryAsync<ProductSalesData>(
+            "SELECT ProductId, SUM(Quantity) as TotalSold FROM OrderItem GROUP BY ProductId");
+            
+        var salesByProduct = salesData.ToDictionary(s => s.ProductId, s => s.TotalSold);
         
         // Sort products by total sales (most sold first), then by name for products with same sales
         return products.OrderByDescending(p => 
             salesByProduct.TryGetValue(p.Id, out decimal sold) ? sold : 0m
         ).ThenBy(p => p.Name).ToList();
+    }
+
+    private class ProductSalesData
+    {
+        public int ProductId { get; set; }
+        public decimal TotalSold { get; set; }
     }
 
     public async Task<int> SaveProductAsync(Product product)
@@ -259,6 +286,74 @@ public class DatabaseService
         }
     }
 
+    public async Task<Order> ProcessCheckoutAsync(Order order, List<CartItem> cartItems)
+    {
+        try
+        {
+            await InitializeAsync();
+            
+            if (order == null)
+            {
+                throw new ArgumentNullException(nameof(order));
+            }
+            
+            if (cartItems == null || cartItems.Count == 0)
+            {
+                throw new ArgumentException("Cart items cannot be null or empty", nameof(cartItems));
+            }
+            
+            Order resultOrder = null;
+            
+            await _database.RunInTransactionAsync(conn =>
+            {
+                // 1. Insert Order
+                conn.Insert(order);
+                resultOrder = order;
+                
+                foreach (var cartItem in cartItems)
+                {
+                    if (cartItem == null) continue;
+                    
+                    // 2. Create OrderItem
+                    var orderItem = new OrderItem
+                    {
+                        OrderId = order.Id,
+                        ProductId = cartItem.ProductId,
+                        Name = cartItem.Name,
+                        Emoji = cartItem.Emoji,
+                        Price = cartItem.Price,
+                        Quantity = cartItem.Quantity,
+                        IsSoldByWeight = cartItem.IsSoldByWeight
+                    };
+                    conn.Insert(orderItem);
+                    
+                    // 3. Update Stock
+                    var product = conn.Find<Product>(cartItem.ProductId);
+                    if (product != null)
+                    {
+                        product.Stock -= cartItem.Quantity;
+                        if (product.Stock < 0) product.Stock = 0;
+                        conn.Update(product);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: Product {cartItem.ProductId} not found during checkout");
+                    }
+                }
+                
+                // 4. Clear Cart
+                conn.DeleteAll<CartItem>();
+            });
+            
+            return resultOrder;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error processing checkout: {ex}");
+            throw; // Re-throw to allow caller to handle
+        }
+    }
+
     // Order methods
     public async Task<int> CreateOrderAsync(Order order)
     {
@@ -311,6 +406,12 @@ public class DatabaseService
         if (record.Id != 0)
             return await _database.UpdateAsync(record);
         return await _database.InsertAsync(record);
+    }
+
+    public async Task<int> DeleteAttendanceRecordAsync(AttendanceRecord record)
+    {
+        await InitializeAsync();
+        return await _database.DeleteAsync(record);
     }
 
     public async Task<List<AttendanceRecord>> GetAttendanceRecordsAsync(DateTime? start = null, DateTime? end = null)
@@ -564,6 +665,27 @@ public class DatabaseService
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.RestockDate)
             .ToListAsync();
+    }
+
+    public async Task<int> CreateEmployeeExpenseAsync(EmployeeExpense expense)
+    {
+        await InitializeAsync();
+        return await _database.InsertAsync(expense);
+    }
+
+    public async Task<List<EmployeeExpense>> GetEmployeeExpensesAsync(int userId, DateTime? start = null, DateTime? end = null)
+    {
+        await InitializeAsync();
+        var query = _database.Table<EmployeeExpense>().Where(e => e.UserId == userId);
+        if (start.HasValue) query = query.Where(e => e.ExpenseDate >= start.Value);
+        if (end.HasValue) query = query.Where(e => e.ExpenseDate <= end.Value);
+        return await query.OrderByDescending(e => e.ExpenseDate).ToListAsync();
+    }
+
+    public async Task<int> DeleteEmployeeExpenseAsync(EmployeeExpense expense)
+    {
+        await InitializeAsync();
+        return await _database.DeleteAsync(expense);
     }
 
     private class TableInfo

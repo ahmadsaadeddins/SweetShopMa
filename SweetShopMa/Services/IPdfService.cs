@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using SweetShopMa.Models;
+
 namespace SweetShopMa.Services;
 
 /// <summary>
@@ -13,5 +18,7 @@ public interface IPdfService
     /// <param name="totals">Monthly totals</param>
     /// <returns>Path to the generated PDF file, or null if generation failed</returns>
     Task<string?> GeneratePayrollPdfAsync(List<ViewModels.MonthlyAttendanceSummary> summaries, DateTime month, ViewModels.MonthlyAttendanceTotals totals);
+
+    Task<string?> GenerateEmployeePayrollPdfAsync(ViewModels.MonthlyAttendanceSummary summary, DateTime month, List<EmployeeExpense> expenses);
 }
 

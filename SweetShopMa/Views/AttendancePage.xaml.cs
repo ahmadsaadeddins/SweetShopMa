@@ -25,7 +25,17 @@ public partial class AttendancePage : ContentPage
         base.OnAppearing();
         UpdateLocalizedStrings();
         UpdateRTL();
-        await _viewModel.LoadAttendanceAsync();
+        
+        try
+        {
+            await _viewModel.LoadAttendanceAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in AttendancePage.OnAppearing: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Don't show error to user, just log it
+        }
     }
 
     private void OnLanguageChanged()

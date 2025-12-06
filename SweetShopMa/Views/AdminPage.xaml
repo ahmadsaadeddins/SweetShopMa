@@ -40,7 +40,7 @@
                    HorizontalOptions="Center"/>
 
             <!-- Navigation Buttons -->
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="15" RowSpacing="15" Margin="0,20,0,20">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15" Margin="0,20,0,20">
                 <!-- Users Management Button -->
                 <Border Grid.Row="0" Grid.Column="0" 
                         Stroke="#1d7480" 
@@ -152,10 +152,42 @@
                                HorizontalTextAlignment="Center"/>
                     </VerticalStackLayout>
                 </Border>
+
+                <!-- Expenses Button -->
+                <Border Grid.Row="2" Grid.Column="0" 
+                        Stroke="#795548" 
+                        StrokeThickness="2" 
+                        Padding="20" 
+                        BackgroundColor="#f0f9fa">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnExpensesTapped"/>
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="💵" FontSize="48" HorizontalOptions="Center"/>
+                        <Label Text="Employee Expenses" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="#795548"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Add employee expense records" 
+                               FontSize="12" 
+                               TextColor="#666"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </Border>
             </Grid>
 
-            <Label x:Name="ReportsLabel" Text="Reports &amp; Insights" FontSize="16" FontAttributes="Bold"/>
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+            <!-- Quick Stats Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Quick Stats" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Padding="10">
                 <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
                         <Label x:Name="TotalSalesLabel" Text="Total Sales" FontSize="12" TextColor="#666"/>
@@ -199,8 +231,22 @@
                     </VerticalStackLayout>
                 </Border>
             </Grid>
+                </VerticalStackLayout>
+            </Border>
 
-            <Label x:Name="TopProductsLabel" Text="Top Products" FontSize="16" FontAttributes="Bold"/>
+            <!-- Sales Reports Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label x:Name="ReportsLabel" Text="Sales Reports" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                        <!-- Export Buttons -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Export Sales Report" BackgroundColor="#4CAF50" TextColor="White" Command="{Binding ExportSalesReportCommand}"/>
+                            <Button Text="Export Inventory Report" BackgroundColor="#2196F3" TextColor="White" Command="{Binding ExportInventoryReportCommand}"/>
+                        </Grid>
+                        <Label x:Name="TopProductsLabel" Text="Top Products" FontSize="14" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding TopProducts}" HeightRequest="200">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -219,8 +265,7 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-
-            <Label x:Name="RecentOrdersLabel" Text="Recent Orders" FontSize="16" FontAttributes="Bold"/>
+                    <Label x:Name="RecentOrdersLabel" Text="Recent Orders" FontSize="14" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding RecentOrders}" HeightRequest="220" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -248,7 +293,109 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
 
+            <!-- Inventory Statistics Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Inventory Statistics" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#fff3cd">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Low Stock Alerts" FontSize="14" FontAttributes="Bold" TextColor="#856404"/>
+                            <Label Text="Products below threshold will be shown here" FontSize="12" TextColor="#856404"/>
+                            <!-- TODO: Add low stock products list -->
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f8d7da">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Out of Stock" FontSize="14" FontAttributes="Bold" TextColor="#721c24"/>
+                            <Label Text="Out of stock items will be shown here" FontSize="12" TextColor="#721c24"/>
+                            <!-- TODO: Add out of stock products list -->
+                        </VerticalStackLayout>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Total Stock Value" FontSize="12" TextColor="#666"/>
+                                <Label Text="Calculating..." FontSize="16" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Total Products" FontSize="12" TextColor="#666"/>
+                                <Label Text="{Binding Products.Count}" FontSize="16" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Employee Activity Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Employee Activity" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <Label Text="Employee activity tracking will be shown here" FontSize="12" TextColor="#666"/>
+                    <!-- TODO: Add employee activity list -->
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Employee Expenses Section (Collapsible) -->
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="False">
+                <VerticalStackLayout Spacing="0">
+                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
+                    </Border>
+                    <VerticalStackLayout Spacing="10" Padding="10">
+            <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Picker Grid.Column="0"
+                                Title="Employee"
+                                ItemsSource="{Binding Users}"
+                                ItemDisplayBinding="{Binding Name}"
+                                SelectedItem="{Binding SelectedExpenseUser}"/>
+                        <DatePicker Grid.Column="1"
+                                    Date="{Binding ExpenseDate}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                        <Entry Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
+                    </Grid>
+                    <Entry Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
+                    <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <CollectionView ItemsSource="{Binding EmployeeExpenses}" HeightRequest="220">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Padding="8" ColumnSpacing="10">
+                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding ExpenseDate, StringFormat='{0:yyyy-MM-dd}'}" FontAttributes="Bold"/>
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='${0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
+                            <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
+                                <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
+                                        CommandParameter="{Binding .}"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
 
             <Label Text="{Binding StatusMessage}"
                    FontAttributes="Bold"
