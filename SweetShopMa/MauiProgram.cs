@@ -65,6 +65,7 @@ public static class MauiProgram
             .AddSingleton<AttendanceRulesService>()     // Attendance rules
             .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)  // Multi-language support (uses singleton instance)
             .AddSingleton<IPdfService, PdfService>()   // PDF generation service
+            .AddSingleton<Services.LoggingService>()    // Centralized logging service
             
             // Platform-Specific Services
             // On Windows, use Windows-specific implementations

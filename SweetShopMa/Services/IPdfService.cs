@@ -20,5 +20,11 @@ public interface IPdfService
     Task<string?> GeneratePayrollPdfAsync(List<ViewModels.MonthlyAttendanceSummary> summaries, DateTime month, ViewModels.MonthlyAttendanceTotals totals);
 
     Task<string?> GenerateEmployeePayrollPdfAsync(ViewModels.MonthlyAttendanceSummary summary, DateTime month, List<EmployeeExpense> expenses);
+
+    Task<string?> GenerateAttendancePdfAsync(List<AttendanceRecord> records, DateTime month);
+
+    Task<string?> GenerateSalesReportPdfAsync(List<Order> orders, List<ViewModels.ProductReportItem> topProducts, DateTime startDate, DateTime endDate);
+
+    Task<string?> GenerateInventoryReportPdfAsync(List<Product> products, DateTime reportDate);
 }
 

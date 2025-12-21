@@ -138,7 +138,7 @@ public partial class AdminPage : ContentPage
 
     private async void OnAttendanceTrackerTapped(object sender, EventArgs e)
     {
-        if (_viewModel.OpenAttendancePageCommand.CanExecute(null))
+        if (_viewModel?.OpenAttendancePageCommand?.CanExecute(null) == true)
         {
             _viewModel.OpenAttendancePageCommand.Execute(null);
         }
@@ -153,10 +153,5 @@ public partial class AdminPage : ContentPage
         }
     }
 
-    private async void OnExpensesTapped(object sender, EventArgs e)
-    {
-        var expensesPage = new ExpensesPage(_viewModel, _localizationService);
-        await Shell.Current.Navigation.PushAsync(expensesPage);
-    }
 }
 

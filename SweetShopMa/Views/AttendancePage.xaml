@@ -43,10 +43,20 @@
             <!-- Add/Edit Attendance Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Add/Edit Attendance" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Add/Edit Attendance" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding AddEditSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleAddEditSectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <Border Stroke="#e0e0e0" StrokeThickness="0" Padding="16" BackgroundColor="#f9f9f9">
+                    <Border Stroke="#e0e0e0" StrokeThickness="0" Padding="16" BackgroundColor="#f9f9f9" IsVisible="{Binding IsAddEditSectionExpanded}">
                     <VerticalStackLayout Spacing="10">
                         <Picker x:Name="EmployeePicker" Title="Employee"
                                 ItemsSource="{Binding Users}"
@@ -107,10 +117,20 @@
             <!-- Statistics Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Statistics" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Statistics" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding StatisticsSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleStatisticsSectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <VerticalStackLayout Spacing="10" Padding="10" IsVisible="{Binding IsStatisticsSectionExpanded}">
                     <!-- Basic Statistics -->
                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                         <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="White">
@@ -193,10 +213,20 @@
             </Border>
 
             <!-- Filtering Section (Collapsible) -->
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="False">
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="{Binding IsFilteringSectionExpanded}">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Filters &amp; Search" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Filters &amp; Search" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding FilteringSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleFilteringSectionCommand}"/>
+                        </Grid>
                     </Border>
                     <Border Stroke="#e0e0e0" StrokeThickness="0" Padding="16" BackgroundColor="#f9f9f9">
                     <VerticalStackLayout Spacing="10">
@@ -237,10 +267,20 @@
             <!-- Records List Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Attendance Records" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Attendance Records" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding RecordsSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleRecordsSectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <VerticalStackLayout Spacing="10" Padding="10" IsVisible="{Binding IsRecordsSectionExpanded}">
                     <!-- Bulk Operations -->
                     <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="10" BackgroundColor="#fff3cd" IsVisible="{Binding HasSelectedRecords}">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -312,10 +352,20 @@
             <!-- Monthly Summary Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label x:Name="MonthlySummaryLabel" Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" x:Name="MonthlySummaryLabel" Text="Monthly Attendance Summary" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding MonthlySummarySectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleMonthlySummarySectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <VerticalStackLayout Spacing="10" Padding="10" IsVisible="{Binding IsMonthlySummarySectionExpanded}">
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Label x:Name="MonthLabel" Text="Month:" VerticalOptions="Center"/>
                             <DatePicker Grid.Column="1"
@@ -420,10 +470,20 @@
             <!-- Calendar Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" x:Name="AttendanceCalendarLabel" Text="Attendance Calendar" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding CalendarSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleCalendarSectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <VerticalStackLayout Spacing="10" Padding="10">
+                    <VerticalStackLayout Spacing="10" Padding="10" IsVisible="{Binding IsCalendarSectionExpanded}">
             <Grid ColumnDefinitions="*,*,*,*,*,*,*" HorizontalOptions="Fill">
                 <Label Text="Sun" HorizontalTextAlignment="Center" />
                 <Label Text="Mon" Grid.Column="1" HorizontalTextAlignment="Center" />
@@ -478,12 +538,22 @@
             </Border>
 
             <!-- Employee Comparison Section (Collapsible) -->
-            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
+            <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="{Binding IsEmployeeComparisonSectionExpanded}">
                 <VerticalStackLayout Spacing="0">
-                    <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Employee Comparison" FontSize="16" FontAttributes="Bold"/>
+                    <Border Stroke="#d0d0d0" StrokeThickness="1" Padding="12" BackgroundColor="#f0f0f0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Employee Comparison" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" 
+                                    Text="{Binding EmployeeComparisonSectionArrow}" 
+                                    FontSize="12"
+                                    Padding="8,4"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#666"
+                                    CornerRadius="4"
+                                    Command="{Binding ToggleEmployeeComparisonSectionCommand}"/>
+                        </Grid>
                     </Border>
-                    <CollectionView ItemsSource="{Binding EmployeeComparisonData}" HeightRequest="300" Padding="10">
+                    <CollectionView ItemsSource="{Binding EmployeeComparisonData}" HeightRequest="300" IsVisible="{Binding IsEmployeeComparisonSectionExpanded}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" Margin="0,0,0,8" BackgroundColor="White">
