@@ -60,6 +60,9 @@ public class ShopViewModel : INotifyPropertyChanged
     private readonly Services.LocalizationService _localizationService;
     private readonly Services.IPrintService _printService;
     private readonly Services.ICashDrawerService _cashDrawerService;
+    private readonly IShopSettingsService _settingsService;
+    private readonly SessionContext _sessionContext;
+    public SessionContext SessionContext => _sessionContext;
     
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<CartItem> CartItems { get; } = new();
@@ -238,6 +241,11 @@ public class ShopViewModel : INotifyPropertyChanged
     public ICommand OpenAdminPanelCommand { get; }
     public ICommand OpenDrawerCommand { get; }
     public ICommand SelectCategoryCommand { get; }
+    public ICommand SwitchLanguageCommand { get; }
+    
+    // Language properties for header
+    public string CurrentLanguage => _localizationService.CurrentLanguage;
+    public bool IsRTL => _localizationService.IsRTL;
 
     public ShopViewModel(CartService cartService,
                          DatabaseService databaseService,
@@ -245,7 +253,9 @@ public class ShopViewModel : INotifyPropertyChanged
                          IServiceProvider serviceProvider,
                          Services.LocalizationService localizationService,
                          Services.IPrintService printService,
-                         Services.ICashDrawerService cashDrawerService)
+                         Services.ICashDrawerService cashDrawerService,
+                         IShopSettingsService settingsService,
+                         SessionContext sessionContext)
     {
         _cartService = cartService;
         _databaseService = databaseService;
@@ -254,6 +264,8 @@ public class ShopViewModel : INotifyPropertyChanged
         _localizationService = localizationService;
         _printService = printService;
         _cashDrawerService = cashDrawerService;
+        _settingsService = settingsService;
+        _sessionContext = sessionContext;
 
         AddToCartCommand = new Command<Product>(async product => await AddToCartAsync(product));
         RemoveFromCartCommand = new Command<CartItem>(async item => await RemoveFromCartAsync(item));
@@ -278,21 +290,47 @@ public class ShopViewModel : INotifyPropertyChanged
         OpenAdminPanelCommand = new Command(async () => await OpenAdminPanel());
         OpenDrawerCommand = new Command(async () => await OpenDrawer());
         SelectCategoryCommand = new Command<string>(category => SelectedCategory = category);
+        SwitchLanguageCommand = new Command(() => SwitchLanguage());
 
         _cartService.OnCartChanged += UpdateCart;
         _authService.OnUserChanged += OnUserChanged;
+        _localizationService.LanguageChanged += OnLanguageChanged;
         UpdateAuthStatus();
+    }
+    
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(CurrentLanguage));
+        OnPropertyChanged(nameof(IsRTL));
+    }
+    
+    private void SwitchLanguage()
+    {
+        var currentLang = _localizationService.CurrentLanguage;
+        var newLang = currentLang == "en" ? "ar" : "en";
+        _localizationService.SetLanguage(newLang);
     }
 
     public async Task InitializeAsync()
     {
-        await _databaseService.SeedUsersAsync();
-        await _databaseService.SeedProductsAsync();
+        var activeLocation = _sessionContext.ActiveLocation;
+        if (activeLocation == null)
+        {
+            activeLocation = await _settingsService.GetActiveLocationAsync();
+            _sessionContext.ActiveLocation = activeLocation;
+        }
 
         var products = await _databaseService.GetProductsAsync();
         
+        // Load location stock for each product
+        foreach (var p in products)
+        {
+            var stock = await _databaseService.GetProductStockAsync(p.Id, activeLocation.Id);
+            p.Stock = stock?.Stock ?? 0m;
+        }
+        
         // Ensure ObservableCollection operations are on the main thread
-        if (MainThread.IsMainThread)
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
             Products.Clear();
             foreach (var product in products)
@@ -303,22 +341,7 @@ public class ShopViewModel : INotifyPropertyChanged
             
             // Filter products
             FilterProducts();
-        }
-        else
-        {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                Products.Clear();
-                foreach (var product in products)
-                    Products.Add(product);
-
-                // Update categories
-                UpdateCategories();
-                
-                // Filter products
-                FilterProducts();
-            });
-        }
+        });
 
         await _cartService.InitializeAsync();
         UpdateCart();
@@ -787,7 +810,7 @@ public class ShopViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task FocusBarcodeFieldImmediate()
+    public async Task FocusBarcodeFieldImmediate()
     {
         // Clear selection and search text to reset the quick sell interface
         // Do this first to ensure state is cleared
@@ -799,7 +822,9 @@ public class ShopViewModel : INotifyPropertyChanged
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             // Try to get MainPage and focus the barcode field immediately
-            if (Application.Current?.MainPage is MainPage mainPage)
+            // In Shell apps, the currentPage is on Shell.Current.CurrentPage
+            var mainPage = Shell.Current?.CurrentPage as MainPage;
+            if (mainPage != null)
             {
                 if (mainPage.FindByName("ProductSearchEntry") is Entry barcodeEntry)
                 {
@@ -1053,7 +1078,7 @@ public class ShopViewModel : INotifyPropertyChanged
         try
         {
             // Navigate to login page - create new instance with injected services
-            var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService);
+            var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService, _settingsService, _sessionContext);
             await Shell.Current.Navigation.PushAsync(loginPage);
         }
         catch (Exception ex)
@@ -1069,7 +1094,7 @@ public class ShopViewModel : INotifyPropertyChanged
             _authService.Logout();
             
             // Navigate to login page - create new instance with injected services
-            var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService);
+            var loginPage = new Views.LoginPage(_authService, _databaseService, _localizationService, _settingsService, _sessionContext);
             await Shell.Current.Navigation.PushAsync(loginPage);
         }
         catch (Exception ex)

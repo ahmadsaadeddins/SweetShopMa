@@ -1,25 +1,45 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
              x:Class="SweetShopMa.Views.ExpensesPage"
-             Title="Employee Expenses">
+             x:Name="ExpensesPageRoot"
+             Title="Employee Expenses"
+             ControlTemplate="{StaticResource MainPageTemplate}">
     <ScrollView>
         <VerticalStackLayout Spacing="16" Padding="16">
             <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
-                <Button Text="Back"
+                <Button x:Name="BackButton"
+                        Text="Back"
                         BackgroundColor="#f0f4f7"
                         TextColor="#1d7480"
                         Padding="10,6"
                         CornerRadius="6"
                         Clicked="OnBackButtonClicked"
                         HorizontalOptions="Start"/>
+                <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                    <Button Text="EN"
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                    <Button Text="AR"
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                </HorizontalStackLayout>
             </Grid>
 
-            <Label Text="Employee Expenses" FontSize="20" FontAttributes="Bold"/>
+            <Label x:Name="PageHeaderLabel" Text="Employee Expenses" FontSize="20" FontAttributes="Bold"/>
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Picker Grid.Column="0"
+                        <Picker x:Name="EmployeePicker" Grid.Column="0"
                                 Title="Employee"
                                 ItemsSource="{Binding Users}"
                                 ItemDisplayBinding="{Binding Name}"
@@ -28,11 +48,11 @@
                                     Date="{Binding ExpenseDate}"/>
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Entry Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
-                        <Entry Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
+                        <Entry x:Name="AmountEntry" Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                        <Entry x:Name="CategoryEntry" Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
                     </Grid>
-                    <Entry Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
-                    <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                    <Entry x:Name="NotesEntry" Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
+                    <Button x:Name="AddExpenseButton" Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
                 </VerticalStackLayout>
             </Border>
 
@@ -44,7 +64,7 @@
                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='{0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
                             <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
                             <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
-                                <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                <Button x:Name="DeleteButton" Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
                                         CommandParameter="{Binding .}"/>
                             </HorizontalStackLayout>

@@ -1,5 +1,7 @@
 using SQLite;
 
+using SweetShopMa.Services;
+
 namespace SweetShopMa.Models;
 
 /// <summary>
@@ -40,10 +42,18 @@ public class AttendanceRecord
     /// </summary>
     public DateTime Date { get; set; } = DateTime.Today;
     
+
     /// <summary>
-    /// Attendance status: "Present" or "Absent" (as string for display).
+    /// Attendance status key: "Present", "Reset", "AbsentWithPermission", or "AbsentWithoutPermission".
+    /// NOTE: This should store the INTERNAL KEY, not the localized display value.
     /// </summary>
     public string Status { get; set; } = "Present";
+
+    /// <summary>
+    /// Localized status for display in UI.
+    /// </summary>
+    [Ignore]
+    public string StatusDisplay => LocalizationService.Instance?.GetString(Status) ?? Status;
     
     /// <summary>
     /// Boolean attendance status (true = Present, false = Absent).

@@ -8,8 +8,24 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <ResourceDictionary Source="Resources/Styles/MenuStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <utils:IsNotNullConverter x:Key="IsNotNullConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+            <utils:InvertedBoolConverter x:Key="InvertedBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+            <utils:InverseBoolConverter x:Key="InverseBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+            <utils:BoolToFlowDirectionConverter x:Key="BoolToFlowDirectionConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+            <utils:StringToBoolConverter x:Key="StringToBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+
+            <!-- Global Page Template with MenuBar overlaying -->
+            <ControlTemplate x:Key="MainPageTemplate" xmlns:controls="clr-namespace:SweetShopMa.Controls">
+                <Grid>
+                    <Grid RowDefinitions="40,*">
+                        <BoxView Grid.Row="0" Color="Transparent" />
+                        <ContentPresenter Grid.Row="1" />
+                    </Grid>
+                    <controls:MenuBar VerticalOptions="Start" ZIndex="1000" />
+                </Grid>
+            </ControlTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

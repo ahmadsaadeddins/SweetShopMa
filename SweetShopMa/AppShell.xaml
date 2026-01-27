@@ -4,18 +4,30 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:SweetShopMa.Views"
+    xmlns:localUtil="clr-namespace:SweetShopMa.Utils"
+    xmlns:controls="clr-namespace:SweetShopMa.Controls"
     FlyoutBehavior="Disabled">
 
+    <!-- FlyoutHeader removed as MenuBar is now in ControlTemplate -->
+    
     <!-- Login page (default route) -->
     <ShellContent 
-        Title="Login" 
+        Title="{localUtil:LocalizedString Key=Login}" 
         ContentTemplate="{DataTemplate local:LoginPage}" 
         Route="login" />
     
     <!-- Shop page -->
     <ShellContent 
-        Title="Shop" 
+        Title="{localUtil:LocalizedString Key=Shop}" 
         ContentTemplate="{DataTemplate local:MainPage}" 
         Route="shop" />
+
+    <!-- Setup/Settings routes -->
+    <ShellContent Route="initialsetup" ContentTemplate="{DataTemplate local:InitialSetupPage}" />
+    <ShellContent Route="settings" ContentTemplate="{DataTemplate local:SettingsPage}" />
+    <ShellContent Route="locations" ContentTemplate="{DataTemplate local:ShopLocationsPage}" />
+    <ShellContent Route="stocktransfer" ContentTemplate="{DataTemplate local:StockTransferPage}" />
+    <ShellContent Route="userlocations" ContentTemplate="{DataTemplate local:UserLocationsPage}" />
+
 
 </Shell>

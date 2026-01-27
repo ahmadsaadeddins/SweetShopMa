@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:SweetShopMa.Utils"
              x:Class="SweetShopMa.Views.LoginPage"
-             Title="Login"
+             Title="{local:LocalizedString Key=Login}"
              BackgroundColor="#f5f5f5">
 
     <VerticalStackLayout 
@@ -14,7 +15,7 @@
 
         <!-- Language Selector -->
         <HorizontalStackLayout HorizontalOptions="End" Spacing="10">
-            <Button Text="EN" 
+            <Button Text="{local:LocalizedString Key=LanguageEN}" 
                     x:Name="EnglishButton"
                     BackgroundColor="#32b8c6"
                     TextColor="White"
@@ -22,7 +23,7 @@
                     CornerRadius="5"
                     FontSize="12"
                     Clicked="OnLanguageButtonClicked"/>
-            <Button Text="AR" 
+            <Button Text="{local:LocalizedString Key=LanguageAR}" 
                     x:Name="ArabicButton"
                     BackgroundColor="#32b8c6"
                     TextColor="White"
@@ -35,24 +36,24 @@
         <!-- Header -->
         <Label 
             x:Name="AppTitleLabel"
-            Text="🍬 Sweet Shop" 
+            Text="{local:LocalizedString Key=AppTitle}" 
             FontSize="32" 
             FontAttributes="Bold" 
             TextColor="#32b8c6"
             HorizontalTextAlignment="Center"/>
         <Label 
             x:Name="SecureLoginLabel"
-            Text="🔐 Secure Login" 
+            Text="{local:LocalizedString Key=SecureLogin}" 
             FontSize="18" 
             TextColor="#666"
             HorizontalTextAlignment="Center"/>
 
         <!-- Username Field -->
         <StackLayout Spacing="8">
-            <Label x:Name="UsernameLabel" Text="👤 Username" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Label x:Name="UsernameLabel" Text="{local:LocalizedString Key=Username}" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
             <Entry 
                 x:Name="UsernameEntry"
-                Placeholder="Enter username"
+                Placeholder="{local:LocalizedString Key=EnterUsername}"
                 BackgroundColor="White"
                 FontSize="14"
                 ReturnType="Next"
@@ -61,11 +62,11 @@
 
         <!-- Password Field with Lock Icon -->
         <StackLayout Spacing="8">
-            <Label x:Name="PasswordLabel" Text="🔒 Password" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Label x:Name="PasswordLabel" Text="{local:LocalizedString Key=Password}" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
             <Entry 
                 x:Name="PasswordEntry"
                 IsPassword="True"
-                Placeholder="Enter password"
+                Placeholder="{local:LocalizedString Key=EnterPassword}"
                 BackgroundColor="White"
                 FontSize="14"
                 ReturnType="Go"
@@ -85,7 +86,7 @@
         <!-- Login Button -->
         <Button 
             x:Name="LoginButton"
-            Text="🔓 Login"
+            Text="{local:LocalizedString Key=LoginButton}"
             BackgroundColor="#32b8c6"
             TextColor="White"
             Padding="12"
@@ -93,6 +94,27 @@
             FontSize="16"
             FontAttributes="Bold"
             Clicked="OnLoginClicked"/>
+
+        <!-- Location Selection (vibile after login if multiple locations) -->
+        <StackLayout x:Name="LocationSelectionLayout" Spacing="8" IsVisible="False">
+            <Label x:Name="SelectLocationLabel" Text="{local:LocalizedString Key=SelectLocationIcon}" FontSize="14" FontAttributes="Bold" TextColor="#333"/>
+            <Picker 
+                x:Name="LocationPicker"
+                Title="{local:LocalizedString Key=SelectLocation}"
+                BackgroundColor="White"
+                FontSize="14"
+                ItemDisplayBinding="{Binding LocationName}"/>
+            <Button 
+                x:Name="ConfirmLocationButton"
+                Text="{local:LocalizedString Key=StartSession}"
+                BackgroundColor="#4CAF50"
+                TextColor="White"
+                Padding="12"
+                CornerRadius="8"
+                FontSize="16"
+                FontAttributes="Bold"
+                Clicked="OnConfirmLocationClicked"/>
+        </StackLayout>
 
         <!-- Loading Indicator -->
         <ActivityIndicator 

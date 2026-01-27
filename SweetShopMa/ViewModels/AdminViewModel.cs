@@ -12,6 +12,7 @@ using Microsoft.Maui.Storage;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
 using SweetShopMa.Utils;
+using SweetShopMa.Resources;
 using SweetShopMa.Views;
 
 namespace SweetShopMa.ViewModels;
@@ -98,6 +99,15 @@ public class AdminViewModel : INotifyPropertyChanged
     public ObservableCollection<ProductReportItem> TopProducts { get; } = new();
     public ObservableCollection<AttendanceRecord> AttendanceRecords { get; } = new();
     public ObservableCollection<DailyAttendanceEntry> AttendanceCalendarDays { get; } = new();
+    public ObservableCollection<ProductStock> ProductStocks { get; } = new();
+    public ObservableCollection<ShopLocation> ReportLocations { get; } = new();
+    
+    private ShopLocation _selectedReportLocation;
+    public ShopLocation SelectedReportLocation
+    {
+        get => _selectedReportLocation;
+        set { if (_selectedReportLocation != value) { _selectedReportLocation = value; OnPropertyChanged(); } }
+    }
     public ObservableCollection<MonthlyAttendanceSummary> MonthlyAttendanceSummaries { get; } = new();
     public ObservableCollection<EmployeeExpense> EmployeeExpenses { get; } = new();
 
@@ -139,13 +149,36 @@ public class AdminViewModel : INotifyPropertyChanged
     // Attendance form fields
     private User _selectedAttendanceUser;
     private DateTime _attendanceDate = DateTime.Today;
-    private string _selectedAttendanceStatus = "Present";
+    private string _selectedAttendanceStatus = "";
     private string _attendanceNotes = "";
     private TimeSpan _attendanceCheckInTime = new(8, 0, 0);
     private TimeSpan _attendanceCheckOutTime = new(16, 0, 0);
     private string _attendancePreview = "Regular: 0h • OT: 0h • Pay $0.00";
     private AttendanceRecord _editingAttendanceRecord;
     private bool _isEditingAttendance;
+
+    // Internal status keys (never translated)
+    private static readonly string[] _statusKeys = new[] 
+    { 
+        "Present", 
+        "Reset", 
+        "AbsentWithPermission", 
+        "AbsentWithoutPermission" 
+    };
+
+    // Current selected status key (internal, not localized)
+    private string _selectedAttendanceStatusKey = "Present";
+    public string SelectedAttendanceStatusKey => _selectedAttendanceStatusKey;
+
+    private string GetStatusKeyFromDisplayValue(string displayValue)
+    {
+        foreach (var key in _statusKeys)
+        {
+            if (_localizationService.GetString(key) == displayValue)
+                return key;
+        }
+        return "Present"; // Default fallback
+    }
 
     // Employee expenses fields
     private User _selectedExpenseUser;
@@ -170,9 +203,6 @@ public class AdminViewModel : INotifyPropertyChanged
     
     // Bulk operations
     private List<AttendanceRecord> _selectedRecords = new();
-
-    private readonly string[] _attendanceStatuses =
-        { "Present", "Reset", "Absent (With Permission)", "Absent (Without Permission)" };
 
     private AttendanceSummary _attendanceSummary = new();
     private MonthlyAttendanceTotals _monthlySummaryTotals = new();
@@ -233,6 +263,9 @@ public class AdminViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ReportStatusTextColor));
         };
 
+        // Initialize default attendance status with localized value
+        _selectedAttendanceStatus = _localizationService.GetString("Present");
+        
         _ = UpdateAttendancePreviewAsync();
     }
 
@@ -487,7 +520,10 @@ public class AdminViewModel : INotifyPropertyChanged
             TotalAbsenceDeductions = totalAbsenceDeductions
         };
 
-        SelectedMonthlySummary = MonthlyAttendanceSummaries?.FirstOrDefault();
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            SelectedMonthlySummary = MonthlyAttendanceSummaries?.FirstOrDefault();
+        });
         }
         catch (Exception ex)
         {
@@ -535,7 +571,13 @@ public class AdminViewModel : INotifyPropertyChanged
                 (ToggleUserStatusCommand as Command)?.ChangeCanExecute();
                 (AddAttendanceCommand as Command)?.ChangeCanExecute();
                 (ExportPayrollPdfCommand as Command)?.ChangeCanExecute();
-                (AddAttendanceCommand as Command)?.ChangeCanExecute();
+                (ExportSelectedEmployeePayrollPdfCommand as Command)?.ChangeCanExecute();
+                (ExportAttendanceToExcelCommand as Command)?.ChangeCanExecute();
+                (ExportAttendanceToPdfCommand as Command)?.ChangeCanExecute();
+                (ExportSalesReportCommand as Command)?.ChangeCanExecute();
+                (ExportInventoryReportCommand as Command)?.ChangeCanExecute();
+                (BulkDeleteCommand as Command)?.ChangeCanExecute();
+                (BulkEditCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -690,7 +732,13 @@ public class AdminViewModel : INotifyPropertyChanged
 
     public string ReportStatusTextColor => HasReportData ? "#1f7a4d" : "#c00000";
 
-    public IEnumerable<string> AttendanceStatuses => _attendanceStatuses;
+    public IEnumerable<string> AttendanceStatuses => new[]
+    {
+        _localizationService.GetString("Present"),
+        _localizationService.GetString("Reset"),
+        _localizationService.GetString("AbsentWithPermission"),
+        _localizationService.GetString("AbsentWithoutPermission")
+    };
 
     public User SelectedAttendanceUser
     {
@@ -735,6 +783,7 @@ public class AdminViewModel : INotifyPropertyChanged
             if (_selectedAttendanceStatus != value)
             {
                 _selectedAttendanceStatus = value;
+                _selectedAttendanceStatusKey = GetStatusKeyFromDisplayValue(value);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsAttendanceTimeEntryEnabled));
                 _ = UpdateAttendancePreviewAsync();
@@ -776,7 +825,7 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsAttendanceTimeEntryEnabled => StatusRequiresTimes(SelectedAttendanceStatus);
+    public bool IsAttendanceTimeEntryEnabled => StatusRequiresTimes(_selectedAttendanceStatusKey);
 
     public string AttendancePreview
     {
@@ -1055,6 +1104,35 @@ public class AdminViewModel : INotifyPropertyChanged
         await LoadReportsAsync();
         await LoadAttendanceAsync();
         await LoadEmployeeExpensesAsync();
+        await LoadReportLocationsAsync();
+    }
+
+    private async Task LoadReportLocationsAsync()
+    {
+        try
+        {
+            var locations = await _databaseService.GetShopLocationsAsync();
+            ReportLocations.Clear();
+
+            // Add "All Branches" option with Id = 0
+            ReportLocations.Add(new ShopLocation
+            {
+                Id = 0,
+                LocationName = _localizationService.GetString("AllBranches") ?? "All Branches",
+                LocationNameArabic = "جميع الفروع"
+            });
+
+            foreach (var loc in locations.Where(l => l.IsActive))
+            {
+                ReportLocations.Add(loc);
+            }
+
+            SelectedReportLocation = ReportLocations.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading report locations: {ex.Message}");
+        }
     }
 
     public void RefreshLocalizedProperties()
@@ -1062,6 +1140,7 @@ public class AdminViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AverageOrderValueDisplay));
         OnPropertyChanged(nameof(ReportStatusText));
         OnPropertyChanged(nameof(ReportStatusTextColor));
+        OnPropertyChanged(nameof(AttendanceStatuses));
     }
 
     private async Task LoadUsersAsync()
@@ -1249,7 +1328,7 @@ public class AdminViewModel : INotifyPropertyChanged
 
     public async Task LoadAttendanceAsync()
     {
-        IsBusy = true;
+        await MainThread.InvokeOnMainThreadAsync(() => IsBusy = true);
         try
         {
             var start = DateTime.Today.AddDays(-30);
@@ -1257,23 +1336,26 @@ public class AdminViewModel : INotifyPropertyChanged
             if (records == null)
                 records = new List<AttendanceRecord>();
                 
-            AttendanceRecords.Clear();
-            foreach (var record in records)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                if (record != null)
-                    AttendanceRecords.Add(record);
-            }
+                AttendanceRecords.Clear();
+                foreach (var record in records)
+                {
+                    if (record != null)
+                        AttendanceRecords.Add(record);
+                }
 
-            AttendanceSummary = new AttendanceSummary
-            {
-                PresentCount = records.Count(r => r != null && r.IsPresent),
-                AbsentCount = records.Count(r => r != null && !r.IsPresent),
-                OvertimeCount = records.Count(r => r != null && r.OvertimeHours > 0m),
-                TotalRegularHours = records.Where(r => r != null).Sum(r => r.RegularHours),
-                TotalOvertimeHours = records.Where(r => r != null).Sum(r => r.OvertimeHours),
-                TotalPayroll = records.Where(r => r != null).Sum(r => r.DailyPay),
-                LastUpdated = DateTime.Now
-            };
+                AttendanceSummary = new AttendanceSummary
+                {
+                    PresentCount = records.Count(r => r != null && r.IsPresent),
+                    AbsentCount = records.Count(r => r != null && !r.IsPresent),
+                    OvertimeCount = records.Count(r => r != null && r.OvertimeHours > 0m),
+                    TotalRegularHours = records.Where(r => r != null).Sum(r => r.RegularHours),
+                    TotalOvertimeHours = records.Where(r => r != null).Sum(r => r.OvertimeHours),
+                    TotalPayroll = records.Where(r => r != null).Sum(r => r.DailyPay),
+                    LastUpdated = DateTime.Now
+                };
+            });
 
             // Calculate enhanced statistics
             await CalculateEnhancedStatisticsAsync(records);
@@ -1286,7 +1368,7 @@ public class AdminViewModel : INotifyPropertyChanged
         }
         finally
         {
-            IsBusy = false;
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
         }
 
         try
@@ -1496,14 +1578,23 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task AddAttendanceAsync()
     {
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] AddAttendanceAsync called");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] SelectedAttendanceUser: {SelectedAttendanceUser?.Name ?? "NULL"}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] SelectedAttendanceStatus: {SelectedAttendanceStatus}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] SelectedAttendanceStatusKey: {_selectedAttendanceStatusKey}");
+        
         if (SelectedAttendanceUser == null)
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] ERROR: No user selected");
             ShowStatus(_localizationService.GetString("PleaseSelectEmployee"), true);
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] AttendanceDate: {AttendanceDate.Date}");
+        
         if (AttendanceDate.Date > DateTime.Today)
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] ERROR: Future date not allowed");
             ShowStatus(_localizationService.GetString("FutureDatesNotAllowed"), true);
             return;
         }
@@ -1512,25 +1603,39 @@ public class AdminViewModel : INotifyPropertyChanged
             SelectedAttendanceUser.Id,
             AttendanceDate.Date);
 
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Existing record: {(existingRecord != null ? "EXISTS" : "NULL")}");
+        
         if (existingRecord != null)
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] ERROR: Record already exists");
             ShowStatus(_localizationService.GetString("AttendanceExists"), true);
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Calculating attendance...");
         var calculation = await CalculateAttendanceForEntryAsync();
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Calculation valid: {calculation.IsValid}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Calculation message: {calculation.ValidationMessage}");
+        
         if (!calculation.IsValid)
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] ERROR: Calculation validation failed");
             ShowStatus($"⚠️ {calculation.ValidationMessage}", true);
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Creating record...");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Record Status (key): {_selectedAttendanceStatusKey}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Record IsPresent: {calculation.IsPresent}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Record RegularHours: {calculation.RegularHours}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Record DailyPay: {calculation.DailyPay}");
+        
         var record = new AttendanceRecord
         {
             UserId = SelectedAttendanceUser.Id,
             UserName = SelectedAttendanceUser.Name,
             Date = AttendanceDate.Date,
-            Status = SelectedAttendanceStatus,
+            Status = _selectedAttendanceStatusKey,
             IsPresent = calculation.IsPresent,
             RegularHours = calculation.RegularHours,
             OvertimeHours = calculation.OvertimeHours,
@@ -1544,7 +1649,10 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Saving to database...");
             await _databaseService.SaveAttendanceRecordAsync(record);
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Save successful!");
+            
             var recordedMsg = _localizationService.GetString("RecordedAttendance");
             ShowStatus(string.Format(recordedMsg, SelectedAttendanceStatus, SelectedAttendanceUser.Name), false);
 
@@ -1552,8 +1660,16 @@ public class AdminViewModel : INotifyPropertyChanged
             AttendanceCheckInTime = new TimeSpan(8, 0, 0);
             AttendanceCheckOutTime = new TimeSpan(16, 0, 0);
 
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Reloading attendance list...");
             await LoadAttendanceAsync();
             _ = UpdateAttendancePreviewAsync();
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] AddAttendanceAsync completed successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] EXCEPTION: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] EXCEPTION STACK: {ex.StackTrace}");
+            ShowStatus($"Error saving: {ex.Message}", true);
         }
         finally
         {
@@ -1673,12 +1789,12 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (SelectedExpenseUser == null)
         {
-            ShowStatus("Select employee for expense.", true);
+            ShowStatus(_localizationService.GetString("SelectEmployeeForExpense"), true);
             return;
         }
         if (!decimal.TryParse(ExpenseAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
         {
-            ShowStatus("Enter valid amount.", true);
+            ShowStatus(_localizationService.GetString("EnterValidAmount"), true);
             return;
         }
         var expense = new EmployeeExpense
@@ -1691,7 +1807,7 @@ public class AdminViewModel : INotifyPropertyChanged
         };
         await _databaseService.CreateEmployeeExpenseAsync(expense);
         await LoadEmployeeExpensesAsync();
-        ShowStatus("Expense added.", false);
+        ShowStatus(_localizationService.GetString("ExpenseAdded"), false);
         ExpenseAmount = "";
         ExpenseCategory = "";
         ExpenseNotes = "";
@@ -1703,7 +1819,7 @@ public class AdminViewModel : INotifyPropertyChanged
         if (expense == null) return;
         await _databaseService.DeleteEmployeeExpenseAsync(expense);
         await LoadEmployeeExpensesAsync();
-        ShowStatus("Expense removed.", false);
+        ShowStatus(_localizationService.GetString("ExpenseRemoved"), false);
     }
 
     private async Task AddUserAsync()
@@ -1982,9 +2098,9 @@ public class AdminViewModel : INotifyPropertyChanged
         IsErrorStatus = isError;
     }
 
-    private bool StatusRequiresTimes(string status) =>
-        string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase);
+    private bool StatusRequiresTimes(string statusKey) =>
+        string.Equals(statusKey, "Present", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(statusKey, "Reset", StringComparison.OrdinalIgnoreCase);
     
     /// <summary>
     /// Determines if a date falls on a reset day (every 13 days starting from day 7).
@@ -2027,20 +2143,20 @@ public class AdminViewModel : INotifyPropertyChanged
     private async Task<AttendanceCalculationResult> CalculateAttendanceForEntryAsync(bool validateOnly = false)
     {
         if (SelectedAttendanceUser == null)
-            return AttendanceCalculationResult.Invalid("Select an employee.");
+            return AttendanceCalculationResult.Invalid(Strings.SelectEmployee);
 
         try
         {
-            var status = SelectedAttendanceStatus ?? "Present";
+            var statusKey = _selectedAttendanceStatusKey ?? "Present";
             DateTime? checkIn = null;
             DateTime? checkOut = null;
-            if (StatusRequiresTimes(status))
+            if (StatusRequiresTimes(statusKey))
             {
                 checkIn = AttendanceDate.Date + AttendanceCheckInTime;
                 checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
             }
 
-            var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, status, checkIn, checkOut);
+            var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, statusKey, checkIn, checkOut);
             if (calc.NeedsSalaryInput)
             {
                 calc.ValidationMessage = "Set monthly salary to calculate pay.";
@@ -2064,20 +2180,20 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (SelectedAttendanceUser == null)
         {
-            AttendancePreview = "Select an employee to preview pay.";
+            AttendancePreview = Strings.SelectEmployeeToPreviewPay;
             return;
         }
 
         DateTime? checkIn = null;
         DateTime? checkOut = null;
-        var status = SelectedAttendanceStatus ?? "Present";
-        if (StatusRequiresTimes(status))
+        var statusKey = _selectedAttendanceStatusKey ?? "Present";
+        if (StatusRequiresTimes(statusKey))
         {
             checkIn = AttendanceDate.Date + AttendanceCheckInTime;
             checkOut = AttendanceDate.Date + AttendanceCheckOutTime;
         }
 
-        var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, status, checkIn, checkOut);
+        var calc = await _attendanceRulesService.CalculateAsync(SelectedAttendanceUser, AttendanceDate, statusKey, checkIn, checkOut);
         if (!calc.IsValid || !string.IsNullOrWhiteSpace(calc.ValidationMessage))
         {
             AttendancePreview = calc.ValidationMessage;
@@ -2147,7 +2263,7 @@ public class AdminViewModel : INotifyPropertyChanged
     {
         if (SelectedMonthlySummary == null)
         {
-            ShowStatus("Select an employee in monthly summary first.", true);
+            ShowStatus(Strings.SelectEmployeeInMonthlySummaryFirst, true);
             return;
         }
         
@@ -2216,7 +2332,21 @@ public class AdminViewModel : INotifyPropertyChanged
         IsEditingAttendance = true;
         SelectedAttendanceUser = Users?.FirstOrDefault(u => u.Id == record.UserId) ?? SelectedAttendanceUser;
         AttendanceDate = record.Date;
-        SelectedAttendanceStatus = record.Status;
+        
+        // Determine the status key from the record's metadata
+        _selectedAttendanceStatusKey = record.AbsencePermissionType switch
+        {
+            "None" => "Present",
+            "Reset" => "Reset",
+            "WithPermission" => "AbsentWithPermission",
+            "WithoutPermission" => "AbsentWithoutPermission",
+            _ => "Present"
+        };
+        
+        // Set the localized display value
+        _selectedAttendanceStatus = _localizationService.GetString(_selectedAttendanceStatusKey);
+        OnPropertyChanged(nameof(SelectedAttendanceStatus));
+        OnPropertyChanged(nameof(IsAttendanceTimeEntryEnabled));
         AttendanceNotes = record.Notes;
         AttendanceCheckInTime = record.CheckInTime.HasValue ? record.CheckInTime.Value.TimeOfDay : new TimeSpan(8,0,0);
         AttendanceCheckOutTime = record.CheckOutTime.HasValue ? record.CheckOutTime.Value.TimeOfDay : new TimeSpan(16,0,0);
@@ -2225,18 +2355,29 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task UpdateAttendanceRecordAsync()
     {
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] UpdateAttendanceRecordAsync called");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Editing record ID: {_editingAttendanceRecord?.Id}");
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] SelectedAttendanceStatusKey: {_selectedAttendanceStatusKey}");
+        
         if (_editingAttendanceRecord == null) return;
+        
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Calculating attendance...");
         var calc = await CalculateAttendanceForEntryAsync();
+        System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] Calculation valid: {calc.IsValid}");
+        
         if (!calc.IsValid)
         {
+            System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] ERROR: Validation failed - {calc.ValidationMessage}");
             ShowStatus($"⚠️ {calc.ValidationMessage}", true);
             return;
         }
+        
+        System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Updating record fields...");
         var record = _editingAttendanceRecord;
         record.UserId = SelectedAttendanceUser.Id;
         record.UserName = SelectedAttendanceUser.Name;
         record.Date = AttendanceDate.Date;
-        record.Status = SelectedAttendanceStatus;
+        record.Status = _selectedAttendanceStatusKey;
         record.IsPresent = calc.IsPresent;
         record.RegularHours = calc.RegularHours;
         record.OvertimeHours = calc.OvertimeHours;
@@ -2249,12 +2390,24 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Saving updated record...");
             await _databaseService.SaveAttendanceRecordAsync(record);
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Update successful!");
+            
             ShowStatus("Updated attendance record.", false);
             IsEditingAttendance = false;
             _editingAttendanceRecord = null;
+            
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] Reloading attendance list...");
             await LoadAttendanceAsync();
             _ = UpdateAttendancePreviewAsync();
+            System.Diagnostics.Debug.WriteLine("[ATTENDANCE DEBUG] UpdateAttendanceRecordAsync completed successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] EXCEPTION: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ATTENDANCE DEBUG] EXCEPTION STACK: {ex.StackTrace}");
+            ShowStatus($"Error updating: {ex.Message}", true);
         }
         finally
         {
@@ -2262,9 +2415,9 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
-    private void UpdateCalendarForSelection()
+    private async void UpdateCalendarForSelection()
     {
-        AttendanceCalendarDays.Clear();
+        await MainThread.InvokeOnMainThreadAsync(() => AttendanceCalendarDays.Clear());
         if (SelectedMonthlySummary == null)
             return;
 
@@ -2313,14 +2466,17 @@ public class AdminViewModel : INotifyPropertyChanged
             }
         }
 
+        // Build the calendar entries
+        var calendarEntries = new List<DailyAttendanceEntry>();
+        
         int leadingPlaceholders = (int)monthStart.DayOfWeek;
         for (int i = 0; i < leadingPlaceholders; i++)
-            AttendanceCalendarDays.Add(DailyAttendanceEntry.Placeholder());
+            calendarEntries.Add(DailyAttendanceEntry.Placeholder());
 
         for (var day = monthStart; day <= monthEnd; day = day.AddDays(1))
         {
             userRecords.TryGetValue(day.Date, out var record);
-            AttendanceCalendarDays.Add(new DailyAttendanceEntry
+            calendarEntries.Add(new DailyAttendanceEntry
             {
                 Date = day,
                 IsCurrentMonth = true,
@@ -2329,8 +2485,15 @@ public class AdminViewModel : INotifyPropertyChanged
             });
         }
 
-        while (AttendanceCalendarDays.Count % 7 != 0)
-            AttendanceCalendarDays.Add(DailyAttendanceEntry.Placeholder());
+        while (calendarEntries.Count % 7 != 0)
+            calendarEntries.Add(DailyAttendanceEntry.Placeholder());
+
+        // Add all entries on main thread
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            foreach (var entry in calendarEntries)
+                AttendanceCalendarDays.Add(entry);
+        });
     }
 
     private async Task HandleCalendarDayTappedAsync(DailyAttendanceEntry entry)
@@ -2577,8 +2740,38 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            ShowStatus("Sales report export will be implemented soon", false);
-            // TODO: Implement sales report export
+            ShowStatus(_localizationService.GetString("GeneratingSalesReport") ?? "Generating sales report...", false);
+
+            var topProductsList = TopProducts.ToList();
+            var recentOrdersList = RecentOrders.ToList();
+
+            var filePath = await _pdfService.GenerateSalesReportPdfAsync(
+                TotalSales,
+                TotalOrders,
+                AverageOrderValue,
+                TotalItemsSold,
+                Last7DaysSales,
+                topProductsList,
+                recentOrdersList
+            );
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Launcher.OpenAsync(new OpenFileRequest
+                {
+                    File = new ReadOnlyFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("SalesReportExportedSuccessfully") ?? "Sales report exported successfully", false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToGenerateSalesReport") ?? "Failed to generate sales report", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", true);
+            System.Diagnostics.Debug.WriteLine($"Error exporting sales report: {ex}");
         }
         finally
         {
@@ -2591,8 +2784,37 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            ShowStatus("Inventory report export will be implemented soon", false);
-            // TODO: Implement inventory report export
+            ShowStatus(_localizationService.GetString("GeneratingInventoryReport") ?? "Generating inventory report...", false);
+
+            int? locationId = SelectedReportLocation?.Id == 0 ? null : SelectedReportLocation?.Id;
+            var locationName = SelectedReportLocation?.Id == 0 
+                ? (_localizationService.GetString("AllBranches") ?? "All Branches")
+                : SelectedReportLocation?.LocationName ?? "Unknown";
+
+            var productsWithStock = await _databaseService.GetProductsWithStockByLocationAsync(locationId);
+
+            var filePath = await _pdfService.GenerateInventoryReportByLocationPdfAsync(
+                productsWithStock,
+                locationName
+            );
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Launcher.OpenAsync(new OpenFileRequest
+                {
+                    File = new ReadOnlyFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("InventoryReportExportedSuccessfully") ?? "Inventory report exported successfully", false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToGenerateInventoryReport") ?? "Failed to generate inventory report", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", true);
+            System.Diagnostics.Debug.WriteLine($"Error exporting inventory report: {ex}");
         }
         finally
         {

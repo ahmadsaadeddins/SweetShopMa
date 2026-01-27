@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SweetShopMa.ViewModels"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
+             x:Class="SweetShopMa.Views.SettingsPage"
+             Title=""
+             BackgroundColor="#f0f9fa">
+
+    <Grid RowDefinitions="*, Auto" Padding="30">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Spacing="25" WidthRequest="600" HorizontalOptions="Center">
+
+                <!-- Navigation + Language Selector -->
+                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                    <Button x:Name="BackButton"
+                            Text=""
+                            BackgroundColor="#f0f4f7"
+                            TextColor="#1d7480"
+                            Padding="10,6"
+                            CornerRadius="6"
+                            Clicked="OnBackButtonClicked"
+                            HorizontalOptions="Start"/>
+                    <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                        <Button Text="EN"
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Padding="8,5"
+                                CornerRadius="4"
+                                FontSize="10"
+                                Clicked="OnLanguageButtonClicked"/>
+                        <Button Text="AR"
+                                BackgroundColor="#1d7480"
+                                TextColor="White"
+                                Padding="8,5"
+                                CornerRadius="4"
+                                FontSize="10"
+                                Clicked="OnLanguageButtonClicked"/>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- Business Info Section -->
+                <Frame Padding="20" CornerRadius="10" HasShadow="True">
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="BusinessInfoLabel" Text="" FontSize="20" FontAttributes="Bold" TextColor="#512BD4"/>
+                        <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                        
+                        <Label x:Name="BusinessNameEnLabel" Text="" FontAttributes="Bold"/>
+                        <Entry Text="{Binding BusinessName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <Label x:Name="BusinessNameArLabel" Text="" FontAttributes="Bold" HorizontalOptions="End"/>
+                        <Entry Text="{Binding BusinessNameArabic, UpdateSourceTrigger=PropertyChanged}" HorizontalTextAlignment="End"/>
+
+                        <Label x:Name="TaxNumberLabel" Text="" FontAttributes="Bold"/>
+                        <Entry Text="{Binding TaxNumber, UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <Label x:Name="CurrencyLabel" Text="" FontAttributes="Bold"/>
+                        <Entry Text="{Binding Currency, UpdateSourceTrigger=PropertyChanged}"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Receipt Settings Section -->
+                <Frame Padding="20" CornerRadius="10" HasShadow="True">
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="ReceiptSettingsLabel" Text="" FontSize="20" FontAttributes="Bold" TextColor="#512BD4"/>
+                        <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                        
+                        <Label x:Name="ReceiptFooterEnLabel" Text="" FontAttributes="Bold"/>
+                        <Editor Text="{Binding ReceiptFooter, UpdateSourceTrigger=PropertyChanged}" HeightRequest="100"/>
+
+                        <Label x:Name="ReceiptFooterArLabel" Text="" FontAttributes="Bold" HorizontalOptions="End"/>
+                        <Editor Text="{Binding ReceiptFooterArabic, UpdateSourceTrigger=PropertyChanged}" HeightRequest="100" HorizontalTextAlignment="End"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Action Buttons -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="20" HorizontalOptions="Center" Margin="0,20,0,0">
+            <Button x:Name="SaveSettingsButton"
+                    Text=""
+                    Command="{Binding SaveSettingsCommand}"
+                    BackgroundColor="#4CAF50"
+                    WidthRequest="200"
+                    IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"/>
+            
+            <ActivityIndicator IsRunning="{Binding IsSaving}" 
+                               IsVisible="{Binding IsSaving}"
+                               Color="#512BD4"/>
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

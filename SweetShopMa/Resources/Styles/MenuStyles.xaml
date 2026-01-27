@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Menu Bar Container Style -->
+    <Style x:Key="MenuBarContainerStyle" TargetType="Grid">
+    </Style>
+
+    <!-- Top Level Menu Button Style -->
+    <Style x:Key="MenuButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="15,0" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="BorderWidth" Value="0" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <!-- Dropdown Menu Container Style -->
+    <Style x:Key="DropdownContainerStyle" TargetType="Frame">
+        <Setter Property="BackgroundColor" Value="White" />
+        <Setter Property="BorderColor" Value="#ccc" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HasShadow" Value="True" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="HorizontalOptions" Value="Start" />
+    </Style>
+
+    <!-- MenuItem Button Style -->
+    <Style x:Key="MenuItemStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="#333" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HorizontalOptions" Value="Fill" />
+        <Setter Property="Padding" Value="15,10" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+
+    <!-- Separator Style -->
+    <Style x:Key="MenuSeparatorStyle" TargetType="BoxView">
+        <Setter Property="HeightRequest" Value="1" />
+        <Setter Property="BackgroundColor" Value="#eee" />
+        <Setter Property="Margin" Value="5,0" />
+    </Style>
+
+</ResourceDictionary>

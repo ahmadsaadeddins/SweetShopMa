@@ -37,6 +37,7 @@ public class PdfService : IPdfService
         try
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
             
             var monthName = IsArabic ? month.ToString("MMMM yyyy", new CultureInfo("ar")) : month.ToString("MMMM yyyy");
             var fileName = $"Payroll_{month:yyyy-MM}.pdf";
@@ -48,7 +49,7 @@ public class PdfService : IPdfService
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(9));
+                    page.DefaultTextStyle(x => x.FontSize(9).Fallback(d => d.FontFamily("Segoe UI Emoji")));
 
                     page.Header()
                         .Text(M($"Payroll Report - {monthName}", $"تقرير الرواتب - {monthName}"))
@@ -212,6 +213,7 @@ public class PdfService : IPdfService
         try
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
             var monthName = IsArabic ? month.ToString("MMMM yyyy", new CultureInfo("ar")) : month.ToString("MMMM yyyy");
             var fileName = $"Payroll_{summary.UserName}_{month:yyyy-MM}.pdf";
             var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
@@ -224,7 +226,7 @@ public class PdfService : IPdfService
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(1, Unit.Centimetre);
-                    page.DefaultTextStyle(x => x.FontSize(10));
+                    page.DefaultTextStyle(x => x.FontSize(10).Fallback(d => d.FontFamily("Segoe UI Emoji")));
 
                     page.Header().Text(M($"Employee Payroll - {summary.UserName} - {monthName}", $"مسير رواتب الموظف - {summary.UserName} - {monthName}")).FontSize(16).Bold().AlignCenter();
 
@@ -373,5 +375,693 @@ public class PdfService : IPdfService
             .Padding(3)
             .AlignRight()
             .AlignMiddle();
+    }
+
+    public async Task<string?> GenerateSalesReportPdfAsync(
+        decimal totalSales,
+        int totalOrders,
+        decimal averageOrderValue,
+        decimal totalItemsSold,
+        decimal last7DaysSales,
+        List<ViewModels.ProductReportItem> topProducts,
+        List<Models.Order> recentOrders)
+    {
+        try
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+            var today = DateTime.Today;
+            var fileName = $"SalesReport_{today:yyyy-MM-dd}.pdf";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).Fallback(d => d.FontFamily("Segoe UI Emoji")));
+
+                    page.Header()
+                        .Text(M($"Sales Report - {today:MMMM yyyy}", $"تقرير المبيعات - {today:MMMM yyyy}"))
+                        .FontSize(16)
+                        .Bold()
+                        .AlignCenter();
+
+                    page.Content()
+                        .Column(column =>
+                        {
+                            // Summary Metrics Section
+                            column.Item()
+                                .Border(1)
+                                .Padding(8)
+                                .Column(metrics =>
+                                {
+                                    if (IsArabic)
+                                    {
+                                        metrics.Item().AlignRight().Text(M("Sales Summary", "ملخص المبيعات")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).AlignRight().Text(M($"Total Sales: {FormatAmount(totalSales)}", $"إجمالي المبيعات: {FormatAmount(totalSales)}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Orders: {totalOrders}", $"إجمالي الطلبات: {totalOrders}"));
+                                        metrics.Item().AlignRight().Text(M($"Average Order Value: {FormatAmount(averageOrderValue)}", $"متوسط قيمة الطلب: {FormatAmount(averageOrderValue)}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Items Sold: {totalItemsSold:F0}", $"إجمالي العناصر المباعة: {totalItemsSold:F0}"));
+                                        metrics.Item().AlignRight().Text(M($"Last 7 Days Sales: {FormatAmount(last7DaysSales)}", $"مبيعات آخر 7 أيام: {FormatAmount(last7DaysSales)}"));
+                                    }
+                                    else
+                                    {
+                                        metrics.Item().Text(M("Sales Summary", "ملخص المبيعات")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).Text(M($"Total Sales: {FormatAmount(totalSales)}", $"إجمالي المبيعات: {FormatAmount(totalSales)}"));
+                                        metrics.Item().Text(M($"Total Orders: {totalOrders}", $"إجمالي الطلبات: {totalOrders}"));
+                                        metrics.Item().Text(M($"Average Order Value: {FormatAmount(averageOrderValue)}", $"متوسط قيمة الطلب: {FormatAmount(averageOrderValue)}"));
+                                        metrics.Item().Text(M($"Total Items Sold: {totalItemsSold:F0}", $"إجمالي العناصر المباعة: {totalItemsSold:F0}"));
+                                        metrics.Item().Text(M($"Last 7 Days Sales: {FormatAmount(last7DaysSales)}", $"مبيعات آخر 7 أيام: {FormatAmount(last7DaysSales)}"));
+                                    }
+                                });
+
+                            // Top Products Section
+                            if (topProducts != null && topProducts.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("Top Products", "أكثر المنتجات مبيعاً")).Bold().FontSize(11);
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("Top Products", "أكثر المنتجات مبيعاً")).Bold().FontSize(11);
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            columns.RelativeColumn(1.5f); // Total Sales (rightmost in RTL)
+                                            columns.RelativeColumn(1); // Quantity
+                                            columns.RelativeColumn(0.8f); // Unit
+                                            columns.RelativeColumn(2); // Name (leftmost in RTL)
+                                        }
+                                        else
+                                        {
+                                            columns.RelativeColumn(2); // Name
+                                            columns.RelativeColumn(0.8f); // Unit
+                                            columns.RelativeColumn(1); // Quantity
+                                            columns.RelativeColumn(1.5f); // Total Sales
+                                        }
+                                    });
+
+                                    table.Header(header =>
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            header.Cell().Element(CellStyleRTL).Text(M("Total Sales", "إجمالي المبيعات")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Qty", "الكمية")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Unit", "الوحدة")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Name", "الاسم")).Bold();
+                                        }
+                                        else
+                                        {
+                                            header.Cell().Element(CellStyle).Text(M("Name", "الاسم")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Unit", "الوحدة")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Qty", "الكمية")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Total Sales", "إجمالي المبيعات")).Bold();
+                                        }
+                                    });
+
+                                    foreach (var product in topProducts.Take(10))
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(product.TotalSales));
+                                            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(product.QuantityDisplay);
+                                            table.Cell().Element(CellStyleRTL).Text(product.UnitLabel);
+                                            table.Cell().Element(CellStyleRTL).Text($"{product.Emoji} {product.Name}");
+                                        }
+                                        else
+                                        {
+                                            table.Cell().Element(CellStyle).Text($"{product.Emoji} {product.Name}");
+                                            table.Cell().Element(CellStyle).Text(product.UnitLabel);
+                                            AlignNumeric(table.Cell().Element(CellStyle)).Text(product.QuantityDisplay);
+                                            AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(product.TotalSales));
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Recent Orders Section
+                            if (recentOrders != null && recentOrders.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("Recent Orders", "الطلبات الأخيرة")).Bold().FontSize(11);
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("Recent Orders", "الطلبات الأخيرة")).Bold().FontSize(11);
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            columns.RelativeColumn(1.2f); // Total (rightmost in RTL)
+                                            columns.RelativeColumn(0.8f); // Items
+                                            columns.RelativeColumn(1.5f); // Cashier
+                                            columns.RelativeColumn(2); // Date (leftmost in RTL)
+                                        }
+                                        else
+                                        {
+                                            columns.RelativeColumn(2); // Date
+                                            columns.RelativeColumn(1.5f); // Cashier
+                                            columns.RelativeColumn(0.8f); // Items
+                                            columns.RelativeColumn(1.2f); // Total
+                                        }
+                                    });
+
+                                    table.Header(header =>
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            header.Cell().Element(CellStyleRTL).Text(M("Total", "الإجمالي")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Items", "العناصر")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Cashier", "الكاشير")).Bold();
+                                            header.Cell().Element(CellStyleRTL).Text(M("Date", "التاريخ")).Bold();
+                                        }
+                                        else
+                                        {
+                                            header.Cell().Element(CellStyle).Text(M("Date", "التاريخ")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Cashier", "الكاشير")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Items", "العناصر")).Bold();
+                                            header.Cell().Element(CellStyle).Text(M("Total", "الإجمالي")).Bold();
+                                        }
+                                    });
+
+                                    foreach (var order in recentOrders.Take(20))
+                                    {
+                                        if (IsArabic)
+                                        {
+                                            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(order.Total));
+                                            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(order.ItemCount.ToString());
+                                            table.Cell().Element(CellStyleRTL).Text(order.UserName ?? "");
+                                            table.Cell().Element(CellStyleRTL).Text(order.OrderDate.ToString("yyyy-MM-dd HH:mm"));
+                                        }
+                                        else
+                                        {
+                                            table.Cell().Element(CellStyle).Text(order.OrderDate.ToString("yyyy-MM-dd HH:mm"));
+                                            table.Cell().Element(CellStyle).Text(order.UserName ?? "");
+                                            AlignNumeric(table.Cell().Element(CellStyle)).Text(order.ItemCount.ToString());
+                                            AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(order.Total));
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            if (IsArabic)
+                            {
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                                x.Span(M("Generated on ", " تم الإنشاء في "));
+                            }
+                            else
+                            {
+                                x.Span(M("Generated on ", "تم الإنشاء في "));
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                            }
+                        });
+                });
+            });
+
+            await Task.Run(() => document.GeneratePdf(filePath));
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error generating sales report PDF: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<string?> GenerateInventoryReportPdfAsync(
+        List<Models.Product> products,
+        decimal lowStockThreshold = 10)
+    {
+        try
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+            var today = DateTime.Today;
+            var fileName = $"InventoryReport_{today:yyyy-MM-dd}.pdf";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+            // Separate products into categories
+            var outOfStock = products.Where(p => p.Stock <= 0).OrderBy(p => p.Name).ToList();
+            var lowStock = products.Where(p => p.Stock > 0 && p.Stock <= lowStockThreshold).OrderBy(p => p.Stock).ToList();
+            var inStock = products.Where(p => p.Stock > lowStockThreshold).OrderByDescending(p => p.Stock).ToList();
+
+            // Calculate totals
+            var totalProducts = products.Count;
+            var totalValue = products.Sum(p => p.Stock * p.Price);
+            var totalStockUnits = products.Where(p => !p.IsSoldByWeight).Sum(p => p.Stock);
+            var totalStockWeight = products.Where(p => p.IsSoldByWeight).Sum(p => p.Stock);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).Fallback(d => d.FontFamily("Segoe UI Emoji")));
+
+                    page.Header()
+                        .Text(M($"Inventory Report - {today:MMMM yyyy}", $"تقرير المخزون - {today:MMMM yyyy}"))
+                        .FontSize(16)
+                        .Bold()
+                        .AlignCenter();
+
+                    page.Content()
+                        .Column(column =>
+                        {
+                            // Summary Metrics Section
+                            column.Item()
+                                .Border(1)
+                                .Padding(8)
+                                .Column(metrics =>
+                                {
+                                    if (IsArabic)
+                                    {
+                                        metrics.Item().AlignRight().Text(M("Inventory Summary", "ملخص المخزون")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).AlignRight().Text(M($"Total Products: {totalProducts}", $"إجمالي المنتجات: {totalProducts}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Stock Value: {FormatAmount(totalValue)}", $"إجمالي قيمة المخزون: {FormatAmount(totalValue)}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Units: {totalStockUnits:F0} PCS", $"إجمالي القطع: {totalStockUnits:F0} قطعة"));
+                                        metrics.Item().AlignRight().Text(M($"Total Weight: {totalStockWeight:F2} KGS", $"إجمالي الوزن: {totalStockWeight:F2} كجم"));
+                                        metrics.Item().AlignRight().Text(M($"Out of Stock: {outOfStock.Count} items", $"نفد المخزون: {outOfStock.Count} منتج")).FontColor(outOfStock.Count > 0 ? "#c00000" : "#1f7a4d");
+                                        metrics.Item().AlignRight().Text(M($"Low Stock: {lowStock.Count} items", $"مخزون منخفض: {lowStock.Count} منتج")).FontColor(lowStock.Count > 0 ? "#ff9800" : "#1f7a4d");
+                                    }
+                                    else
+                                    {
+                                        metrics.Item().Text(M("Inventory Summary", "ملخص المخزون")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).Text(M($"Total Products: {totalProducts}", $"إجمالي المنتجات: {totalProducts}"));
+                                        metrics.Item().Text(M($"Total Stock Value: {FormatAmount(totalValue)}", $"إجمالي قيمة المخزون: {FormatAmount(totalValue)}"));
+                                        metrics.Item().Text(M($"Total Units: {totalStockUnits:F0} PCS", $"إجمالي القطع: {totalStockUnits:F0} قطعة"));
+                                        metrics.Item().Text(M($"Total Weight: {totalStockWeight:F2} KGS", $"إجمالي الوزن: {totalStockWeight:F2} كجم"));
+                                        metrics.Item().Text(M($"Out of Stock: {outOfStock.Count} items", $"نفد المخزون: {outOfStock.Count} منتج")).FontColor(outOfStock.Count > 0 ? "#c00000" : "#1f7a4d");
+                                        metrics.Item().Text(M($"Low Stock: {lowStock.Count} items", $"مخزون منخفض: {lowStock.Count} منتج")).FontColor(lowStock.Count > 0 ? "#ff9800" : "#1f7a4d");
+                                    }
+                                });
+
+                            // Out of Stock Section
+                            if (outOfStock.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("⚠️ Out of Stock Items", "⚠️ المنتجات التي نفد مخزونها")).Bold().FontSize(11).FontColor("#c00000");
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("⚠️ Out of Stock Items", "⚠️ المنتجات التي نفد مخزونها")).Bold().FontSize(11).FontColor("#c00000");
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    DefineProductTableColumns(table);
+                                    AddProductTableHeader(table);
+                                    foreach (var product in outOfStock.Take(15))
+                                    {
+                                        AddProductTableRow(table, product, "#c00000");
+                                    }
+                                });
+                            }
+
+                            // Low Stock Section
+                            if (lowStock.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("⚡ Low Stock Items", "⚡ المنتجات ذات المخزون المنخفض")).Bold().FontSize(11).FontColor("#ff9800");
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("⚡ Low Stock Items", "⚡ المنتجات ذات المخزون المنخفض")).Bold().FontSize(11).FontColor("#ff9800");
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    DefineProductTableColumns(table);
+                                    AddProductTableHeader(table);
+                                    foreach (var product in lowStock.Take(15))
+                                    {
+                                        AddProductTableRow(table, product, "#ff9800");
+                                    }
+                                });
+                            }
+
+                            // All Products Section
+                            column.Item().PaddingTop(10);
+                            if (IsArabic)
+                            {
+                                column.Item().AlignRight().Text(M("📦 All Products", "📦 جميع المنتجات")).Bold().FontSize(11);
+                            }
+                            else
+                            {
+                                column.Item().Text(M("📦 All Products", "📦 جميع المنتجات")).Bold().FontSize(11);
+                            }
+
+                            column.Item().PaddingTop(5).Table(table =>
+                            {
+                                DefineProductTableColumns(table);
+                                AddProductTableHeader(table);
+                                foreach (var product in products.OrderBy(p => p.Category).ThenBy(p => p.Name).Take(50))
+                                {
+                                    string fontColor = product.Stock <= 0 ? "#c00000" : 
+                                                      product.Stock <= lowStockThreshold ? "#ff9800" : "#000000";
+                                    AddProductTableRow(table, product, fontColor);
+                                }
+                            });
+
+                            if (products.Count > 50)
+                            {
+                                column.Item().PaddingTop(5).AlignCenter().Text(M($"...and {products.Count - 50} more products", $"...و {products.Count - 50} منتج آخر")).FontSize(10).FontColor("#666");
+                            }
+                        });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            if (IsArabic)
+                            {
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                                x.Span(M("Generated on ", " تم الإنشاء في "));
+                            }
+                            else
+                            {
+                                x.Span(M("Generated on ", "تم الإنشاء في "));
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                            }
+                        });
+                });
+            });
+
+            await Task.Run(() => document.GeneratePdf(filePath));
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error generating inventory report PDF: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<string?> GenerateInventoryReportByLocationPdfAsync(
+        List<(Models.Product Product, decimal Stock)> productsWithStock,
+        string locationName,
+        decimal lowStockThreshold = 10)
+    {
+        try
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+            var today = DateTime.Today;
+            var safeLocationName = string.Join("_", locationName.Split(Path.GetInvalidFileNameChars()));
+            var fileName = $"InventoryReport_{safeLocationName}_{today:yyyy-MM-dd}.pdf";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+            // Convert to list with stock values for filtering
+            var products = productsWithStock.Select(ps => 
+            {
+                return new { Product = ps.Product, Stock = ps.Stock };
+            }).ToList();
+
+            // Separate products into categories based on location stock
+            var outOfStock = products.Where(p => p.Stock <= 0).OrderBy(p => p.Product.Name).ToList();
+            var lowStock = products.Where(p => p.Stock > 0 && p.Stock <= lowStockThreshold).OrderBy(p => p.Stock).ToList();
+            var inStock = products.Where(p => p.Stock > lowStockThreshold).OrderByDescending(p => p.Stock).ToList();
+
+            // Calculate totals
+            var totalProducts = products.Count;
+            var totalValue = products.Sum(p => p.Stock * p.Product.Price);
+            var totalStockUnits = products.Where(p => !p.Product.IsSoldByWeight).Sum(p => p.Stock);
+            var totalStockWeight = products.Where(p => p.Product.IsSoldByWeight).Sum(p => p.Stock);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).Fallback(d => d.FontFamily("Segoe UI Emoji")));
+
+                    page.Header()
+                        .Text(M($"Inventory Report - {locationName} - {today:MMMM yyyy}", 
+                               $"تقرير المخزون - {locationName} - {today:MMMM yyyy}"))
+                        .FontSize(16)
+                        .Bold()
+                        .AlignCenter();
+
+                    page.Content()
+                        .Column(column =>
+                        {
+                            // Summary Metrics Section
+                            column.Item()
+                                .Border(1)
+                                .Padding(8)
+                                .Column(metrics =>
+                                {
+                                    if (IsArabic)
+                                    {
+                                        metrics.Item().AlignRight().Text(M("Inventory Summary", "ملخص المخزون")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).AlignRight().Text(M($"Branch: {locationName}", $"الفرع: {locationName}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Products: {totalProducts}", $"إجمالي المنتجات: {totalProducts}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Stock Value: {FormatAmount(totalValue)}", $"إجمالي قيمة المخزون: {FormatAmount(totalValue)}"));
+                                        metrics.Item().AlignRight().Text(M($"Total Units: {totalStockUnits:F0} PCS", $"إجمالي القطع: {totalStockUnits:F0} قطعة"));
+                                        metrics.Item().AlignRight().Text(M($"Total Weight: {totalStockWeight:F2} KGS", $"إجمالي الوزن: {totalStockWeight:F2} كجم"));
+                                        metrics.Item().AlignRight().Text(M($"Out of Stock: {outOfStock.Count} items", $"نفد المخزون: {outOfStock.Count} منتج")).FontColor(outOfStock.Count > 0 ? "#c00000" : "#1f7a4d");
+                                        metrics.Item().AlignRight().Text(M($"Low Stock: {lowStock.Count} items", $"مخزون منخفض: {lowStock.Count} منتج")).FontColor(lowStock.Count > 0 ? "#ff9800" : "#1f7a4d");
+                                    }
+                                    else
+                                    {
+                                        metrics.Item().Text(M("Inventory Summary", "ملخص المخزون")).Bold().FontSize(11);
+                                        metrics.Item().PaddingTop(3).Text(M($"Branch: {locationName}", $"الفرع: {locationName}"));
+                                        metrics.Item().Text(M($"Total Products: {totalProducts}", $"إجمالي المنتجات: {totalProducts}"));
+                                        metrics.Item().Text(M($"Total Stock Value: {FormatAmount(totalValue)}", $"إجمالي قيمة المخزون: {FormatAmount(totalValue)}"));
+                                        metrics.Item().Text(M($"Total Units: {totalStockUnits:F0} PCS", $"إجمالي القطع: {totalStockUnits:F0} قطعة"));
+                                        metrics.Item().Text(M($"Total Weight: {totalStockWeight:F2} KGS", $"إجمالي الوزن: {totalStockWeight:F2} كجم"));
+                                        metrics.Item().Text(M($"Out of Stock: {outOfStock.Count} items", $"نفد المخزون: {outOfStock.Count} منتج")).FontColor(outOfStock.Count > 0 ? "#c00000" : "#1f7a4d");
+                                        metrics.Item().Text(M($"Low Stock: {lowStock.Count} items", $"مخزون منخفض: {lowStock.Count} منتج")).FontColor(lowStock.Count > 0 ? "#ff9800" : "#1f7a4d");
+                                    }
+                                });
+
+                            // Out of Stock Section
+                            if (outOfStock.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("⚠️ Out of Stock Items", "⚠️ المنتجات التي نفد مخزونها")).Bold().FontSize(11).FontColor("#c00000");
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("⚠️ Out of Stock Items", "⚠️ المنتجات التي نفد مخزونها")).Bold().FontSize(11).FontColor("#c00000");
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    DefineProductTableColumns(table);
+                                    AddProductTableHeader(table);
+                                    foreach (var item in outOfStock.Take(15))
+                                    {
+                                        AddProductTableRowWithStock(table, item.Product, item.Stock, "#c00000");
+                                    }
+                                });
+                            }
+
+                            // Low Stock Section
+                            if (lowStock.Any())
+                            {
+                                column.Item().PaddingTop(10);
+                                if (IsArabic)
+                                {
+                                    column.Item().AlignRight().Text(M("⚡ Low Stock Items", "⚡ المنتجات ذات المخزون المنخفض")).Bold().FontSize(11).FontColor("#ff9800");
+                                }
+                                else
+                                {
+                                    column.Item().Text(M("⚡ Low Stock Items", "⚡ المنتجات ذات المخزون المنخفض")).Bold().FontSize(11).FontColor("#ff9800");
+                                }
+
+                                column.Item().PaddingTop(5).Table(table =>
+                                {
+                                    DefineProductTableColumns(table);
+                                    AddProductTableHeader(table);
+                                    foreach (var item in lowStock.Take(15))
+                                    {
+                                        AddProductTableRowWithStock(table, item.Product, item.Stock, "#ff9800");
+                                    }
+                                });
+                            }
+
+                            // All Products Section
+                            column.Item().PaddingTop(10);
+                            if (IsArabic)
+                            {
+                                column.Item().AlignRight().Text(M("📦 All Products", "📦 جميع المنتجات")).Bold().FontSize(11);
+                            }
+                            else
+                            {
+                                column.Item().Text(M("📦 All Products", "📦 جميع المنتجات")).Bold().FontSize(11);
+                            }
+
+                            column.Item().PaddingTop(5).Table(table =>
+                            {
+                                DefineProductTableColumns(table);
+                                AddProductTableHeader(table);
+                                foreach (var item in products.OrderBy(p => p.Product.Category).ThenBy(p => p.Product.Name).Take(50))
+                                {
+                                    string fontColor = item.Stock <= 0 ? "#c00000" : 
+                                                      item.Stock <= lowStockThreshold ? "#ff9800" : "#000000";
+                                    AddProductTableRowWithStock(table, item.Product, item.Stock, fontColor);
+                                }
+                            });
+
+                            if (products.Count > 50)
+                            {
+                                column.Item().PaddingTop(5).AlignCenter().Text(M($"...and {products.Count - 50} more products", $"...و {products.Count - 50} منتج آخر")).FontSize(10).FontColor("#666");
+                            }
+                        });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            if (IsArabic)
+                            {
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                                x.Span(M("Generated on ", " تم الإنشاء في "));
+                            }
+                            else
+                            {
+                                x.Span(M("Generated on ", "تم الإنشاء في "));
+                                x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                            }
+                        });
+                });
+            });
+
+            await Task.Run(() => document.GeneratePdf(filePath));
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error generating inventory report PDF: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void AddProductTableRowWithStock(QuestPDF.Fluent.TableDescriptor table, Models.Product product, decimal stock, string fontColor)
+    {
+        var stockDisplay = product.IsSoldByWeight ? $"{stock:F2}" : $"{stock:F0}";
+        var valueDisplay = FormatAmount(stock * product.Price);
+
+        if (IsArabic)
+        {
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(valueDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(stockDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(product.Price));
+            table.Cell().Element(CellStyleRTL).Text(product.UnitLabel);
+            table.Cell().Element(CellStyleRTL).Text(product.Category ?? "");
+            table.Cell().Element(CellStyleRTL).Text($"{product.Emoji} {product.Name}");
+        }
+        else
+        {
+            table.Cell().Element(CellStyle).Text($"{product.Emoji} {product.Name}");
+            table.Cell().Element(CellStyle).Text(product.Category ?? "");
+            table.Cell().Element(CellStyle).Text(product.UnitLabel);
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(product.Price));
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(stockDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(valueDisplay).FontColor(fontColor);
+        }
+    }
+
+    private void DefineProductTableColumns(QuestPDF.Fluent.TableDescriptor table)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            if (IsArabic)
+            {
+                columns.RelativeColumn(1.2f); // Value (rightmost in RTL)
+                columns.RelativeColumn(1); // Stock
+                columns.RelativeColumn(1); // Price
+                columns.RelativeColumn(0.8f); // Unit
+                columns.RelativeColumn(1); // Category
+                columns.RelativeColumn(2); // Name (leftmost in RTL)
+            }
+            else
+            {
+                columns.RelativeColumn(2); // Name
+                columns.RelativeColumn(1); // Category
+                columns.RelativeColumn(0.8f); // Unit
+                columns.RelativeColumn(1); // Price
+                columns.RelativeColumn(1); // Stock
+                columns.RelativeColumn(1.2f); // Value
+            }
+        });
+    }
+
+    private void AddProductTableHeader(QuestPDF.Fluent.TableDescriptor table)
+    {
+        table.Header(header =>
+        {
+            if (IsArabic)
+            {
+                header.Cell().Element(CellStyleRTL).Text(M("Value", "القيمة")).Bold();
+                header.Cell().Element(CellStyleRTL).Text(M("Stock", "المخزون")).Bold();
+                header.Cell().Element(CellStyleRTL).Text(M("Price", "السعر")).Bold();
+                header.Cell().Element(CellStyleRTL).Text(M("Unit", "الوحدة")).Bold();
+                header.Cell().Element(CellStyleRTL).Text(M("Category", "الفئة")).Bold();
+                header.Cell().Element(CellStyleRTL).Text(M("Name", "الاسم")).Bold();
+            }
+            else
+            {
+                header.Cell().Element(CellStyle).Text(M("Name", "الاسم")).Bold();
+                header.Cell().Element(CellStyle).Text(M("Category", "الفئة")).Bold();
+                header.Cell().Element(CellStyle).Text(M("Unit", "الوحدة")).Bold();
+                header.Cell().Element(CellStyle).Text(M("Price", "السعر")).Bold();
+                header.Cell().Element(CellStyle).Text(M("Stock", "المخزون")).Bold();
+                header.Cell().Element(CellStyle).Text(M("Value", "القيمة")).Bold();
+            }
+        });
+    }
+
+    private void AddProductTableRow(QuestPDF.Fluent.TableDescriptor table, Models.Product product, string fontColor)
+    {
+        var stockDisplay = product.IsSoldByWeight ? $"{product.Stock:F2}" : $"{product.Stock:F0}";
+        var valueDisplay = FormatAmount(product.Stock * product.Price);
+
+        if (IsArabic)
+        {
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(valueDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(stockDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(product.Price));
+            table.Cell().Element(CellStyleRTL).Text(product.UnitLabel);
+            table.Cell().Element(CellStyleRTL).Text(product.Category ?? "");
+            table.Cell().Element(CellStyleRTL).Text($"{product.Emoji} {product.Name}");
+        }
+        else
+        {
+            table.Cell().Element(CellStyle).Text($"{product.Emoji} {product.Name}");
+            table.Cell().Element(CellStyle).Text(product.Category ?? "");
+            table.Cell().Element(CellStyle).Text(product.UnitLabel);
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(product.Price));
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(stockDisplay).FontColor(fontColor);
+            AlignNumeric(table.Cell().Element(CellStyle)).Text(valueDisplay).FontColor(fontColor);
+        }
     }
 }

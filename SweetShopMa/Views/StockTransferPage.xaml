@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SweetShopMa.ViewModels"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
+             xmlns:models="clr-namespace:SweetShopMa.Models"
+             x:Class="SweetShopMa.Views.StockTransferPage"
+             Title=""
+             BackgroundColor="#f0f9fa">
+
+    <Grid Padding="30" RowDefinitions="Auto, Auto, *" RowSpacing="20">
+
+        <!-- Navigation + Language Selector -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+            <Button x:Name="BackButton"
+                    Text=""
+                    BackgroundColor="#f0f4f7"
+                    TextColor="#1d7480"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Clicked="OnBackButtonClicked"
+                    HorizontalOptions="Start"/>
+            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                <Button Text="EN"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+                <Button Text="AR"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+            </HorizontalStackLayout>
+        </Grid>
+
+        <Label x:Name="PageTitleLabel" Grid.Row="1" Text="" FontSize="24" FontAttributes="Bold" TextColor="#512BD4" HorizontalOptions="Center"/>
+
+        <Frame Grid.Row="1" WidthRequest="600" HorizontalOptions="Center" Padding="30" CornerRadius="15">
+            <VerticalStackLayout Spacing="20">
+                
+                <!-- Product Selection -->
+                <Label x:Name="SelectProductLabel" Text="" FontAttributes="Bold"/>
+                <Picker ItemsSource="{Binding Products}" 
+                        ItemDisplayBinding="{Binding Name}"
+                        SelectedItem="{Binding SelectedProduct}"/>
+
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="20">
+                    <!-- From Location -->
+                    <VerticalStackLayout Grid.Column="0" Spacing="10">
+                        <Label x:Name="FromLocationLabel" Text="" FontAttributes="Bold"/>
+                        <Picker ItemsSource="{Binding Locations}" 
+                                ItemDisplayBinding="{Binding LocationName}"
+                                SelectedItem="{Binding FromLocation}"/>
+                        
+                        <Label Text="{Binding CurrentSourceStock, StringFormat='Available: {0}'}"
+                               TextColor="Gray" FontSize="12"/>
+                    </VerticalStackLayout>
+
+                    <!-- To Location -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="10">
+                        <Label x:Name="ToLocationLabel" Text="" FontAttributes="Bold"/>
+                        <Picker ItemsSource="{Binding Locations}" 
+                                ItemDisplayBinding="{Binding LocationName}"
+                                SelectedItem="{Binding ToLocation}"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Quantity -->
+                <Label x:Name="QuantityLabel" Text="" FontAttributes="Bold"/>
+                <Entry x:Name="QuantityEntry" Text="{Binding Quantity}" Keyboard="Numeric" Placeholder=""/>
+
+                <Button x:Name="ExecuteTransferButton" Text=""
+                        Command="{Binding ExecuteTransferCommand}"
+                        BackgroundColor="#512BD4"
+                        HeightRequest="50"
+                        Margin="0,20,0,0"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#512BD4" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Frame>
+    </Grid>
+</ContentPage>

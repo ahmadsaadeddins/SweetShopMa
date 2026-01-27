@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SweetShopMa.ViewModels"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
+             x:Class="SweetShopMa.Views.InitialSetupPage"
+             Title="{x:Static res:Strings.InitialSetup}"
+             BackgroundColor="White">
+
+    <Grid RowDefinitions="Auto, Auto, *, Auto" Padding="30">
+
+        <!-- Navigation + Language Selector -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+            <Button x:Name="BackButton"
+                    Text="Back"
+                    BackgroundColor="#f0f4f7"
+                    TextColor="#1d7480"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Clicked="OnBackButtonClicked"
+                    HorizontalOptions="Start"/>
+            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                <Button Text="EN"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+                <Button Text="AR"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="1" Spacing="5" HorizontalOptions="Center">
+            <Label Text="🍬" FontSize="64" HorizontalOptions="Center"/>
+            <Label Text="{x:Static res:Strings.InitialSetup}" FontSize="32" FontAttributes="Bold" TextColor="#512BD4"/>
+            <Label Text="{Binding CurrentStep, StringFormat='Step {0} of 4'}" FontSize="18" TextColor="Gray" HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1" Margin="0,30">
+            <VerticalStackLayout Spacing="20" WidthRequest="500" HorizontalOptions="Center">
+                
+                <!-- Step 1: Business Details -->
+                <VerticalStackLayout Spacing="15" IsVisible="{Binding CurrentStep, Converter={StaticResource EqualConverter}, ConverterParameter=1}">
+                    <Label Text="{x:Static res:Strings.BusinessDetails}" FontSize="24" FontAttributes="Bold"/>
+                    
+                    <Entry Placeholder="{x:Static res:Strings.BusinessName}" Text="{Binding BusinessName}"/>
+                    <Entry Placeholder="{x:Static res:Strings.BusinessNameArabic}" Text="{Binding BusinessNameArabic}" HorizontalTextAlignment="End"/>
+                    <Entry Placeholder="{x:Static res:Strings.TaxNumber}" Text="{Binding TaxNumber}"/>
+                    <Entry Placeholder="{x:Static res:Strings.Currency}" Text="{Binding Currency}"/>
+                    <Editor Placeholder="{x:Static res:Strings.ReceiptFooter}" Text="{Binding ReceiptFooter}" HeightRequest="80"/>
+                    <Editor Placeholder="{x:Static res:Strings.ReceiptFooterArabic}" Text="{Binding ReceiptFooterArabic}" HorizontalTextAlignment="End" HeightRequest="80"/>
+                </VerticalStackLayout>
+
+                <!-- Step 2: Location Details -->
+                <VerticalStackLayout Spacing="15" IsVisible="{Binding CurrentStep, Converter={StaticResource EqualConverter}, ConverterParameter=2}">
+                    <Label Text="{x:Static res:Strings.LocationDetails}" FontSize="24" FontAttributes="Bold"/>
+                    
+                    <Entry Placeholder="{x:Static res:Strings.LocationName}" Text="{Binding LocationName}"/>
+                    <Entry Placeholder="{x:Static res:Strings.Address}" Text="{Binding Address}"/>
+                    <Entry Placeholder="{x:Static res:Strings.PhoneNumber}" Text="{Binding PhoneNumber}"/>
+                </VerticalStackLayout>
+
+                <!-- Step 3: Developer Account -->
+                <VerticalStackLayout Spacing="15" IsVisible="{Binding CurrentStep, Converter={StaticResource EqualConverter}, ConverterParameter=3}">
+                    <Label Text="{x:Static res:Strings.DeveloperAccount}" FontSize="24" FontAttributes="Bold"/>
+                    
+                    <Entry Placeholder="Display Name" Text="{Binding DevName}"/>
+                    <Entry Placeholder="Username" Text="{Binding DevUsername}"/>
+                    <Entry Placeholder="Password" Text="{Binding DevPassword}" IsPassword="True"/>
+                    <Entry Placeholder="Confirm Password" Text="{Binding DevConfirmPassword}" IsPassword="True"/>
+                </VerticalStackLayout>
+
+                <!-- Step 4: Admin Account -->
+                <VerticalStackLayout Spacing="15" IsVisible="{Binding CurrentStep, Converter={StaticResource EqualConverter}, ConverterParameter=4}">
+                    <Label Text="{x:Static res:Strings.AdminAccount}" FontSize="24" FontAttributes="Bold"/>
+                    
+                    <Entry Placeholder="Display Name" Text="{Binding AdminName}"/>
+                    <Entry Placeholder="Username" Text="{Binding AdminUsername}"/>
+                    <Entry Placeholder="Password" Text="{Binding AdminPassword}" IsPassword="True"/>
+                    <Entry Placeholder="Confirm Password" Text="{Binding AdminConfirmPassword}" IsPassword="True"/>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Footer Buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="20" WidthRequest="500" HorizontalOptions="Center">
+            <Button Grid.Column="0" 
+                    Text="{x:Static res:Strings.Previous}" 
+                    Command="{Binding PreviousStepCommand}"
+                    IsVisible="{Binding CurrentStep, Converter={StaticResource GreaterThanConverter}, ConverterParameter=1}"
+                    BackgroundColor="Gray"/>
+            
+            <Button Grid.Column="1" 
+                    Text="{x:Static res:Strings.Next}" 
+                    Command="{Binding NextStepCommand}"
+                    IsVisible="{Binding CurrentStep, Converter={StaticResource LessThanConverter}, ConverterParameter=4}"
+                    BackgroundColor="#512BD4"/>
+
+            <Button Grid.Column="1" 
+                    Text="{x:Static res:Strings.CompleteSetup}" 
+                    Command="{Binding CompleteSetupCommand}"
+                    IsVisible="{Binding CurrentStep, Converter={StaticResource EqualConverter}, ConverterParameter=4}"
+                    BackgroundColor="#4CAF50"/>
+        </Grid>
+    </Grid>
+</ContentPage>

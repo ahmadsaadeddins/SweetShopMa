@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SweetShopMa.ViewModels"
+             x:Class="SweetShopMa.Controls.MenuBar">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        
+        <!-- Bar Background -->
+        <BoxView Grid.Row="0" Grid.ColumnSpan="4" BackgroundColor="#1d7480" />
+        
+        <!-- File Menu -->
+        <Button Grid.Row="0" Grid.Column="0" Text="File" Style="{StaticResource MenuButtonStyle}" Clicked="OnFileMenuClicked" />
+        <Frame x:Name="FileDropdown" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" VerticalOptions="Start" ZIndex="1000" Style="{StaticResource DropdownContainerStyle}">
+            <VerticalStackLayout>
+                <Button Text="New Sale (Ctrl+N)" Command="{Binding NewSaleCommand}" Style="{StaticResource MenuItemStyle}" />
+                <Button Text="Open Drawer (Ctrl+O)" Command="{Binding OpenDrawerCommand}" Style="{StaticResource MenuItemStyle}" />
+                <BoxView Style="{StaticResource MenuSeparatorStyle}" />
+                <Button Text="Logout (Ctrl+L)" Command="{Binding LogoutCommand}" Style="{StaticResource MenuItemStyle}" />
+                <Button Text="Exit (Alt+F4)" Command="{Binding ExitCommand}" Style="{StaticResource MenuItemStyle}" />
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- View Menu -->
+        <Button Grid.Row="0" Grid.Column="1" Text="View" Style="{StaticResource MenuButtonStyle}" Clicked="OnViewMenuClicked" />
+        <Frame x:Name="ViewDropdown" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" VerticalOptions="Start" ZIndex="1000" Style="{StaticResource DropdownContainerStyle}">
+            <VerticalStackLayout>
+                <Button Text="Dashboard (F2)" Command="{Binding NavigateToDashboardCommand}" Style="{StaticResource MenuItemStyle}" IsVisible="{Binding CanAccessAdmin}" />
+                <Button Text="Inventory (F4)" Command="{Binding NavigateToInventoryCommand}" Style="{StaticResource MenuItemStyle}" />
+                <Button Text="Attendance (F5)" Command="{Binding NavigateToAttendanceCommand}" Style="{StaticResource MenuItemStyle}" />
+                <Button Text="Expenses (F7)" Command="{Binding NavigateToExpensesCommand}" Style="{StaticResource MenuItemStyle}" />
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Help Menu -->
+        <Button Grid.Row="0" Grid.Column="2" Text="Help" Style="{StaticResource MenuButtonStyle}" Clicked="OnHelpMenuClicked" />
+        <Frame x:Name="HelpDropdown" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" VerticalOptions="Start" ZIndex="1000" Style="{StaticResource DropdownContainerStyle}">
+            <VerticalStackLayout>
+                <Button Text="About" Command="{Binding ShowAboutCommand}" Style="{StaticResource MenuItemStyle}" />
+            </VerticalStackLayout>
+        </Frame>
+
+    </Grid>
+</ContentView>

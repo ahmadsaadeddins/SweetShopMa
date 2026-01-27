@@ -9,16 +9,15 @@ namespace SweetShopMa.Services;
 public class CartService
 {
     private readonly DatabaseService _databaseService;
+    private readonly SessionContext _sessionContext;
     private List<CartItem> _cartItems = new();
     
-    /// <summary>
-    /// Fired when cart contents or totals change (item added, removed, or quantity modified)
-    /// </summary>
     public event Action OnCartChanged;
 
-    public CartService(DatabaseService databaseService)
+    public CartService(DatabaseService databaseService, SessionContext sessionContext)
     {
         _databaseService = databaseService;
+        _sessionContext = sessionContext;
     }
 
     /// <summary>
@@ -69,7 +68,7 @@ public class CartService
             }
 
             // Check stock availability
-            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(product.Id, newQuantity);
+            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(product.Id, newQuantity, _sessionContext.ActiveLocation.Id);
             if (!isAvailable)
             {
                 return false; // Not enough stock
@@ -149,7 +148,7 @@ public class CartService
             }
 
             // Check stock availability
-            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(item.ProductId, newQuantity);
+            var isAvailable = await _databaseService.CheckStockAvailabilityAsync(item.ProductId, newQuantity, _sessionContext.ActiveLocation.Id);
             if (!isAvailable)
             {
                 return false; // Not enough stock
@@ -191,7 +190,7 @@ public class CartService
 
             // Save order and get its ID
             // Use transaction to ensure data integrity
-            var resultOrder = await _databaseService.ProcessCheckoutAsync(order, _cartItems);
+            var resultOrder = await _databaseService.ProcessCheckoutAsync(order, _cartItems, _sessionContext.ActiveLocation.Id);
             
             if (resultOrder == null)
             {

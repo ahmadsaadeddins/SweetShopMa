@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SweetShopMa.ViewModels"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
+             xmlns:models="clr-namespace:SweetShopMa.Models"
+             x:Class="SweetShopMa.Views.ShopLocationsPage"
+             Title=""
+             BackgroundColor="#f0f9fa">
+
+    <Grid RowDefinitions="Auto, *" Padding="20" ColumnSpacing="20">
+
+        <!-- Navigation + Language Selector -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+            <Button x:Name="BackButton"
+                    Text=""
+                    BackgroundColor="#f0f4f7"
+                    TextColor="#1d7480"
+                    Padding="10,6"
+                    CornerRadius="6"
+                    Clicked="OnBackButtonClicked"
+                    HorizontalOptions="Start"/>
+            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                <Button Text="EN"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+                <Button Text="AR"
+                        BackgroundColor="#1d7480"
+                        TextColor="White"
+                        Padding="8,5"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Clicked="OnLanguageButtonClicked"/>
+            </HorizontalStackLayout>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*, 400" ColumnSpacing="20">
+
+        <!-- Locations List -->
+        <Grid Grid.Column="0" RowDefinitions="Auto, *">
+            <Label x:Name="ListOfLocationsLabel" Grid.Row="0" Text="" FontSize="20" FontAttributes="Bold" Margin="0,0,0,10"/>
+            
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Locations}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ShopLocation">
+                        <Frame Margin="0,5" Padding="15" CornerRadius="8" HasShadow="True">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="{Binding LocationName}" FontSize="18" FontAttributes="Bold"/>
+                                        <Frame Padding="5,2" BackgroundColor="#512BD4" CornerRadius="5" IsVisible="{Binding IsPrimary}">
+                                            <Label Text="PRIMARY" TextColor="White" FontSize="10" FontAttributes="Bold"/>
+                                        </Frame>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Address}" TextColor="Gray"/>
+                                    <Label Text="{Binding PhoneNumber}" TextColor="Gray"/>
+                                </VerticalStackLayout>
+                                
+                                <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center">
+                                    <Button Text="Edit"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:LocationsViewModel}}, Path=EditLocationCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#512BD4" HeightRequest="40"/>
+                                    <Button Text="Delete"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:LocationsViewModel}}, Path=DeleteLocationCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#FF5252" HeightRequest="40"/>
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- Upsert Form -->
+        <Frame Grid.Column="1" Padding="20" CornerRadius="10" BackgroundColor="White" HasShadow="True">
+            <VerticalStackLayout Spacing="15">
+                <Label x:Name="FormTitleLabel" Text=""
+                       FontSize="20" FontAttributes="Bold" TextColor="#512BD4"/>
+                <BoxView HeightRequest="1" Color="#f0f0f0"/>
+
+                <Label x:Name="LocationNameLabel" Text="" FontAttributes="Bold"/>
+                <Entry x:Name="LocationNameEntry" Text="{Binding NewLocationName}" Placeholder=""/>
+
+                <Label x:Name="AddressLabel" Text="" FontAttributes="Bold"/>
+                <Entry Text="{Binding NewAddress}"/>
+
+                <Label x:Name="PhoneNumberLabel" Text="" FontAttributes="Bold"/>
+                <Entry Text="{Binding NewPhoneNumber}"/>
+
+                <HorizontalStackLayout Spacing="10">
+                    <CheckBox IsChecked="{Binding IsPrimary}"/>
+                    <Label x:Name="SetAsPrimaryLabel" Text="" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <Button x:Name="SaveLocationButton" Text=""
+                        Command="{Binding SaveLocationCommand}"
+                        BackgroundColor="#4CAF50"
+                        Margin="0,20,0,0"/>
+                
+                <Button x:Name="CancelButton" Text=""
+                        Command="{Binding ClearFormCommand}"
+                        IsVisible="{Binding IsEditMode}"
+                        BackgroundColor="Gray"/>
+            </VerticalStackLayout>
+        </Frame>
+
+        <ActivityIndicator Grid.ColumnSpan="2" IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}" VerticalOptions="Center" HorizontalOptions="Center"
+                           Color="#512BD4" Scale="2"/>
+        </Grid>
+    </Grid>
+</ContentPage>

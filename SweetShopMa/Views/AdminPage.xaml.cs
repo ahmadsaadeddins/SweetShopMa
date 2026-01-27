@@ -55,8 +55,8 @@ public partial class AdminPage : ContentPage
         Title = _localizationService.GetString("AdministratorPanel");
         if (AdminPanelTitleLabel != null)
             AdminPanelTitleLabel.Text = _localizationService.GetString("AdministratorPanel");
-        if (AdminBackButton != null)
-            AdminBackButton.Text = _localizationService.GetString("BackButton");
+        if (BackButton != null)
+            BackButton.Text = _localizationService.GetString("BackButton") ?? "Back";
         // DatabaseInfoLabel is now hidden/removed, so we don't update it
         if (UsersButtonLabel != null)
             UsersButtonLabel.Text = _localizationService.GetString("UserManagement") ?? "User Management";
@@ -64,6 +64,16 @@ public partial class AdminPage : ContentPage
             ProductsButtonLabel.Text = _localizationService.GetString("ProductManagement") ?? "Product Management";
         if (AttendanceButtonLabel != null)
             AttendanceButtonLabel.Text = _localizationService.GetString("AttendanceTracker") ?? "Attendance Tracker";
+        if (SettingsButtonLabel != null)
+            SettingsButtonLabel.Text = _localizationService.GetString("ShopSettings") ?? "Shop Settings";
+        if (LocationsButtonLabel != null)
+            LocationsButtonLabel.Text = _localizationService.GetString("ShopLocations") ?? "Shop Locations";
+        if (StockTransferButtonLabel != null)
+            StockTransferButtonLabel.Text = _localizationService.GetString("StockTransfer") ?? "Stock Transfer";
+        if (UserAssignmentsButtonLabel != null)
+            UserAssignmentsButtonLabel.Text = _localizationService.GetString("UserAssignments") ?? "User Assignments";
+        if (ExpensesButtonLabel != null)
+            ExpensesButtonLabel.Text = _localizationService.GetString("EmployeeExpenses") ?? "Employee Expenses";
         if (RestockReportButtonLabel != null)
             RestockReportButtonLabel.Text = _localizationService.GetString("RestockReport") ?? "Restock Report";
         if (ReportsLabel != null)
@@ -84,6 +94,12 @@ public partial class AdminPage : ContentPage
             TopProductLabel.Text = _localizationService.GetString("TopProduct");
         if (ReportStatusLabel != null)
             ReportStatusLabel.Text = _localizationService.GetString("ReportStatus");
+        if (BranchForReportLabel != null)
+            BranchForReportLabel.Text = _localizationService.GetString("BranchForReport") ?? "Branch for Inventory Report:";
+        if (ExportSalesReportButton != null)
+            ExportSalesReportButton.Text = _localizationService.GetString("ExportSalesReport") ?? "Export Sales Report";
+        if (ExportInventoryReportButton != null)
+            ExportInventoryReportButton.Text = _localizationService.GetString("ExportInventoryReport") ?? "Export Inventory Report";
         
         // Update ViewModel properties that depend on localization
         if (BindingContext is AdminViewModel adminViewModel)
@@ -158,5 +174,28 @@ public partial class AdminPage : ContentPage
         var expensesPage = new ExpensesPage(_viewModel, _localizationService);
         await Shell.Current.Navigation.PushAsync(expensesPage);
     }
-}
 
+    private async void OnSettingsTapped(object sender, EventArgs e)
+    {
+        var page = _serviceProvider.GetService<SettingsPage>();
+        if (page != null) await Shell.Current.Navigation.PushAsync(page);
+    }
+
+    private async void OnLocationsTapped(object sender, EventArgs e)
+    {
+        var page = _serviceProvider.GetService<ShopLocationsPage>();
+        if (page != null) await Shell.Current.Navigation.PushAsync(page);
+    }
+
+    private async void OnStockTransferTapped(object sender, EventArgs e)
+    {
+        var page = _serviceProvider.GetService<StockTransferPage>();
+        if (page != null) await Shell.Current.Navigation.PushAsync(page);
+    }
+
+    private async void OnUserLocationsTapped(object sender, EventArgs e)
+    {
+        var page = _serviceProvider.GetService<UserLocationsPage>();
+        if (page != null) await Shell.Current.Navigation.PushAsync(page);
+    }
+}

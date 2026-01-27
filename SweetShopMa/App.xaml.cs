@@ -40,33 +40,7 @@ public partial class App : Application
         InitializeComponent();
         MainPage = new AppShell();
         
-        // Navigate to login page on startup
-        // LoginPage will handle seeding users and products
-        if (MainPage is AppShell shell)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(Utils.AppConstants.NavigationDelayMs); // Small delay to ensure Shell is ready
-                    try
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            await shell.GoToAsync("//login");
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Navigation scheduling error: {ex.Message}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Background navigation error: {ex}");
-                }
-            });
-        }
+        // Initial navigation and localization are handled by AppShell and LoginPage
         
         // Initialize localization and set RTL if needed
         var localizationService = LocalizationService.Instance;

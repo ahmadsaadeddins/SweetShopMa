@@ -65,6 +65,8 @@ public static class MauiProgram
             .AddSingleton<AttendanceRulesService>()     // Attendance rules
             .AddSingleton<Services.LocalizationService>(_ => Services.LocalizationService.Instance)  // Multi-language support (uses singleton instance)
             .AddSingleton<IPdfService, PdfService>()   // PDF generation service
+            .AddSingleton<IShopSettingsService, ShopSettingsService>()
+            .AddSingleton<SessionContext>()
             
             // Platform-Specific Services
             // On Windows, use Windows-specific implementations
@@ -72,15 +74,23 @@ public static class MauiProgram
 #if WINDOWS
             .AddSingleton<IPrintService, WindowsPrintService>()           // Windows: HTML-based printing
             .AddSingleton<ICashDrawerService, WindowsCashDrawerService>()  // Windows: ESC/POS cash drawer
+            .AddSingleton<IKeyboardService, WindowsKeyboardService>()     // Windows: Global keyboard handling
 #else
             .AddSingleton<IPrintService, DefaultPrintService>()           // Other platforms: Share API fallback
             .AddSingleton<ICashDrawerService, DefaultCashDrawerService>() // Other platforms: Not supported
+            .AddSingleton<IKeyboardService, DefaultKeyboardService>()     // Other platforms: No-op
 #endif
             
             // ViewModels - Singleton (maintain state across navigation)
             // ViewModels hold business logic and should persist their state
             .AddSingleton<ShopViewModel>()      // Main shop interface logic
             .AddSingleton<AdminViewModel>()   // Admin panel logic
+            .AddSingleton<MenuBarViewModel>()  // Menu bar logic
+            .AddTransient<InitialSetupViewModel>()
+            .AddTransient<SettingsViewModel>()
+            .AddTransient<LocationsViewModel>()
+            .AddTransient<StockTransferViewModel>()
+            .AddTransient<UserLocationsViewModel>()
             
             // Views - Different lifetimes based on usage
             
@@ -94,7 +104,12 @@ public static class MauiProgram
             .AddTransient<Views.AdminPage>()               // Admin panel (can be recreated)
             .AddTransient<Views.AttendancePage>()         // Attendance page (can be recreated)
             .AddTransient<ViewModels.RestockReportViewModel>()  // Restock report ViewModel
-            .AddTransient<Views.RestockReportPage>();     // Restock report page
+            .AddTransient<Views.RestockReportPage>()     // Restock report page
+            .AddTransient<Views.InitialSetupPage>()
+            .AddTransient<Views.SettingsPage>()
+            .AddTransient<Views.ShopLocationsPage>()
+            .AddTransient<Views.StockTransferPage>()
+            .AddTransient<Views.UserLocationsPage>();
 
         // ============================================
         // PLATFORM-SPECIFIC CONFIGURATION
@@ -117,6 +132,10 @@ public static class MauiProgram
                         // Allow user to resize and maximize/minimize
                         presenter.IsResizable = true;
                         presenter.IsMaximizable = true;
+
+                        // Initialize global keyboard handling
+                        var keyboardService = Microsoft.Maui.MauiWinUIApplication.Current.Services.GetService<IKeyboardService>();
+                        keyboardService?.Initialize(window);
                     }
                     else
                     {

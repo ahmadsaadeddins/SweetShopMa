@@ -1,13 +1,30 @@
 using SweetShopMa.ViewModels;
+using SweetShopMa.Services;
 
 namespace SweetShopMa.Views;
 
 public partial class AdminDashboardPage : ContentPage
 {
-    public AdminDashboardPage(AdminViewModel viewModel)
+    private readonly LocalizationService _localizationService;
+
+    public AdminDashboardPage(AdminViewModel viewModel, LocalizationService localizationService)
     {
         InitializeComponent();
         BindingContext = viewModel;
+        _localizationService = localizationService;
+    }
+
+    private void OnBackButtonClicked(object sender, EventArgs e)
+    {
+        Shell.Current.GoToAsync("..");
+    }
+
+    private void OnLanguageButtonClicked(object sender, EventArgs e)
+    {
+        if (sender is Button button && button.Text is string language)
+        {
+            _localizationService.SetLanguage(language == "EN" ? "en" : "ar");
+        }
     }
 }
 

@@ -141,6 +141,14 @@ public class DatabaseService
             await _database.CreateTableAsync<AttendanceRecord>();    // Employee attendance
             await _database.CreateTableAsync<RestockRecord>();      // Inventory restock history
             await _database.CreateTableAsync<EmployeeExpense>();
+            await _database.CreateTableAsync<ShopSettings>();
+            await _database.CreateTableAsync<ShopLocation>();
+            await _database.CreateTableAsync<ProductStock>();
+            await _database.CreateTableAsync<StockTransfer>();
+            await _database.CreateTableAsync<UserLocation>();
+
+            // One-time migration of stock to ProductStock table
+            await MigrateProductStockAsync();
 
             // Ensure table columns exist (for database migrations)
             // These methods add new columns to existing tables if the app is updated
@@ -286,7 +294,7 @@ public class DatabaseService
         }
     }
 
-    public async Task<Order> ProcessCheckoutAsync(Order order, List<CartItem> cartItems)
+    public async Task<Order> ProcessCheckoutAsync(Order order, List<CartItem> cartItems, int locationId)
     {
         try
         {
@@ -327,17 +335,31 @@ public class DatabaseService
                     };
                     conn.Insert(orderItem);
                     
-                    // 3. Update Stock
-                    var product = conn.Find<Product>(cartItem.ProductId);
-                    if (product != null)
+                    // 3. Update Stock for the specific location
+                    var stock = conn.Table<ProductStock>()
+                        .Where(ps => ps.ProductId == cartItem.ProductId && ps.LocationId == locationId)
+                        .FirstOrDefault();
+                        
+                    if (stock != null)
                     {
-                        product.Stock -= cartItem.Quantity;
-                        if (product.Stock < 0) product.Stock = 0;
-                        conn.Update(product);
+                        stock.Stock -= cartItem.Quantity;
+                        if (stock.Stock < 0) stock.Stock = 0;
+                        stock.LastUpdated = DateTime.Now;
+                        conn.Update(stock);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Warning: Product {cartItem.ProductId} not found during checkout");
+                        // If no stock record exists, create one with negative (or zero) stock as a fallback
+                        // realistically, CheckStockAvailability should prevent this
+                        stock = new ProductStock 
+                        { 
+                            ProductId = cartItem.ProductId, 
+                            LocationId = locationId, 
+                            Stock = -cartItem.Quantity,
+                            LastUpdated = DateTime.Now
+                        };
+                        conn.Insert(stock);
+                        System.Diagnostics.Debug.WriteLine($"Warning: ProductStock record not found for product {cartItem.ProductId} at location {locationId}. Created new record.");
                     }
                 }
                 
@@ -463,11 +485,11 @@ public class DatabaseService
             .FirstOrDefaultAsync(p => p.Id == productId);
     }
 
-    public async Task<bool> CheckStockAvailabilityAsync(int productId, decimal requestedQuantity)
+    public async Task<bool> CheckStockAvailabilityAsync(int productId, decimal requestedQuantity, int locationId)
     {
         await InitializeAsync();
-        var product = await GetProductAsync(productId);
-        return product != null && product.Stock >= requestedQuantity;
+        var stock = await GetProductStockAsync(productId, locationId);
+        return stock != null && stock.Stock >= requestedQuantity;
     }
 
     // User methods
@@ -646,25 +668,70 @@ public class DatabaseService
             query = query.Where(r => r.RestockDate <= endDate.Value);
         }
         
-        return await query.OrderByDescending(r => r.RestockDate).ToListAsync();
+        var records = await query.OrderByDescending(r => r.RestockDate).ToListAsync();
+        
+        // Populate missing user names from User table
+        foreach (var record in records)
+        {
+            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
+            {
+                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    record.UserName = user.Name;
+                }
+            }
+        }
+        
+        return records;
     }
 
     public async Task<List<RestockRecord>> GetRestockRecordsByProductAsync(int productId)
     {
         await InitializeAsync();
-        return await _database.Table<RestockRecord>()
+        var records = await _database.Table<RestockRecord>()
             .Where(r => r.ProductId == productId)
             .OrderByDescending(r => r.RestockDate)
             .ToListAsync();
+        
+        // Populate missing user names from User table
+        foreach (var record in records)
+        {
+            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
+            {
+                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    record.UserName = user.Name;
+                }
+            }
+        }
+        
+        return records;
     }
 
     public async Task<List<RestockRecord>> GetRestockRecordsByUserAsync(int userId)
     {
         await InitializeAsync();
-        return await _database.Table<RestockRecord>()
+        var records = await _database.Table<RestockRecord>()
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.RestockDate)
             .ToListAsync();
+        
+        // Populate missing user names from User table
+        foreach (var record in records)
+        {
+            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
+            {
+                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    record.UserName = user.Name;
+                }
+            }
+        }
+        
+        return records;
     }
 
     public async Task<int> CreateEmployeeExpenseAsync(EmployeeExpense expense)
@@ -686,6 +753,306 @@ public class DatabaseService
     {
         await InitializeAsync();
         return await _database.DeleteAsync(expense);
+    }
+
+    // ============================================
+    // SHOP SETTINGS AND LOCATIONS (Multi-Location)
+    // ============================================
+
+    public async Task<ShopSettings> GetShopSettingsAsync()
+    {
+        await InitializeAsync();
+        var settings = await _database.Table<ShopSettings>().FirstOrDefaultAsync();
+        if (settings == null)
+        {
+            settings = new ShopSettings();
+            await _database.InsertAsync(settings);
+        }
+        return settings;
+    }
+
+    public async Task<int> SaveShopSettingsAsync(ShopSettings settings)
+    {
+        await InitializeAsync();
+        settings.LastModifiedDate = DateTime.Now;
+        return await _database.UpdateAsync(settings);
+    }
+
+    public async Task<int> UpdateActiveLocationAsync(int locationId)
+    {
+        await InitializeAsync();
+        var settings = await GetShopSettingsAsync();
+        settings.ActiveLocationId = locationId;
+        return await SaveShopSettingsAsync(settings);
+    }
+
+    // ShopLocation CRUD
+    public async Task<List<ShopLocation>> GetShopLocationsAsync()
+    {
+        await InitializeAsync();
+        return await _database.Table<ShopLocation>().ToListAsync();
+    }
+
+    public async Task<ShopLocation> GetActiveLocationAsync()
+    {
+        await InitializeAsync();
+        var settings = await GetShopSettingsAsync();
+        if (settings.ActiveLocationId.HasValue)
+        {
+            var location = await _database.Table<ShopLocation>().FirstOrDefaultAsync(l => l.Id == settings.ActiveLocationId.Value);
+            if (location != null) return location;
+        }
+        return await _database.Table<ShopLocation>().Where(l => l.IsPrimary).FirstOrDefaultAsync() 
+               ?? await _database.Table<ShopLocation>().FirstOrDefaultAsync();
+    }
+
+    public async Task<int> CreateShopLocationAsync(ShopLocation location)
+    {
+        await InitializeAsync();
+        var result = await _database.InsertAsync(location);
+        // Initialize stock for all existing products at this new location
+        await InitializeProductStockForLocationAsync(location.Id);
+        return result;
+    }
+
+    public async Task<int> UpdateShopLocationAsync(ShopLocation location)
+    {
+        await InitializeAsync();
+        location.LastModifiedDate = DateTime.Now;
+        return await _database.UpdateAsync(location);
+    }
+
+    public async Task<int> DeleteShopLocationAsync(ShopLocation location)
+    {
+        await InitializeAsync();
+        return await _database.DeleteAsync(location);
+    }
+
+    // ProductStock CRUD
+    public async Task<ProductStock> GetProductStockAsync(int productId, int locationId)
+    {
+        await InitializeAsync();
+        return await _database.Table<ProductStock>()
+            .Where(ps => ps.ProductId == productId && ps.LocationId == locationId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<int> UpdateProductStockAsync(int productId, int locationId, decimal quantityChange)
+    {
+        await InitializeAsync();
+        var stock = await GetProductStockAsync(productId, locationId);
+        if (stock == null)
+        {
+            stock = new ProductStock { ProductId = productId, LocationId = locationId, Stock = 0m };
+            await _database.InsertAsync(stock);
+        }
+        stock.Stock += quantityChange;
+        if (stock.Stock < 0m) stock.Stock = 0m;
+        stock.LastUpdated = DateTime.Now;
+        return await _database.UpdateAsync(stock);
+    }
+
+    public async Task<List<ProductStock>> GetLocationStockAsync(int locationId)
+    {
+        await InitializeAsync();
+        return await _database.Table<ProductStock>().Where(ps => ps.LocationId == locationId).ToListAsync();
+    }
+
+    /// <summary>
+    /// Get products with stock for a specific location, or aggregated stock for all locations.
+    /// </summary>
+    /// <param name="locationId">Location ID, or null for all locations (aggregated)</param>
+    public async Task<List<(Product Product, decimal Stock)>> GetProductsWithStockByLocationAsync(int? locationId)
+    {
+        await InitializeAsync();
+        var products = await _database.Table<Product>().ToListAsync();
+        var result = new List<(Product Product, decimal Stock)>();
+
+        if (locationId.HasValue)
+        {
+            // Single location - get stock from ProductStock table
+            var stocks = await _database.Table<ProductStock>()
+                .Where(ps => ps.LocationId == locationId.Value)
+                .ToListAsync();
+            var stockDict = stocks.ToDictionary(s => s.ProductId, s => s.Stock);
+
+            foreach (var product in products)
+            {
+                var stock = stockDict.TryGetValue(product.Id, out var s) ? s : 0m;
+                result.Add((product, stock));
+            }
+        }
+        else
+        {
+            // All locations - aggregate stock from all ProductStock records
+            var allStocks = await _database.Table<ProductStock>().ToListAsync();
+            var aggregatedStock = allStocks
+                .GroupBy(s => s.ProductId)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.Stock));
+
+            foreach (var product in products)
+            {
+                var stock = aggregatedStock.TryGetValue(product.Id, out var s) ? s : 0m;
+                result.Add((product, stock));
+            }
+        }
+
+        return result;
+    }
+
+    private async Task InitializeProductStockForLocationAsync(int locationId)
+    {
+        var products = await _database.Table<Product>().ToListAsync();
+        foreach (var product in products)
+        {
+            var exists = await GetProductStockAsync(product.Id, locationId);
+            if (exists == null)
+            {
+                await _database.InsertAsync(new ProductStock
+                {
+                    ProductId = product.Id,
+                    LocationId = locationId,
+                    Stock = 0m
+                });
+            }
+        }
+    }
+
+    private async Task MigrateProductStockAsync()
+    {
+        // 1. Ensure at least one location exists
+        var locations = await GetShopLocationsAsync();
+        if (!locations.Any())
+        {
+            // If no locations, create a default "Main Branch"
+            var mainBranch = new ShopLocation { LocationName = "Main Branch", IsPrimary = true, IsActive = true };
+            await _database.InsertAsync(mainBranch);
+            
+            // Set as active in settings
+            var settings = await GetShopSettingsAsync();
+            settings.ActiveLocationId = mainBranch.Id;
+            await SaveShopSettingsAsync(settings);
+            
+            locations = new List<ShopLocation> { mainBranch };
+        }
+
+        var primaryLocation = locations.FirstOrDefault(l => l.IsPrimary) ?? locations.First();
+
+        // 2. Migrate Product.Stock to ProductStock for primary location
+        var products = await _database.Table<Product>().ToListAsync();
+        foreach (var product in products)
+        {
+            var stockRecord = await GetProductStockAsync(product.Id, primaryLocation.Id);
+            if (stockRecord == null)
+            {
+                // Create stock record using current legacy Stock value
+                await _database.InsertAsync(new ProductStock
+                {
+                    ProductId = product.Id,
+                    LocationId = primaryLocation.Id,
+                    Stock = product.Stock
+                });
+            }
+        }
+    }
+
+    // StockTransfer CRUD
+    public async Task<int> ExecuteStockTransferAsync(StockTransfer transfer)
+    {
+        await InitializeAsync();
+        int result = 0;
+        await _database.RunInTransactionAsync(conn =>
+        {
+            // Deduct from source
+            var source = conn.Table<ProductStock>()
+                .Where(ps => ps.ProductId == transfer.ProductId && ps.LocationId == transfer.FromLocationId)
+                .FirstOrDefault();
+            if (source == null || source.Stock < transfer.Quantity)
+                throw new Exception("Insufficient stock at source location");
+
+            source.Stock -= transfer.Quantity;
+            conn.Update(source);
+
+            // Add to destination
+            var dest = conn.Table<ProductStock>()
+                .Where(ps => ps.ProductId == transfer.ProductId && ps.LocationId == transfer.ToLocationId)
+                .FirstOrDefault();
+            if (dest == null)
+            {
+                dest = new ProductStock { ProductId = transfer.ProductId, LocationId = transfer.ToLocationId, Stock = 0m };
+                conn.Insert(dest);
+            }
+            dest.Stock += transfer.Quantity;
+            conn.Update(dest);
+
+            // Record transfer
+            result = conn.Insert(transfer);
+        });
+        return result;
+    }
+
+    public async Task<List<StockTransfer>> GetStockTransfersAsync(int? productId = null, DateTime? start = null, DateTime? end = null)
+    {
+        await InitializeAsync();
+        var query = _database.Table<StockTransfer>();
+        if (productId.HasValue) query = query.Where(t => t.ProductId == productId.Value);
+        if (start.HasValue) query = query.Where(t => t.TransferDate >= start.Value);
+        if (end.HasValue) query = query.Where(t => t.TransferDate <= end.Value);
+        return await query.OrderByDescending(t => t.TransferDate).ToListAsync();
+    }
+
+    // UserLocation CRUD
+    public async Task<List<UserLocation>> GetUserLocationsAsync(int userId)
+    {
+        await InitializeAsync();
+        return await _database.Table<UserLocation>().Where(ul => ul.UserId == userId).ToListAsync();
+    }
+
+    public async Task<int> AssignUserToLocationAsync(int userId, int locationId, bool isPrimary)
+    {
+        await InitializeAsync();
+        if (isPrimary)
+        {
+            // Reset other primary flags for this user
+            var existing = await GetUserLocationsAsync(userId);
+            foreach (var ul in existing.Where(x => x.IsPrimary))
+            {
+                ul.IsPrimary = false;
+                await _database.UpdateAsync(ul);
+            }
+        }
+
+        var assignment = await _database.Table<UserLocation>()
+            .Where(ul => ul.UserId == userId && ul.LocationId == locationId)
+            .FirstOrDefaultAsync();
+
+        if (assignment == null)
+        {
+            assignment = new UserLocation { UserId = userId, LocationId = locationId, IsPrimary = isPrimary };
+            return await _database.InsertAsync(assignment);
+        }
+        else
+        {
+            assignment.IsPrimary = isPrimary;
+            return await _database.UpdateAsync(assignment);
+        }
+    }
+
+    public async Task<int> RemoveUserFromLocationAsync(int userId, int locationId)
+    {
+        await InitializeAsync();
+        var assignment = await _database.Table<UserLocation>()
+            .Where(ul => ul.UserId == userId && ul.LocationId == locationId)
+            .FirstOrDefaultAsync();
+        if (assignment != null)
+            return await _database.DeleteAsync(assignment);
+        return 0;
+    }
+
+    public async Task<List<UserLocation>> GetLocationUsersAsync(int locationId)
+    {
+        await InitializeAsync();
+        return await _database.Table<UserLocation>().Where(ul => ul.LocationId == locationId).ToListAsync();
     }
 
     private class TableInfo

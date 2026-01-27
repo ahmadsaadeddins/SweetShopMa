@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:res="clr-namespace:SweetShopMa.Resources"
              x:Class="SweetShopMa.Views.AdminPage"
-             Title="Admin Panel">
+             Title="{x:Static res:Strings.AdministratorPanel}"
+             ControlTemplate="{StaticResource MainPageTemplate}">
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
 
             <!-- Navigation + Language Selector -->
             <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
-                <Button x:Name="AdminBackButton"
-                        Text="Back"
+                <Button x:Name="BackButton"
+                        Text="{x:Static res:Strings.BackButton}"
                         BackgroundColor="#f0f4f7"
                         TextColor="#1d7480"
                         Padding="10,6"
@@ -17,14 +19,14 @@
                         Clicked="OnBackButtonClicked"
                         HorizontalOptions="Start"/>
                 <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
-                    <Button Text="EN" 
+                    <Button Text="EN"
                             BackgroundColor="#1d7480"
                             TextColor="White"
                             Padding="8,5"
                             CornerRadius="4"
                             FontSize="10"
                             Clicked="OnLanguageButtonClicked"/>
-                    <Button Text="AR" 
+                    <Button Text="AR"
                             BackgroundColor="#1d7480"
                             TextColor="White"
                             Padding="8,5"
@@ -34,195 +36,162 @@
                 </HorizontalStackLayout>
             </Grid>
 
-            <Label x:Name="AdminPanelTitleLabel" Text="Administrator Panel"
+            <Label x:Name="AdminPanelTitleLabel" Text="{x:Static res:Strings.AdministratorPanel}"
                    FontSize="24"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
 
             <!-- Navigation Buttons -->
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15" Margin="0,20,0,20">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15" Margin="0,20,0,20">
                 <!-- Users Management Button -->
+                <!-- ... (existing Users button) ... -->
                 <Border Grid.Row="0" Grid.Column="0" 
-                        Stroke="#1d7480" 
-                        StrokeThickness="2" 
-                        Padding="20" 
-                        BackgroundColor="#f0f9fa"
-                        IsVisible="{Binding CanManageUsers}">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnUsersPageTapped"/>
-                    </Border.GestureRecognizers>
+                        Stroke="#1d7480" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa" IsVisible="{Binding CanManageUsers}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnUsersPageTapped"/></Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Label Text="👤" FontSize="48" HorizontalOptions="Center"/>
-                        <Label x:Name="UsersButtonLabel" Text="User Management" 
-                               FontSize="18" 
-                               FontAttributes="Bold" 
-                               TextColor="#1d7480"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Manage users, roles, and permissions" 
-                               FontSize="12" 
-                               TextColor="#666"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label x:Name="UsersButtonLabel" Text="{x:Static res:Strings.UserManagement}" FontSize="18" FontAttributes="Bold" TextColor="#1d7480" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Products Management Button -->
                 <Border Grid.Row="0" Grid.Column="1" 
-                        Stroke="#32b8c6" 
-                        StrokeThickness="2" 
-                        Padding="20" 
-                        BackgroundColor="#f0f9fa"
-                        IsVisible="{Binding CanManageStock}">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnProductsPageTapped"/>
-                    </Border.GestureRecognizers>
+                        Stroke="#32b8c6" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa" IsVisible="{Binding CanManageStock}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnProductsPageTapped"/></Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Label Text="📦" FontSize="48" HorizontalOptions="Center"/>
-                        <Label x:Name="ProductsButtonLabel" Text="Product Management" 
-                               FontSize="18" 
-                               FontAttributes="Bold" 
-                               TextColor="#32b8c6"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Add, edit, and manage products" 
-                               FontSize="12" 
-                               TextColor="#666"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label x:Name="ProductsButtonLabel" Text="{x:Static res:Strings.ProductManagement}" FontSize="18" FontAttributes="Bold" TextColor="#32b8c6" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Attendance Tracker Button -->
                 <Border Grid.Row="1" Grid.Column="0" 
-                        Stroke="#4CAF50" 
-                        StrokeThickness="2" 
-                        Padding="20" 
-                        BackgroundColor="#f0f9fa"
-                        IsVisible="{Binding CanUseAttendanceTracker}">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnAttendanceTrackerTapped"/>
-                    </Border.GestureRecognizers>
+                        Stroke="#4CAF50" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa" IsVisible="{Binding CanUseAttendanceTracker}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAttendanceTrackerTapped"/></Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Label Text="⏰" FontSize="48" HorizontalOptions="Center"/>
-                        <Label x:Name="AttendanceButtonLabel" Text="Attendance Tracker" 
-                               FontSize="18" 
-                               FontAttributes="Bold" 
-                               TextColor="#4CAF50"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Track employee attendance and hours" 
-                               FontSize="12" 
-                               TextColor="#666"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label x:Name="AttendanceButtonLabel" Text="{x:Static res:Strings.AttendanceTracker}" FontSize="18" FontAttributes="Bold" TextColor="#4CAF50" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Restock Report Button -->
                 <Border Grid.Row="1" Grid.Column="1" 
-                        Stroke="#ff9800" 
-                        StrokeThickness="2" 
-                        Padding="20" 
-                        BackgroundColor="#f0f9fa"
-                        IsVisible="{Binding CanManageStock}">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnRestockReportTapped"/>
-                    </Border.GestureRecognizers>
+                        Stroke="#ff9800" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa" IsVisible="{Binding CanManageStock}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnRestockReportTapped"/></Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Label Text="📊" FontSize="48" HorizontalOptions="Center"/>
-                        <Label x:Name="RestockReportButtonLabel" Text="Restock Report" 
-                               FontSize="18" 
-                               FontAttributes="Bold" 
-                               TextColor="#ff9800"
-                               HorizontalOptions="Center"/>
-                        <Label Text="View inventory restock history" 
-                               FontSize="12" 
-                               TextColor="#666"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label x:Name="RestockReportButtonLabel" Text="{x:Static res:Strings.RestockReport}" FontSize="18" FontAttributes="Bold" TextColor="#ff9800" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Shop Settings Button (Admin/Dev) -->
+                <Border Grid.Row="2" Grid.Column="0" 
+                        Stroke="#512BD4" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding IsAdmin}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSettingsTapped"/></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="⚙️" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="SettingsButtonLabel" Text="{x:Static res:Strings.ShopSettings}" FontSize="18" FontAttributes="Bold" TextColor="#512BD4" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Shop Locations Button (Admin/Dev) -->
+                <Border Grid.Row="2" Grid.Column="1" 
+                        Stroke="#E91E63" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding IsAdmin}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnLocationsTapped"/></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="📍" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="LocationsButtonLabel" Text="{x:Static res:Strings.ShopLocations}" FontSize="18" FontAttributes="Bold" TextColor="#E91E63" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Stock Transfer Button (Admin/Dev/Mod) -->
+                <Border Grid.Row="3" Grid.Column="0" 
+                        Stroke="#2196F3" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding CanManageStock}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnStockTransferTapped"/></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="🚚" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="StockTransferButtonLabel" Text="{x:Static res:Strings.StockTransfer}" FontSize="18" FontAttributes="Bold" TextColor="#2196F3" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- User Locations Button (Admin/Dev) -->
+                <Border Grid.Row="3" Grid.Column="1" 
+                        Stroke="#9C27B0" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa"
+                        IsVisible="{Binding IsAdmin}">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnUserLocationsTapped"/></Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="👥" FontSize="48" HorizontalOptions="Center"/>
+                        <Label x:Name="UserAssignmentsButtonLabel" Text="{x:Static res:Strings.UserAssignments}" FontSize="18" FontAttributes="Bold" TextColor="#9C27B0" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Expenses Button -->
-                <Border Grid.Row="2" Grid.Column="0" 
-                        Stroke="#795548" 
-                        StrokeThickness="2" 
-                        Padding="20" 
-                        BackgroundColor="#f0f9fa">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
-                    </Border.StrokeShape>
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnExpensesTapped"/>
-                    </Border.GestureRecognizers>
+                <Border Grid.Row="4" Grid.Column="0" 
+                        Stroke="#795548" StrokeThickness="2" Padding="20" BackgroundColor="#f0f9fa">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="12"/></Border.StrokeShape>
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnExpensesTapped"/></Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Label Text="💵" FontSize="48" HorizontalOptions="Center"/>
-                        <Label Text="Employee Expenses" 
-                               FontSize="18" 
-                               FontAttributes="Bold" 
-                               TextColor="#795548"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Add employee expense records" 
-                               FontSize="12" 
-                               TextColor="#666"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
+                        <Label x:Name="ExpensesButtonLabel" Text="{x:Static res:Strings.EmployeeExpenses}" FontSize="18" FontAttributes="Bold" TextColor="#795548" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
+
             </Grid>
+
 
             <!-- Quick Stats Section (Collapsible) -->
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Quick Stats" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="{x:Static res:Strings.QuickStats}" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Padding="10">
                 <Border Grid.Row="0" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="TotalSalesLabel" Text="Total Sales" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="TotalSalesLabel" Text="{x:Static res:Strings.TotalSales}" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="OrdersLabel" Text="Orders" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="OrdersLabel" Text="{x:Static res:Strings.Orders}" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalOrders}" FontSize="20" FontAttributes="Bold"/>
                         <Label x:Name="AverageOrderValueLabel" Text="{Binding AverageOrderValueDisplay}" FontSize="12" TextColor="#666"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="ItemsSoldLabel" Text="Items Sold" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="ItemsSoldLabel" Text="{x:Static res:Strings.ItemsSold}" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TotalItemsSold, StringFormat='{0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="0" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="Last7DaysLabel" Text="Last 7 Days" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="Last7DaysLabel" Text="{x:Static res:Strings.Last7Days}" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding Last7DaysSales, StringFormat='${0:F2}'}" FontSize="20" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="1" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="TopProductLabel" Text="Top Product" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="TopProductLabel" Text="{x:Static res:Strings.TopProduct}" FontSize="12" TextColor="#666"/>
                         <Label Text="{Binding TopProductName}" FontSize="16" FontAttributes="Bold"/>
                         <Label Text="{Binding TopProductDetails}" FontSize="12" TextColor="#666"/>
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="2" Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                     <VerticalStackLayout Spacing="2">
-                        <Label x:Name="ReportStatusLabel" Text="Report Status" FontSize="12" TextColor="#666"/>
+                        <Label x:Name="ReportStatusLabel" Text="{x:Static res:Strings.ReportStatus}" FontSize="12" TextColor="#666"/>
                         <Label x:Name="ReportStatusValueLabel" 
                                FontSize="16" 
                                FontAttributes="Bold" 
@@ -238,15 +207,25 @@
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label x:Name="ReportsLabel" Text="Sales Reports" FontSize="16" FontAttributes="Bold"/>
+                        <Label x:Name="ReportsLabel" Text="{x:Static res:Strings.SalesReports}" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <VerticalStackLayout Spacing="10" Padding="10">
+                        <!-- Branch Selection for Inventory Report -->
+                        <VerticalStackLayout Spacing="5" Margin="0,5,0,5">
+                             <Label x:Name="BranchForReportLabel" Text="{x:Static res:Strings.BranchForInventoryReport}" FontSize="13" FontAttributes="Bold" TextColor="#555"/>
+                             <Picker ItemsSource="{Binding ReportLocations}"
+                                     SelectedItem="{Binding SelectedReportLocation}"
+                                     ItemDisplayBinding="{Binding LocationName}"
+                                     BackgroundColor="#f0f0f0"
+                                     Title="{x:Static res:Strings.SelectBranch}"/>
+                        </VerticalStackLayout>
+
                         <!-- Export Buttons -->
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <Button Text="Export Sales Report" BackgroundColor="#4CAF50" TextColor="White" Command="{Binding ExportSalesReportCommand}"/>
-                            <Button Text="Export Inventory Report" BackgroundColor="#2196F3" TextColor="White" Command="{Binding ExportInventoryReportCommand}"/>
+                            <Button x:Name="ExportSalesReportButton" Grid.Column="0" Text="{x:Static res:Strings.ExportSalesReport}" BackgroundColor="#4CAF50" TextColor="White" Command="{Binding ExportSalesReportCommand}"/>
+                            <Button x:Name="ExportInventoryReportButton" Grid.Column="1" Text="{x:Static res:Strings.ExportInventoryReport}" BackgroundColor="#2196F3" TextColor="White" Command="{Binding ExportInventoryReportCommand}"/>
                         </Grid>
-                        <Label x:Name="TopProductsLabel" Text="Top Products" FontSize="14" FontAttributes="Bold"/>
+                        <Label x:Name="TopProductsLabel" Text="{x:Static res:Strings.TopProducts}" FontSize="14" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding TopProducts}" HeightRequest="200">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -265,7 +244,7 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-                    <Label x:Name="RecentOrdersLabel" Text="Recent Orders" FontSize="14" FontAttributes="Bold"/>
+                    <Label x:Name="RecentOrdersLabel" Text="{x:Static res:Strings.RecentOrders}" FontSize="14" FontAttributes="Bold"/>
             <CollectionView ItemsSource="{Binding RecentOrders}" HeightRequest="220" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -301,33 +280,33 @@
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Inventory Statistics" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="{x:Static res:Strings.InventoryStatistics}" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <VerticalStackLayout Spacing="10" Padding="10">
                     <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#fff3cd">
                         <VerticalStackLayout Spacing="8">
-                            <Label Text="Low Stock Alerts" FontSize="14" FontAttributes="Bold" TextColor="#856404"/>
-                            <Label Text="Products below threshold will be shown here" FontSize="12" TextColor="#856404"/>
+                            <Label Text="{x:Static res:Strings.LowStockAlerts}" FontSize="14" FontAttributes="Bold" TextColor="#856404"/>
+                            <Label Text="{x:Static res:Strings.ProductsBelowThreshold}" FontSize="12" TextColor="#856404"/>
                             <!-- TODO: Add low stock products list -->
                         </VerticalStackLayout>
                     </Border>
                     <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="#f8d7da">
                         <VerticalStackLayout Spacing="8">
-                            <Label Text="Out of Stock" FontSize="14" FontAttributes="Bold" TextColor="#721c24"/>
-                            <Label Text="Out of stock items will be shown here" FontSize="12" TextColor="#721c24"/>
+                            <Label Text="{x:Static res:Strings.OutOfStock}" FontSize="14" FontAttributes="Bold" TextColor="#721c24"/>
+                            <Label Text="{x:Static res:Strings.OutOfStockItems}" FontSize="12" TextColor="#721c24"/>
                             <!-- TODO: Add out of stock products list -->
                         </VerticalStackLayout>
                     </Border>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Total Stock Value" FontSize="12" TextColor="#666"/>
-                                <Label Text="Calculating..." FontSize="16" FontAttributes="Bold"/>
+                                <Label Text="{x:Static res:Strings.TotalStockValue}" FontSize="12" TextColor="#666"/>
+                                <Label Text="{x:Static res:Strings.Calculating}" FontSize="16" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </Border>
                         <Border Stroke="#e0e0e0" StrokeThickness="1" Padding="12" BackgroundColor="White">
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Total Products" FontSize="12" TextColor="#666"/>
+                                <Label Text="{x:Static res:Strings.TotalProducts}" FontSize="12" TextColor="#666"/>
                                 <Label Text="{Binding Products.Count}" FontSize="16" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </Border>
@@ -340,10 +319,10 @@
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="White" Margin="0,10,0,0" IsVisible="False">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Employee Activity" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="{x:Static res:Strings.EmployeeActivity}" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <VerticalStackLayout Spacing="10" Padding="10">
-                    <Label Text="Employee activity tracking will be shown here" FontSize="12" TextColor="#666"/>
+                    <Label Text="{x:Static res:Strings.EmployeeActivityTracking}" FontSize="12" TextColor="#666"/>
                     <!-- TODO: Add employee activity list -->
                     </VerticalStackLayout>
                 </VerticalStackLayout>
@@ -353,15 +332,15 @@
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="False">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="{x:Static res:Strings.EmployeeExpenses}" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <VerticalStackLayout Spacing="10" Padding="10">
-            <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
+            <Label Text="{x:Static res:Strings.EmployeeExpenses}" FontSize="16" FontAttributes="Bold"/>
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Picker Grid.Column="0"
-                                Title="Employee"
+                                Title="{x:Static res:Strings.Employee}"
                                 ItemsSource="{Binding Users}"
                                 ItemDisplayBinding="{Binding Name}"
                                 SelectedItem="{Binding SelectedExpenseUser}"/>
@@ -369,11 +348,11 @@
                                     Date="{Binding ExpenseDate}"/>
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Entry Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
-                        <Entry Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
+                        <Entry Grid.Column="0" Placeholder="{x:Static res:Strings.Amount}" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                        <Entry Grid.Column="1" Placeholder="{x:Static res:Strings.Category}" Text="{Binding ExpenseCategory}"/>
                     </Grid>
-                    <Entry Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
-                    <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                    <Entry Placeholder="{x:Static res:Strings.Notes}" Text="{Binding ExpenseNotes}"/>
+                    <Button Text="{x:Static res:Strings.AddExpense}" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
                 </VerticalStackLayout>
             </Border>
 
@@ -385,7 +364,7 @@
                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='${0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
                             <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
                             <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
-                                <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                <Button Text="{x:Static res:Strings.Delete}" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
                                         CommandParameter="{Binding .}"/>
                             </HorizontalStackLayout>

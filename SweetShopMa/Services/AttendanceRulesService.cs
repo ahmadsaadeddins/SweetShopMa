@@ -25,8 +25,8 @@ public class AttendanceRulesService
             CheckOut = checkOut
         };
 
-        bool isAbsentWithPermission = status.Contains("Absent (With Permission)", StringComparison.OrdinalIgnoreCase);
-        bool isAbsentWithoutPermission = status.Contains("Absent (Without Permission)", StringComparison.OrdinalIgnoreCase);
+        bool isAbsentWithPermission = string.Equals(status, "AbsentWithPermission", StringComparison.OrdinalIgnoreCase);
+        bool isAbsentWithoutPermission = string.Equals(status, "AbsentWithoutPermission", StringComparison.OrdinalIgnoreCase);
         bool isAbsent = isAbsentWithPermission || isAbsentWithoutPermission;
         bool isReset = string.Equals(status, "Reset", StringComparison.OrdinalIgnoreCase);
         bool requiresTimes = string.Equals(status, "Present", StringComparison.OrdinalIgnoreCase) || isReset;

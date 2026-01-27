@@ -38,6 +38,8 @@ public partial class LoginPage : ContentPage
     private AuthService? _authService;
     private DatabaseService? _databaseService;
     private LocalizationService? _localizationService;
+    private IShopSettingsService? _settingsService;
+    private SessionContext? _sessionContext;
 
     /// <summary>
     /// Parameterless constructor (used by Shell DataTemplate).
@@ -49,15 +51,17 @@ public partial class LoginPage : ContentPage
         // Services will be loaded in OnAppearing when Handler is available
     }
 
-    public LoginPage(AuthService authService, DatabaseService databaseService, LocalizationService localizationService)
+    public LoginPage(AuthService authService, DatabaseService databaseService, LocalizationService localizationService, IShopSettingsService settingsService, SessionContext sessionContext)
     {
         InitializeComponent();
         _authService = authService;
         _databaseService = databaseService;
         _localizationService = localizationService;
+        _settingsService = settingsService;
+        _sessionContext = sessionContext;
         
         _localizationService.LanguageChanged += OnLanguageChanged;
-        UpdateLocalizedStrings();
+        _ = UpdateLocalizedStringsAsync(); // Fire and forget with proper error handling inside
         UpdateRTL();
     }
 
@@ -69,11 +73,13 @@ public partial class LoginPage : ContentPage
             _authService = Handler.MauiContext.Services.GetService<AuthService>();
             _databaseService = Handler.MauiContext.Services.GetService<DatabaseService>();
             _localizationService = Handler.MauiContext.Services.GetService<LocalizationService>();
+            _settingsService = Handler.MauiContext.Services.GetService<IShopSettingsService>();
+            _sessionContext = Handler.MauiContext.Services.GetService<SessionContext>();
             
             if (_localizationService != null)
             {
                 _localizationService.LanguageChanged += OnLanguageChanged;
-                UpdateLocalizedStrings();
+                _ = UpdateLocalizedStringsAsync();
                 UpdateRTL();
             }
         }
@@ -87,11 +93,12 @@ public partial class LoginPage : ContentPage
                     _authService = Shell.Current.Handler.MauiContext.Services.GetService<AuthService>();
                     _databaseService = Shell.Current.Handler.MauiContext.Services.GetService<DatabaseService>();
                     _localizationService = Shell.Current.Handler.MauiContext.Services.GetService<LocalizationService>();
+                    _settingsService = Shell.Current.Handler.MauiContext.Services.GetService<IShopSettingsService>();
                     
                     if (_localizationService != null)
                     {
                         _localizationService.LanguageChanged += OnLanguageChanged;
-                        UpdateLocalizedStrings();
+                        _ = UpdateLocalizedStringsAsync();
                         UpdateRTL();
                     }
                 }
@@ -113,34 +120,67 @@ public partial class LoginPage : ContentPage
             LoadServices();
         }
         
+        // Check if setup is needed
+        if (_databaseService != null && !await _databaseService.HasAnyUsersAsync())
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () => 
+            {
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.GoToAsync("//initialsetup");
+                }
+            });
+            return;
+        }
+
         // Seed products and users when login page appears (if not already seeded)
+        // Seed logic is now handled by Initial Setup for new installs
+        /*
         if (_databaseService != null)
         {
             await _databaseService.SeedUsersAsync();
             await _databaseService.SeedProductsAsync();
         }
+        */
         
         // Auto-focus username field for quick entry (with small delay to ensure page is ready)
-        await Task.Delay(100);
-        if (UsernameEntry != null)
+        await Task.Delay(250); // Slightly longer delay for stability
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            UsernameEntry.Focus();
-        }
+            if (UsernameEntry != null)
+            {
+                UsernameEntry.Focus();
+            }
+        });
     }
 
     private void OnLanguageChanged()
     {
-        UpdateLocalizedStrings();
+        _ = UpdateLocalizedStringsAsync();
         UpdateRTL();
     }
 
-    private void UpdateLocalizedStrings()
+    private async Task UpdateLocalizedStringsAsync()
     {
         if (_localizationService == null) return;
         
         Title = _localizationService.GetString("Login");
         if (AppTitleLabel != null)
-            AppTitleLabel.Text = _localizationService.GetString("AppTitle");
+        {
+            try 
+            {
+                var settings = await (_settingsService?.GetSettingsAsync() ?? Task.FromResult<Models.ShopSettings>(null)); 
+                string bizName = (_localizationService.IsRTL ? settings?.BusinessNameArabic : settings?.BusinessName) 
+                                 ?? _localizationService.GetString("AppTitle");
+                AppTitleLabel.Text = bizName;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading settings for title: {ex.Message}");
+                AppTitleLabel.Text = _localizationService.GetString("AppTitle");
+            }
+        }
+        
         if (SecureLoginLabel != null)
             SecureLoginLabel.Text = _localizationService.GetString("SecureLogin");
         if (UsernameLabel != null)
@@ -153,6 +193,10 @@ public partial class LoginPage : ContentPage
             PasswordEntry.Placeholder = _localizationService.GetString("EnterPassword");
         if (LoginButton != null)
             LoginButton.Text = _localizationService.GetString("LoginButton");
+        if (SelectLocationLabel != null)
+            SelectLocationLabel.Text = _localizationService.GetString("SelectLocation");
+        if (ConfirmLocationButton != null)
+            ConfirmLocationButton.Text = "✅ " + (_localizationService.GetString("LoginButton") ?? "Login");
     }
 
     private void UpdateRTL()
@@ -205,12 +249,49 @@ public partial class LoginPage : ContentPage
 
             if (success)
             {
-                // Clear fields
-                UsernameEntry.Text = "";
-                PasswordEntry.Text = "";
+                var user = _authService.CurrentUser;
+                var availableLocations = await _settingsService.GetLocationsForUserAsync(user.Id);
 
-                // Navigate to shop page
-                await Shell.Current.GoToAsync("//shop");
+                if (availableLocations.Count == 0)
+                {
+                    // No locations assigned to this user, but maybe they are admin/dev
+                    if (user.IsAdmin || user.IsDeveloper)
+                    {
+                        availableLocations = await _settingsService.GetLocationsAsync();
+                    }
+                }
+
+                if (availableLocations.Count == 0)
+                {
+                    ShowError("No locations assigned to this user. Please contact administrator.");
+                    return;
+                }
+
+                if (availableLocations.Count == 1)
+                {
+                    _sessionContext.ActiveLocation = availableLocations[0];
+                    // Clear fields
+                    UsernameEntry.Text = "";
+                    PasswordEntry.Text = "";
+
+                    // Navigate to shop page
+                    await Shell.Current.GoToAsync("//shop");
+                }
+                else
+                {
+                    // Multiple locations, show picker
+                    LocationPicker.ItemsSource = availableLocations;
+                    LocationPicker.SelectedIndex = 0;
+                    
+                    // Hide login fields, show location picker
+                    UsernameLabel.IsVisible = false;
+                    UsernameEntry.IsVisible = false;
+                    PasswordLabel.IsVisible = false;
+                    PasswordEntry.IsVisible = false;
+                    LoginButton.IsVisible = false;
+                    
+                    LocationSelectionLayout.IsVisible = true;
+                }
             }
             else
             {
@@ -231,6 +312,21 @@ public partial class LoginPage : ContentPage
             LoadingIndicator.IsRunning = false;
             LoadingIndicator.IsVisible = false;
             LoginButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnConfirmLocationClicked(object sender, EventArgs e)
+    {
+        if (LocationPicker.SelectedItem is SweetShopMa.Models.ShopLocation selectedLocation && _sessionContext != null)
+        {
+            _sessionContext.ActiveLocation = selectedLocation;
+            
+            // Clear fields
+            UsernameEntry.Text = "";
+            PasswordEntry.Text = "";
+            
+            // Navigate to shop page
+            await Shell.Current.GoToAsync("//shop");
         }
     }
 

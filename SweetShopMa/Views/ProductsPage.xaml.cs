@@ -83,14 +83,54 @@ public partial class ProductsPage : ContentPage
     private void UpdateLocalizedStrings()
     {
         Title = _localizationService.GetString("ProductManagement") ?? "Product Management";
+        
         if (PageTitleLabel != null)
             PageTitleLabel.Text = _localizationService.GetString("ProductManagement") ?? "Product Management";
         if (BackButton != null)
             BackButton.Text = _localizationService.GetString("BackButton");
+            
+        // Add Product Section
         if (AddProductLabel != null)
             AddProductLabel.Text = _localizationService.GetString("AddProduct");
+        if (NewProductNameEntry != null)
+            NewProductNameEntry.Placeholder = _localizationService.GetString("Name");
+        if (NewProductEmojiEntry != null)
+            NewProductEmojiEntry.Placeholder = _localizationService.GetString("EmojiPlaceholder");
+        if (NewProductBarcodeEntry != null)
+            NewProductBarcodeEntry.Placeholder = _localizationService.GetString("Barcode");
+        if (NewProductPriceEntry != null)
+            NewProductPriceEntry.Placeholder = _localizationService.GetString("Price");
+        if (NewProductStockEntry != null)
+            NewProductStockEntry.Placeholder = _localizationService.GetString("StartingStock");
+        if (NewProductCategoryEntry != null)
+            NewProductCategoryEntry.Placeholder = _localizationService.GetString("CategoryPlaceholder");
+        if (SoldByWeightLabel != null)
+            SoldByWeightLabel.Text = _localizationService.GetString("SoldByWeight");
         if (AddProductButton != null)
             AddProductButton.Text = _localizationService.GetString("AddProduct");
+
+        // Search Section
+        if (SearchHeaderLabel != null)
+            SearchHeaderLabel.Text = _localizationService.GetString("SearchProducts");
+        if (ProductSearchEntry != null)
+            ProductSearchEntry.Placeholder = _localizationService.GetString("SearchProductPlaceholder");
+
+        // Edit Product Section
+        if (EditProductHeaderLabel != null)
+            EditProductHeaderLabel.Text = _localizationService.GetString("EditProduct");
+        if (EditProductNameEntry != null)
+            EditProductNameEntry.Placeholder = _localizationService.GetString("Name");
+        if (EditProductEmojiEntry != null)
+            EditProductEmojiEntry.Placeholder = _localizationService.GetString("EmojiPlaceholder");
+        if (EditProductCategoryEntry != null)
+            EditProductCategoryEntry.Placeholder = _localizationService.GetString("CategoryPlaceholder");
+        if (EditProductPriceEntry != null)
+            EditProductPriceEntry.Placeholder = _localizationService.GetString("Price");
+        if (UpdateProductButton != null)
+            UpdateProductButton.Text = _localizationService.GetString("Update");
+        if (CancelEditButton != null)
+            CancelEditButton.Text = _localizationService.GetString("Cancel");
+
         if (ProductsLabel != null)
             ProductsLabel.Text = _localizationService.GetString("Products");
     }

@@ -2,9 +2,39 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SweetShopMa.Views.AdminDashboardPage"
-             Title="Dashboard">
+             Title="Dashboard"
+             ControlTemplate="{StaticResource MainPageTemplate}">
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Navigation + Language Selector -->
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Button x:Name="BackButton"
+                        Text="Back"
+                        BackgroundColor="#f0f4f7"
+                        TextColor="#1d7480"
+                        Padding="10,6"
+                        CornerRadius="6"
+                        Clicked="OnBackButtonClicked"
+                        HorizontalOptions="Start"/>
+                <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="5">
+                    <Button Text="EN" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                    <Button Text="AR" 
+                            BackgroundColor="#1d7480"
+                            TextColor="White"
+                            Padding="8,5"
+                            CornerRadius="4"
+                            FontSize="10"
+                            Clicked="OnLanguageButtonClicked"/>
+                </HorizontalStackLayout>
+            </Grid>
+
             <Label Text="Admin Dashboard" FontSize="24" FontAttributes="Bold"/>
             <Label Text="Overview and quick statistics" FontSize="14" TextColor="#666"/>
             

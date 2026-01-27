@@ -50,22 +50,24 @@ namespace SweetShopMa.Views;
 public partial class MainPage : ContentPage
 {
     private readonly LocalizationService _localizationService;
+    private readonly IShopSettingsService _settingsService;
 
     /// <summary>
     /// Constructor - receives ShopViewModel and LocalizationService via dependency injection.
     /// Sets up keyboard navigation, shortcuts, and initializes UI.
     /// </summary>
-    public MainPage(ShopViewModel viewModel, LocalizationService localizationService)
+    public MainPage(ShopViewModel viewModel, LocalizationService localizationService, IShopSettingsService settingsService)
     {
         InitializeComponent();
         BindingContext = viewModel;
         _localizationService = localizationService;
+        _settingsService = settingsService;
         
         _localizationService.LanguageChanged += OnLanguageChanged;
+        _settingsService.SettingsChanged += OnSettingsChanged;
         
         // Set up keyboard navigation
         SetupKeyboardNavigation();
-        SetupKeyboardShortcuts();
         
         UpdateLocalizedStrings();
         UpdateRTL();
@@ -77,19 +79,27 @@ public partial class MainPage : ContentPage
         UpdateRTL();
     }
 
-    private void UpdateLocalizedStrings()
+    private void OnSettingsChanged(object sender, EventArgs e)
     {
-        Title = _localizationService.GetString("AppTitle");
-        if (AppTitleLabel != null)
-            AppTitleLabel.Text = _localizationService.GetString("AppTitle");
-        if (AppSubtitleLabel != null)
-            AppSubtitleLabel.Text = _localizationService.GetString("AppSubtitle");
-        if (LoginButton != null)
-            LoginButton.Text = _localizationService.GetString("LoginButton");
-        if (AdminPanelButton != null)
-            AdminPanelButton.Text = _localizationService.GetString("AdminPanel");
-        if (LogoutButton != null)
-            LogoutButton.Text = _localizationService.GetString("Logout");
+        UpdateLocalizedStrings();
+    }
+
+    private async void UpdateLocalizedStrings()
+    {
+        // Load business name from settings
+        try
+        {
+            var settings = await _settingsService.GetSettingsAsync();
+            string bizName = (_localizationService.IsRTL ? settings?.BusinessNameArabic : settings?.BusinessName)
+                             ?? _localizationService.GetString("AppTitle");
+            Title = bizName;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading settings for title: {ex.Message}");
+            Title = _localizationService.GetString("AppTitle");
+        }
+
         if (ScanBarcodeLabel != null)
             ScanBarcodeLabel.Text = _localizationService.GetString("ScanBarcode");
         if (ProductSearchEntry != null)
@@ -119,24 +129,28 @@ public partial class MainPage : ContentPage
         if (OpenDrawerButton != null)
             OpenDrawerButton.Text = _localizationService.GetString("OpenDrawer");
         
-        // Update LoggedInAs label
+        // Update logged in as label
         if (LoggedInAsLabel != null && BindingContext is ShopViewModel vm)
         {
-            var loggedInAsFormat = _localizationService.GetString("LoggedInAs");
-            LoggedInAsLabel.Text = string.Format(loggedInAsFormat, vm.CurrentUserName);
+            if (vm.IsAuthenticated && !string.IsNullOrWhiteSpace(vm.CurrentUserName))
+            {
+                var loggedInFormat = _localizationService.GetString("LoggedInAs");
+                LoggedInAsLabel.Text = string.Format(loggedInFormat, vm.CurrentUserName);
+            }
+        }
+        
+        // Update language button backgrounds
+        if (EnLanguageButton != null && ArLanguageButton != null)
+        {
+            var currentLang = _localizationService.CurrentLanguage;
+            EnLanguageButton.BackgroundColor = currentLang == "en" ? Color.Parse("#0f5c66") : Color.Parse("#1d7480");
+            ArLanguageButton.BackgroundColor = currentLang == "ar" ? Color.Parse("#0f5c66") : Color.Parse("#1d7480");
         }
     }
 
     private void UpdateRTL()
     {
         FlowDirection = _localizationService.IsRTL ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
-    }
-
-    private void OnLanguageButtonClicked(object sender, EventArgs e)
-    {
-        var currentLang = _localizationService.CurrentLanguage;
-        var newLang = currentLang == "en" ? "ar" : "en";
-        _localizationService.SetLanguage(newLang);
     }
 
     private void SetupKeyboardNavigation()
@@ -156,46 +170,6 @@ public partial class MainPage : ContentPage
         // Note: QuantityEntry Focused event is now handled in OnQuantityEntryFocused method
     }
 
-    private void SetupKeyboardShortcuts()
-    {
-        // Set up keyboard shortcuts for quick checkout
-#if WINDOWS
-        // On Windows, handle KeyDown at the page level
-        this.Loaded += OnPageLoaded;
-#endif
-    }
-
-    private void OnPageLoaded(object sender, EventArgs e)
-    {
-#if WINDOWS
-        // Set up F1 key handler for quick checkout
-        if (Handler?.PlatformView != null)
-        {
-            var platformView = Handler.PlatformView as Microsoft.UI.Xaml.Controls.Page;
-            if (platformView != null)
-            {
-                platformView.KeyDown += OnPageKeyDown;
-            }
-        }
-#endif
-    }
-
-#if WINDOWS
-    private void OnPageKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key == VirtualKey.F1)
-        {
-            if (BindingContext is ShopViewModel viewModel && viewModel.IsCheckoutEnabled)
-            {
-                if (viewModel.CheckoutCommand.CanExecute(null))
-                {
-                    viewModel.CheckoutCommand.Execute(null);
-                }
-                e.Handled = true;
-            }
-        }
-    }
-#endif
 
     private void OnBarcodeEntryCompleted(object sender, EventArgs e)
     {
