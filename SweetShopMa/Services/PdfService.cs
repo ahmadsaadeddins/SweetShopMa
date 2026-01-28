@@ -18,7 +18,11 @@ namespace SweetShopMa.Services;
 /// </summary>
 public class PdfService : IPdfService
 {
+    #region Constants
     private const int UsersPerPage = 10;
+    private const int HoursPerWorkDay = 8;
+    #endregion
+
     private readonly LocalizationService _localizationService;
 
     public PdfService(LocalizationService localizationService)
@@ -121,8 +125,8 @@ public class PdfService : IPdfService
                                                 // RTL: Reverse column order
                                                 AlignText(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(summary.Payroll));
                                                 AlignText(table.Cell().Element(CellStyleRTL)).Text($"{summary.OvertimeHours:F1}");
-                                                AlignText(table.Cell().Element(CellStyleRTL)).Text($"-{FormatAmount(summary.ExpensesTotal)}");
-                                                AlignText(table.Cell().Element(CellStyleRTL)).Text($"-{FormatAmount(summary.AbsenceDeductions)}");
+                                                AlignText(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(summary.ExpensesTotal));
+                                                AlignText(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(summary.AbsenceDeductions));
                                                 AlignText(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(summary.RestDayPayout));
                                                 AlignText(table.Cell().Element(CellStyleRTL)).Text(summary.EarnedRestDays.ToString());
                                                 AlignText(table.Cell().Element(CellStyleRTL)).Text(summary.WorkedDays.ToString());
@@ -134,8 +138,8 @@ public class PdfService : IPdfService
                                                 AlignNumeric(table.Cell().Element(CellStyle)).Text(summary.WorkedDays.ToString());
                                                 AlignNumeric(table.Cell().Element(CellStyle)).Text(summary.EarnedRestDays.ToString());
                                                 AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(summary.RestDayPayout));
-                                                AlignNumeric(table.Cell().Element(CellStyle)).Text($"-{FormatAmount(summary.AbsenceDeductions)}");
-                                                AlignNumeric(table.Cell().Element(CellStyle)).Text($"-{FormatAmount(summary.ExpensesTotal)}");
+                                                AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(summary.AbsenceDeductions));
+                                                AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(summary.ExpensesTotal));
                                                 AlignNumeric(table.Cell().Element(CellStyle)).Text($"{summary.OvertimeHours:F1}");
                                                 AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(summary.Payroll));
                                             }
@@ -162,8 +166,8 @@ public class PdfService : IPdfService
                                         totalsColumn.Item().AlignRight().Text(M($"Total Present Days: {totals.TotalPresentDays}", $"إجمالي أيام الحضور: {totals.TotalPresentDays}"));
                                         totalsColumn.Item().AlignRight().Text(M($"Total Absent Days: {totals.TotalAbsentDays}", $"إجمالي أيام الغياب: {totals.TotalAbsentDays}"));
                                         totalsColumn.Item().AlignRight().Text(M($"Total OT Hours: {totals.TotalOvertimeHours:F1}", $"إجمالي الساعات الإضافية: {totals.TotalOvertimeHours:F1}"));
-                                        totalsColumn.Item().AlignRight().Text(M($"Rest Payout: {FormatAmount(totals.TotalRestPayout)}", $"مكافأة الراحة: {FormatAmount(totals.TotalRestPayout)}"));
-                                        totalsColumn.Item().AlignRight().Text(M($"Absence Deductions: -{FormatAmount(totals.TotalAbsenceDeductions)}", $"خصومات الغياب: -{FormatAmount(totals.TotalAbsenceDeductions)}"));
+                                        totalsColumn.Item().AlignRight().Text(M($"Rest Payout: +{FormatAmount(totals.TotalRestPayout)}", $"مكافأة الراحة: +{FormatAmount(totals.TotalRestPayout)}"));
+                                        totalsColumn.Item().AlignRight().Text(M($"Absence Deductions: {FormatAmount(totals.TotalAbsenceDeductions)}", $"خصومات الغياب: {FormatAmount(totals.TotalAbsenceDeductions)}"));
                                         totalsColumn.Item().AlignRight().Text(M($"Total Payroll: {FormatAmount(totals.TotalPayroll)}", $"إجمالي الرواتب: {FormatAmount(totals.TotalPayroll)}")).Bold();
                                     }
                                     else
@@ -172,8 +176,8 @@ public class PdfService : IPdfService
                                         totalsColumn.Item().Text(M($"Total Present Days: {totals.TotalPresentDays}", $"إجمالي أيام الحضور: {totals.TotalPresentDays}"));
                                         totalsColumn.Item().Text(M($"Total Absent Days: {totals.TotalAbsentDays}", $"إجمالي أيام الغياب: {totals.TotalAbsentDays}"));
                                         totalsColumn.Item().Text(M($"Total OT Hours: {totals.TotalOvertimeHours:F1}", $"إجمالي الساعات الإضافية: {totals.TotalOvertimeHours:F1}"));
-                                        totalsColumn.Item().Text(M($"Rest Payout: {FormatAmount(totals.TotalRestPayout)}", $"مكافأة الراحة: {FormatAmount(totals.TotalRestPayout)}"));
-                                        totalsColumn.Item().Text(M($"Absence Deductions: -{FormatAmount(totals.TotalAbsenceDeductions)}", $"خصومات الغياب: -{FormatAmount(totals.TotalAbsenceDeductions)}"));
+                                        totalsColumn.Item().Text(M($"Rest Payout: +{FormatAmount(totals.TotalRestPayout)}", $"مكافأة الراحة: +{FormatAmount(totals.TotalRestPayout)}"));
+                                        totalsColumn.Item().Text(M($"Absence Deductions: {FormatAmount(totals.TotalAbsenceDeductions)}", $"خصومات الغياب: {FormatAmount(totals.TotalAbsenceDeductions)}"));
                                         totalsColumn.Item().Text(M($"Total Payroll: {FormatAmount(totals.TotalPayroll)}", $"إجمالي الرواتب: {FormatAmount(totals.TotalPayroll)}")).Bold();
                                     }
                                 });
@@ -218,7 +222,9 @@ public class PdfService : IPdfService
             var fileName = $"Payroll_{summary.UserName}_{month:yyyy-MM}.pdf";
             var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
 
-            var expensesTotal = expenses?.Sum(e => e.Amount) ?? 0m;
+            // Ensure expenses list is not null and calculate total safely
+            var safeExpenses = expenses ?? new List<EmployeeExpense>();
+            var expensesTotal = safeExpenses.Sum(e => e?.Amount ?? 0m);
 
             var document = Document.Create(container =>
             {
@@ -239,8 +245,8 @@ public class PdfService : IPdfService
                                 var net = summary.Payroll;
                                 c.Item().AlignRight().Text(M($"Net Pay: {FormatAmount(net)}", $"الصافي: {FormatAmount(net)}")).Bold();
                                 c.Item().AlignRight().Text(M($"Overtime Hours: {summary.OvertimeHours:F1}", $"ساعات إضافية: {summary.OvertimeHours:F1}"));
-                                c.Item().AlignRight().Text(M($"Expenses: -{FormatAmount(expensesTotal)}", $"المصاريف: -{FormatAmount(expensesTotal)}"));
-                                c.Item().AlignRight().Text(M($"Absence Deductions: -{FormatAmount(summary.AbsenceDeductions)}", $"خصومات الغياب: -{FormatAmount(summary.AbsenceDeductions)}"));
+                                c.Item().AlignRight().Text(M($"Expenses (deducted): {FormatAmount(expensesTotal)}", $"المصاريف (مخصومة): {FormatAmount(expensesTotal)}"));
+                                c.Item().AlignRight().Text(M($"Absence Deductions: {FormatAmount(summary.AbsenceDeductions)}", $"خصومات الغياب: {FormatAmount(summary.AbsenceDeductions)}"));
                                 c.Item().AlignRight().Text(M($"Rest Payout: {FormatAmount(summary.RestDayPayout)}", $"مكافأة الراحة: {FormatAmount(summary.RestDayPayout)}"));
                                 c.Item().AlignRight().Text(M($"Rest Days: {summary.EarnedRestDays}", $"أيام الراحة: {summary.EarnedRestDays}"));
                                 c.Item().AlignRight().Text(M($"Worked Days: {summary.WorkedDays}", $"أيام العمل: {summary.WorkedDays}"));
@@ -250,8 +256,8 @@ public class PdfService : IPdfService
                                 c.Item().Text(M($"Worked Days: {summary.WorkedDays}", $"أيام العمل: {summary.WorkedDays}"));
                                 c.Item().Text(M($"Rest Days: {summary.EarnedRestDays}", $"أيام الراحة: {summary.EarnedRestDays}"));
                                 c.Item().Text(M($"Rest Payout: {FormatAmount(summary.RestDayPayout)}", $"مكافأة الراحة: {FormatAmount(summary.RestDayPayout)}"));
-                                c.Item().Text(M($"Absence Deductions: -{FormatAmount(summary.AbsenceDeductions)}", $"خصومات الغياب: -{FormatAmount(summary.AbsenceDeductions)}"));
-                                c.Item().Text(M($"Expenses: -{FormatAmount(expensesTotal)}", $"المصاريف: -{FormatAmount(expensesTotal)}"));
+                                c.Item().Text(M($"Absence Deductions: {FormatAmount(summary.AbsenceDeductions)}", $"خصومات الغياب: {FormatAmount(summary.AbsenceDeductions)}"));
+                                c.Item().Text(M($"Expenses (deducted): {FormatAmount(expensesTotal)}", $"المصاريف (مخصومة): {FormatAmount(expensesTotal)}"));
                                 c.Item().Text(M($"Overtime Hours: {summary.OvertimeHours:F1}", $"ساعات إضافية: {summary.OvertimeHours:F1}"));
                                 var net = summary.Payroll;
                                 c.Item().Text(M($"Net Pay: {FormatAmount(net)}", $"الصافي: {FormatAmount(net)}")).Bold();
@@ -304,8 +310,10 @@ public class PdfService : IPdfService
                                 }
                             });
 
-                            foreach (var e in expenses ?? new List<EmployeeExpense>())
+                            foreach (var e in safeExpenses)
                             {
+                                if (e == null) continue;
+
                                 if (IsArabic)
                                 {
                                     AlignText(table.Cell().Element(CellStyleRTL)).Text(e.Notes ?? "");
@@ -316,9 +324,9 @@ public class PdfService : IPdfService
                                 else
                                 {
                                     table.Cell().Element(CellStyle).Text(e.ExpenseDate.ToString("yyyy-MM-dd"));
-                                    table.Cell().Element(CellStyle).Text(e.Category);
+                                    table.Cell().Element(CellStyle).Text(e.Category ?? "");
                                     AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(e.Amount));
-                                    table.Cell().Element(CellStyle).Text(e.Notes);
+                                    table.Cell().Element(CellStyle).Text(e.Notes ?? "");
                                 }
                             }
                         });
@@ -355,6 +363,115 @@ public class PdfService : IPdfService
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error generating employee payroll PDF: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<string?> GenerateAttendancePdfAsync(List<AttendanceRecord> records, DateTime month)
+    {
+        try
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var monthName = IsArabic ? month.ToString("MMMM yyyy", new CultureInfo("ar")) : month.ToString("MMMM yyyy");
+            var fileName = $"Attendance_{month:yyyy-MM}.pdf";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9));
+
+                    page.Header()
+                        .Text(M($"Attendance Report - {monthName}", $"تقرير الحضور - {monthName}"))
+                        .FontSize(16)
+                        .Bold()
+                        .AlignCenter();
+
+                    page.Content().Column(column =>
+                    {
+                        column.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(2);
+                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.1f);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(1.2f);
+                            });
+
+                            table.Header(header =>
+                            {
+                                if (IsArabic)
+                                {
+                                    header.Cell().Element(CellStyleRTL).Text(M("User", "الموظف")).Bold();
+                                    header.Cell().Element(CellStyleRTL).Text(M("Date", "التاريخ")).Bold();
+                                    header.Cell().Element(CellStyleRTL).Text(M("Status", "الحالة")).Bold();
+                                    header.Cell().Element(CellStyleRTL).Text(M("Regular", "العادي")).Bold();
+                                    header.Cell().Element(CellStyleRTL).Text(M("OT", "الإضافي")).Bold();
+                                    header.Cell().Element(CellStyleRTL).Text(M("Daily Pay", "أجر اليوم")).Bold();
+                                }
+                                else
+                                {
+                                    header.Cell().Element(CellStyle).Text(M("User", "الموظف")).Bold();
+                                    header.Cell().Element(CellStyle).Text(M("Date", "التاريخ")).Bold();
+                                    header.Cell().Element(CellStyle).Text(M("Status", "الحالة")).Bold();
+                                    header.Cell().Element(CellStyle).Text(M("Regular", "العادي")).Bold();
+                                    header.Cell().Element(CellStyle).Text(M("OT", "الإضافي")).Bold();
+                                    header.Cell().Element(CellStyle).Text(M("Daily Pay", "أجر اليوم")).Bold();
+                                }
+                            });
+
+                            foreach (var r in records ?? new List<AttendanceRecord>())
+                            {
+                                if (IsArabic)
+                                {
+                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.UserName);
+                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.Date.ToString("yyyy-MM-dd"));
+                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.Status);
+                                    AlignNumeric(table.Cell().Element(CellStyleRTL)).Text($"{r.RegularHours:F1}");
+                                    AlignNumeric(table.Cell().Element(CellStyleRTL)).Text($"{r.OvertimeHours:F1}");
+                                    AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(r.DailyPay));
+                                }
+                                else
+                                {
+                                    table.Cell().Element(CellStyle).Text(r.UserName);
+                                    table.Cell().Element(CellStyle).Text(r.Date.ToString("yyyy-MM-dd"));
+                                    table.Cell().Element(CellStyle).Text(r.Status);
+                                    AlignNumeric(table.Cell().Element(CellStyle)).Text($"{r.RegularHours:F1}");
+                                    AlignNumeric(table.Cell().Element(CellStyle)).Text($"{r.OvertimeHours:F1}");
+                                    AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(r.DailyPay));
+                                }
+                            }
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        if (IsArabic)
+                        {
+                            x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                            x.Span(M("Generated on ", " تم الإنشاء في "));
+                        }
+                        else
+                        {
+                            x.Span(M("Generated on ", "تم الإنشاء في "));
+                            x.Span(DateTime.Now.ToString("yyyy-MM-dd HH:mm")).Bold();
+                        }
+                    });
+                });
+            });
+
+            await Task.Run(() => document.GeneratePdf(filePath));
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error generating attendance PDF: {ex.Message}");
             return null;
         }
     }

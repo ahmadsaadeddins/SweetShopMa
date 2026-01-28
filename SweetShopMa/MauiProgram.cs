@@ -67,6 +67,7 @@ public static class MauiProgram
             .AddSingleton<IPdfService, PdfService>()   // PDF generation service
             .AddSingleton<IShopSettingsService, ShopSettingsService>()
             .AddSingleton<SessionContext>()
+            .AddSingleton<LoggingService>()
             
             // Platform-Specific Services
             // On Windows, use Windows-specific implementations

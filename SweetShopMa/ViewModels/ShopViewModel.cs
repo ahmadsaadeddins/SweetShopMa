@@ -806,7 +806,8 @@ public class ShopViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in Checkout: {ex}");
-            ShowNotification("⚠️ An error occurred during checkout", true);
+            // Show the specific error message to the user
+            ShowNotification($"⚠️ {ex.Message}", true);
         }
     }
 

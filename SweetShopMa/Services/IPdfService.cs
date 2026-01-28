@@ -62,5 +62,13 @@ public interface IPdfService
         List<(Models.Product Product, decimal Stock)> productsWithStock,
         string locationName,
         decimal lowStockThreshold = 10);
+
+    /// <summary>
+    /// Generates an attendance report PDF for a list of records.
+    /// </summary>
+    /// <param name="records">List of attendance records</param>
+    /// <param name="month">Month of the report</param>
+    /// <returns>Path to generated PDF</returns>
+    Task<string?> GenerateAttendancePdfAsync(List<AttendanceRecord> records, DateTime month);
 }
 

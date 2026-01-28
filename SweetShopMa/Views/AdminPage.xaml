@@ -332,15 +332,15 @@
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="0" BackgroundColor="#f9f9f9" Margin="0,10,0,0" IsVisible="False">
                 <VerticalStackLayout Spacing="0">
                     <Border Stroke="#d0d0d0" StrokeThickness="0,0,0,1" Padding="12" BackgroundColor="#f0f0f0">
-                        <Label Text="{x:Static res:Strings.EmployeeExpenses}" FontSize="16" FontAttributes="Bold"/>
+                        <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
                     </Border>
                     <VerticalStackLayout Spacing="10" Padding="10">
-            <Label Text="{x:Static res:Strings.EmployeeExpenses}" FontSize="16" FontAttributes="Bold"/>
+            <Label Text="Employee Expenses" FontSize="16" FontAttributes="Bold"/>
             <Border Stroke="#e0e0e0" StrokeThickness="2" Padding="12" BackgroundColor="#f9f9f9">
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Picker Grid.Column="0"
-                                Title="{x:Static res:Strings.Employee}"
+                                Title="Employee"
                                 ItemsSource="{Binding Users}"
                                 ItemDisplayBinding="{Binding Name}"
                                 SelectedItem="{Binding SelectedExpenseUser}"/>
@@ -348,11 +348,11 @@
                                     Date="{Binding ExpenseDate}"/>
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Entry Grid.Column="0" Placeholder="{x:Static res:Strings.Amount}" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
-                        <Entry Grid.Column="1" Placeholder="{x:Static res:Strings.Category}" Text="{Binding ExpenseCategory}"/>
+                        <Entry Grid.Column="0" Placeholder="Amount" Text="{Binding ExpenseAmount}" Keyboard="Numeric"/>
+                        <Entry Grid.Column="1" Placeholder="Category" Text="{Binding ExpenseCategory}"/>
                     </Grid>
-                    <Entry Placeholder="{x:Static res:Strings.Notes}" Text="{Binding ExpenseNotes}"/>
-                    <Button Text="{x:Static res:Strings.AddExpense}" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
+                    <Entry Placeholder="Notes" Text="{Binding ExpenseNotes}"/>
+                    <Button Text="Add Expense" BackgroundColor="#1d7480" TextColor="White" Command="{Binding AddExpenseCommand}"/>
                 </VerticalStackLayout>
             </Border>
 
@@ -364,7 +364,7 @@
                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='${0:F2}'}" FontAttributes="Bold" HorizontalOptions="End"/>
                             <Label Grid.Row="1" Grid.Column="0" Text="{Binding Category}" FontSize="12" TextColor="#555"/>
                             <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8" HorizontalOptions="End">
-                                <Button Text="{x:Static res:Strings.Delete}" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
+                                <Button Text="Delete" FontSize="12" Padding="8,4" BackgroundColor="#c00000" TextColor="White"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteExpenseCommand}"
                                         CommandParameter="{Binding .}"/>
                             </HorizontalStackLayout>

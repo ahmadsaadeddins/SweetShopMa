@@ -154,7 +154,7 @@ public partial class AdminPage : ContentPage
 
     private async void OnAttendanceTrackerTapped(object sender, EventArgs e)
     {
-        if (_viewModel.OpenAttendancePageCommand.CanExecute(null))
+        if (_viewModel?.OpenAttendancePageCommand?.CanExecute(null) == true)
         {
             _viewModel.OpenAttendancePageCommand.Execute(null);
         }

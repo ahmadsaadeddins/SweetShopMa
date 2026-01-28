@@ -47,13 +47,27 @@ namespace SweetShopMa.ViewModels;
 /// </summary>
 public class AdminViewModel : INotifyPropertyChanged
 {
+    #region Constants
+    private const decimal MaxExpenseAmount = 1000000m;
+    private const decimal MaxSalaryAmount = 10000000m;
+    private const int MinPasswordLength = 4;
+    private const int HoursPerWorkDay = 8;
+    private const int VirtualDaysForShortMonth = 2;
+    private const int ShortMonthDays = 28;
+    private const decimal DefaultOvertimeMultiplier = 1.5m;
+    #endregion
+
+    #region Services
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
     private readonly IServiceProvider _serviceProvider;
     private readonly Services.LocalizationService _localizationService;
     private readonly AttendanceRulesService _attendanceRulesService;
     private readonly Services.IPdfService _pdfService;
+    private readonly Services.LoggingService _loggingService;
+    #endregion
 
+    #region Private Fields
     private bool _isBusy;
     private string _statusMessage = "";
     private bool _isErrorStatus;
@@ -92,93 +106,17 @@ public class AdminViewModel : INotifyPropertyChanged
     private string _topProductName = "No sales yet";
     private string _topProductDetails = "Add items to see insights";
 
-    public ObservableCollection<User> Users { get; } = new();
-    public ObservableCollection<Product> Products { get; } = new();
-    public ObservableCollection<Product> FilteredProducts { get; } = new();
-    public ObservableCollection<Order> RecentOrders { get; } = new();
-    public ObservableCollection<ProductReportItem> TopProducts { get; } = new();
-    public ObservableCollection<AttendanceRecord> AttendanceRecords { get; } = new();
-    public ObservableCollection<DailyAttendanceEntry> AttendanceCalendarDays { get; } = new();
-    public ObservableCollection<ProductStock> ProductStocks { get; } = new();
-    public ObservableCollection<ShopLocation> ReportLocations { get; } = new();
-    
-    private ShopLocation _selectedReportLocation;
-    public ShopLocation SelectedReportLocation
-    {
-        get => _selectedReportLocation;
-        set { if (_selectedReportLocation != value) { _selectedReportLocation = value; OnPropertyChanged(); } }
-    }
-    public ObservableCollection<MonthlyAttendanceSummary> MonthlyAttendanceSummaries { get; } = new();
-    public ObservableCollection<EmployeeExpense> EmployeeExpenses { get; } = new();
-
-    public ICommand AddUserCommand { get; }
-    public ICommand AddProductCommand { get; }
-    public ICommand RefreshCommand { get; }
-    public ICommand ToggleUserStatusCommand { get; }
-    public ICommand OpenOrderDetailsCommand { get; }
-    public ICommand AddAttendanceCommand { get; }
-    public ICommand DeleteAttendanceRecordCommand { get; }
-    public ICommand EditAttendanceRecordCommand { get; }
-    public ICommand UpdateAttendanceRecordCommand { get; }
-    public ICommand OpenAttendancePageCommand { get; }
-    public ICommand CalendarDayTappedCommand { get; }
-    public ICommand EditProductCommand { get; }
-    public ICommand UpdateProductCommand { get; }
-    public ICommand CancelEditProductCommand { get; }
-    public ICommand ExportPayrollPdfCommand { get; }
-    public ICommand AddExpenseCommand { get; }
-    public ICommand DeleteExpenseCommand { get; }
-    public ICommand ExportSelectedEmployeePayrollPdfCommand { get; }
-    
-    // Export commands
-    public ICommand ExportAttendanceToExcelCommand { get; }
-    public ICommand ExportAttendanceToPdfCommand { get; }
-    public ICommand ExportSalesReportCommand { get; }
-    public ICommand ExportInventoryReportCommand { get; }
-    
-    // Bulk operation commands
-    public ICommand BulkDeleteCommand { get; }
-    public ICommand BulkEditCommand { get; }
-    public ICommand SelectAllRecordsCommand { get; }
-    public ICommand ClearSelectionCommand { get; }
-    
-    // Filter commands
-    public ICommand ApplyFiltersCommand { get; }
-    public ICommand ClearFiltersCommand { get; }
-
     // Attendance form fields
     private User _selectedAttendanceUser;
     private DateTime _attendanceDate = DateTime.Today;
-    private string _selectedAttendanceStatus = "";
+    private string _selectedAttendanceStatus = "Present";
+    private string _selectedAttendanceStatusKey;
     private string _attendanceNotes = "";
     private TimeSpan _attendanceCheckInTime = new(8, 0, 0);
     private TimeSpan _attendanceCheckOutTime = new(16, 0, 0);
     private string _attendancePreview = "Regular: 0h • OT: 0h • Pay $0.00";
     private AttendanceRecord _editingAttendanceRecord;
     private bool _isEditingAttendance;
-
-    // Internal status keys (never translated)
-    private static readonly string[] _statusKeys = new[] 
-    { 
-        "Present", 
-        "Reset", 
-        "AbsentWithPermission", 
-        "AbsentWithoutPermission" 
-    };
-
-    // Current selected status key (internal, not localized)
-    private string _selectedAttendanceStatusKey = "Present";
-    public string SelectedAttendanceStatusKey => _selectedAttendanceStatusKey;
-
-    private string GetStatusKeyFromDisplayValue(string displayValue)
-    {
-        foreach (var key in _statusKeys)
-        {
-            if (_localizationService.GetString(key) == displayValue)
-                return key;
-        }
-        return "Present"; // Default fallback
-    }
 
     // Employee expenses fields
     private User _selectedExpenseUser;
@@ -204,14 +142,95 @@ public class AdminViewModel : INotifyPropertyChanged
     // Bulk operations
     private List<AttendanceRecord> _selectedRecords = new();
 
+    // Collapsible section states
+    private bool _isAddEditSectionExpanded = true;
+    private bool _isStatisticsSectionExpanded = true;
+    private bool _isFilteringSectionExpanded = false;
+    private bool _isRecordsSectionExpanded = true;
+    private bool _isMonthlySummarySectionExpanded = true;
+    private bool _isCalendarSectionExpanded = true;
+    private bool _isEmployeeComparisonSectionExpanded = false;
+
+    private readonly string[] _attendanceStatuses =
+        { "Present", "Reset", "Absent (With Permission)", "Absent (Without Permission)" };
+
     private AttendanceSummary _attendanceSummary = new();
     private MonthlyAttendanceTotals _monthlySummaryTotals = new();
     private DateTime _summaryMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private MonthlyAttendanceSummary _selectedMonthlySummary;
     private List<AttendanceRecord> _currentMonthRecords = new();
     private string _newUserSalary = "0";
+    #endregion
 
-    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService, Services.IPdfService pdfService, AttendanceRulesService attendanceRulesService)
+    #region Properties and Collections
+    public ObservableCollection<User> Users { get; } = new();
+    public ObservableCollection<Product> Products { get; } = new();
+    public ObservableCollection<Product> FilteredProducts { get; } = new();
+    public ObservableCollection<Order> RecentOrders { get; } = new();
+    public ObservableCollection<ProductReportItem> TopProducts { get; } = new();
+    public ObservableCollection<AttendanceRecord> AttendanceRecords { get; } = new();
+    public ObservableCollection<DailyAttendanceEntry> AttendanceCalendarDays { get; } = new();
+    public ObservableCollection<ProductStock> ProductStocks { get; } = new();
+    public ObservableCollection<ShopLocation> ReportLocations { get; } = new();
+    
+    private ShopLocation _selectedReportLocation;
+    public ShopLocation SelectedReportLocation
+    {
+        get => _selectedReportLocation;
+        set { if (_selectedReportLocation != value) { _selectedReportLocation = value; OnPropertyChanged(); } }
+    }
+    public ObservableCollection<MonthlyAttendanceSummary> MonthlyAttendanceSummaries { get; } = new();
+    public ObservableCollection<EmployeeExpense> EmployeeExpenses { get; } = new();
+    #endregion
+
+    #region Commands
+    public ICommand AddUserCommand { get; }
+    public ICommand AddProductCommand { get; }
+    public ICommand RefreshCommand { get; }
+    public ICommand ToggleUserStatusCommand { get; }
+    public ICommand OpenOrderDetailsCommand { get; }
+    public ICommand AddAttendanceCommand { get; }
+    public ICommand DeleteAttendanceRecordCommand { get; }
+    public ICommand EditAttendanceRecordCommand { get; }
+    public ICommand UpdateAttendanceRecordCommand { get; }
+    public ICommand OpenAttendancePageCommand { get; }
+    public ICommand CalendarDayTappedCommand { get; }
+    public ICommand EditProductCommand { get; }
+    public ICommand UpdateProductCommand { get; }
+    public ICommand CancelEditProductCommand { get; }
+    public ICommand ExportPayrollPdfCommand { get; }
+    public ICommand AddExpenseCommand { get; }
+    public ICommand DeleteExpenseCommand { get; }
+    public ICommand ExportSelectedEmployeePayrollPdfCommand { get; }
+
+    // Export commands
+    public ICommand ExportAttendanceToExcelCommand { get; }
+    public ICommand ExportAttendanceToPdfCommand { get; }
+    public ICommand ExportSalesReportCommand { get; }
+    public ICommand ExportInventoryReportCommand { get; }
+
+    // Bulk operation commands
+    public ICommand BulkDeleteCommand { get; }
+    public ICommand BulkEditCommand { get; }
+    public ICommand SelectAllRecordsCommand { get; }
+    public ICommand ClearSelectionCommand { get; }
+
+    // Filter commands
+    public ICommand ApplyFiltersCommand { get; }
+    public ICommand ClearFiltersCommand { get; }
+
+    // Collapsible section commands
+    public ICommand ToggleAddEditSectionCommand { get; }
+    public ICommand ToggleStatisticsSectionCommand { get; }
+    public ICommand ToggleFilteringSectionCommand { get; }
+    public ICommand ToggleRecordsSectionCommand { get; }
+    public ICommand ToggleMonthlySummarySectionCommand { get; }
+    public ICommand ToggleCalendarSectionCommand { get; }
+    public ICommand ToggleEmployeeComparisonSectionCommand { get; }
+
+
+
+    public AdminViewModel(DatabaseService databaseService, AuthService authService, IServiceProvider serviceProvider, Services.LocalizationService localizationService, Services.IPdfService pdfService, AttendanceRulesService attendanceRulesService, Services.LoggingService loggingService)
     {
         _databaseService = databaseService;
         _authService = authService;
@@ -219,6 +238,7 @@ public class AdminViewModel : INotifyPropertyChanged
         _localizationService = localizationService;
         _pdfService = pdfService;
         _attendanceRulesService = attendanceRulesService;
+        _loggingService = loggingService;
 
         AddUserCommand = new Command(async () => await AddUserAsync(), () => !IsBusy);
         AddProductCommand = new Command(async () => await AddProductAsync(), () => !IsBusy);
@@ -255,6 +275,36 @@ public class AdminViewModel : INotifyPropertyChanged
         ApplyFiltersCommand = new Command(async () => await ApplyFiltersAsync());
         ClearFiltersCommand = new Command(() => ClearFilters());
 
+        // Collapsible section commands
+        ToggleAddEditSectionCommand = new Command(() => {
+            IsAddEditSectionExpanded = !IsAddEditSectionExpanded;
+            OnPropertyChanged(nameof(AddEditSectionArrow));
+        });
+        ToggleStatisticsSectionCommand = new Command(() => {
+            IsStatisticsSectionExpanded = !IsStatisticsSectionExpanded;
+            OnPropertyChanged(nameof(StatisticsSectionArrow));
+        });
+        ToggleFilteringSectionCommand = new Command(() => {
+            IsFilteringSectionExpanded = !IsFilteringSectionExpanded;
+            OnPropertyChanged(nameof(FilteringSectionArrow));
+        });
+        ToggleRecordsSectionCommand = new Command(() => {
+            IsRecordsSectionExpanded = !IsRecordsSectionExpanded;
+            OnPropertyChanged(nameof(RecordsSectionArrow));
+        });
+        ToggleMonthlySummarySectionCommand = new Command(() => {
+            IsMonthlySummarySectionExpanded = !IsMonthlySummarySectionExpanded;
+            OnPropertyChanged(nameof(MonthlySummarySectionArrow));
+        });
+        ToggleCalendarSectionCommand = new Command(() => {
+            IsCalendarSectionExpanded = !IsCalendarSectionExpanded;
+            OnPropertyChanged(nameof(CalendarSectionArrow));
+        });
+        ToggleEmployeeComparisonSectionCommand = new Command(() => {
+            IsEmployeeComparisonSectionExpanded = !IsEmployeeComparisonSectionExpanded;
+            OnPropertyChanged(nameof(EmployeeComparisonSectionArrow));
+        });
+
         _authService.OnUserChanged += _ => OnPropertyChanged(nameof(IsAuthorized));
         TopProducts.CollectionChanged += (_, _) =>
         {
@@ -268,7 +318,9 @@ public class AdminViewModel : INotifyPropertyChanged
         
         _ = UpdateAttendancePreviewAsync();
     }
+    #endregion
 
+    #region Public Properties
     public User SelectedExpenseUser
     {
         get => _selectedExpenseUser;
@@ -298,199 +350,191 @@ public class AdminViewModel : INotifyPropertyChanged
         get => _expenseDate;
         set { if (_expenseDate != value) { _expenseDate = value; OnPropertyChanged(); } }
     }
+    #endregion
 
+    #region Private Methods
+    
+    private string GetStatusKeyFromDisplayValue(string displayValue)
+    {
+        // For now, return the value as the key.
+        // TODO: Implement proper mapping if localized values differ from keys.
+        return displayValue;
+    }
+    
     private async Task LoadMonthlySummaryAsync()
     {
         try
         {
             var monthStart = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-            var today = DateTime.Today;
 
-            _currentMonthRecords = await _databaseService.GetAttendanceRecordsAsync(monthStart, monthEnd);
-            if (_currentMonthRecords == null)
-                _currentMonthRecords = new List<AttendanceRecord>();
+            // Load attendance records for the month
+            _currentMonthRecords = await _databaseService.GetAttendanceRecordsAsync(monthStart, monthEnd)
+                ?? new List<AttendanceRecord>();
 
-            List<User> userSnapshot = null;
-            try
+            // Get user snapshot
+            var userSnapshot = await GetUserSnapshotAsync();
+
+            if (!userSnapshot.Any())
             {
-                if (Users != null && Users.Count > 0)
-                {
-                    userSnapshot = Users.ToList();
-                }
-                else
-                {
-                    var usersFromDb = await _databaseService.GetUsersAsync();
-                    userSnapshot = usersFromDb?.ToList() ?? new List<User>();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting users in LoadMonthlySummaryAsync: {ex}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                userSnapshot = new List<User>();
-            }
-            
-            if (userSnapshot == null)
-                userSnapshot = new List<User>();
-
-            var summaries = new List<MonthlyAttendanceSummary>();
-
-            if (userSnapshot == null || !userSnapshot.Any())
-            {
-                MonthlyAttendanceSummaries.Clear();
-                MonthlySummaryTotals = new MonthlyAttendanceTotals();
-                SelectedMonthlySummary = null;
+                ClearMonthlySummaries();
                 return;
             }
 
+            // Calculate summaries for each user
+            var summaries = new List<MonthlyAttendanceSummary>();
             foreach (var user in userSnapshot)
             {
                 if (user == null) continue;
-                
+
                 try
                 {
-                    var userRecords = _currentMonthRecords
-                        .Where(r => r != null && r.UserId == user.Id)
-                        .ToList();
-                    
-                    // Create dictionary for quick lookups, handling duplicate dates by taking the first
-                    var recordByDate = new Dictionary<DateTime, AttendanceRecord>();
-                    try
-                    {
-                        if (userRecords != null && userRecords.Any())
-                        {
-                            var grouped = userRecords
-                                .Where(r => r != null)
-                                .GroupBy(r => r.Date.Date)
-                                .ToList();
-                            
-                            foreach (var group in grouped)
-                            {
-                                if (group != null)
-                                {
-                                    try
-                                    {
-                                        var firstRecord = group.FirstOrDefault();
-                                        if (firstRecord != null)
-                                            recordByDate[group.Key] = firstRecord;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Error getting first record from group: {ex}");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error creating recordByDate dictionary: {ex}");
-                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                        // Continue with empty dictionary
-                    }
-
-                    int presentDays = 0;
-                    int absentDays = 0;
-                    int absentWithPermission = 0;
-                    int absentWithoutPermission = 0;
-
-                    for (var day = monthStart; day <= monthEnd && day <= today; day = day.AddDays(1))
-                    {
-                        if (recordByDate.TryGetValue(day.Date, out var rec))
-                        {
-                            if (rec == null) continue;
-                            
-                            // Reset days don't count as present or absent (they're outside the cycle)
-                            if (rec.AbsencePermissionType == "Reset")
-                            {
-                                // Reset days are paid but don't count in cycle
-                                continue;
-                            }
-                            else if (rec.IsPresent)
-                            {
-                                presentDays++;
-                            }
-                            else
-                            {
-                                absentDays++;
-                                if (rec.AbsencePermissionType == "WithPermission")
-                                    absentWithPermission++;
-                                else if (rec.AbsencePermissionType == "WithoutPermission")
-                                    absentWithoutPermission++;
-                            }
-                        }
-                        // Do not count missing days as absent; only recorded absences
-                    }
-
-                    // Compute monthly stats with fixed daily rate (/30) and rest rules
-                    var stats = _attendanceRulesService.ComputeMonthly(user, SummaryMonth, userRecords ?? new List<AttendanceRecord>());
-                    
-                    // Start with full monthly salary
-                    decimal fullSalary = user?.MonthlySalary ?? 0m;
-                    
-                    // Calculate overtime pay from records (additional to base salary)
-                    decimal overtimePay = 0m;
-                    try
-                    {
-                        overtimePay = userRecords
-                            .Where(r => r != null && r.IsPresent)
-                            .Sum(r => 
-                            {
-                                if (r != null && r.OvertimeHours > 0)
-                                {
-                                    var hourlyRate = stats.dailyRate / 8m;
-                                    var otMultiplier = user?.OvertimeMultiplier ?? 1.5m;
-                                    return r.OvertimeHours * hourlyRate * otMultiplier;
-                                }
-                                return 0m;
-                            });
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error calculating overtime pay: {ex}");
-                        overtimePay = 0m;
-                    }
-                    
-                    // Subtract absence deductions (penalties for absences)
-                    // Subtract expenses
-                    int daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
-                    decimal virtualDaysPay = daysInMonth == 28 ? (2m * stats.dailyRate) : 0m;
-                    var expenses = await _databaseService.GetEmployeeExpensesAsync(user.Id, monthStart, monthEnd);
-                    decimal expensesTotal = expenses != null ? expenses.Sum(e => e?.Amount ?? 0m) : 0m;
-                    
-                    // Final calculation: Full Salary + Overtime + Rest Bonus - Absence Deductions - Expenses + Virtual Days (if 28-day month)
-                    decimal finalPayroll = fullSalary + overtimePay + stats.restPayout - stats.absenceDeductions - expensesTotal + virtualDaysPay;
-
-                    var summary = new MonthlyAttendanceSummary
-                    {
-                        UserId = user.Id,
-                        UserName = user.Name,
-                        DaysPresent = userRecords.Count(r => r != null && r.IsPresent),
-                        DaysAbsent = userRecords.Count(r => r != null && !r.IsPresent),
-                        WorkedDays = stats.workedDays,
-                        EarnedRestDays = stats.restDays,
-                        RestDayPayout = stats.restPayout,
-                        AbsenceWithPermission = stats.withPermissionAbsences,
-                        AbsenceWithoutPermission = stats.withoutPermissionAbsences,
-                        AbsenceDeductions = stats.absenceDeductions,
-                        OvertimeHours = userRecords.Where(r => r != null).Sum(r => r.OvertimeHours),
-                        TotalHours = userRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours),
-                        ExpensesTotal = expensesTotal,
-                        Payroll = Math.Max(0m, finalPayroll)
-                    };
-                    summaries.Add(summary);
+                    var summary = await CalculateUserMonthlySummaryAsync(user, monthStart, monthEnd);
+                    if (summary != null)
+                        summaries.Add(summary);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error processing user {user?.Name ?? "Unknown"} in LoadMonthlySummaryAsync: {ex}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException}");
-                    // Continue with next user
+                    _loggingService?.LogError($"CalculateUserSummary-{user?.Name}", ex);
                 }
             }
 
-            MonthlyAttendanceSummaries.Clear();
+            // Update UI collections
+            UpdateMonthlySummariesCollection(summaries);
+
+            // Calculate and set totals
+            MonthlySummaryTotals = CalculateMonthlyTotals(summaries);
+
+            SelectedMonthlySummary = MonthlyAttendanceSummaries?.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("LoadMonthlySummaryAsync", ex);
+            _currentMonthRecords ??= new List<AttendanceRecord>();
+            MonthlySummaryTotals = new MonthlyAttendanceTotals();
+        }
+    }
+
+    /// <summary>
+    /// Gets a snapshot of all users, either from the current collection or database.
+    /// </summary>
+    private async Task<List<User>> GetUserSnapshotAsync()
+    {
+        try
+        {
+            if (Users != null && Users.Count > 0)
+            {
+                return Users.ToList();
+            }
+
+            var usersFromDb = await _databaseService.GetUsersAsync();
+            return usersFromDb?.ToList() ?? new List<User>();
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("GetUserSnapshotAsync", ex);
+            return new List<User>();
+        }
+    }
+
+    /// <summary>
+    /// Clears all monthly summary data.
+    /// </summary>
+    private void ClearMonthlySummaries()
+    {
+        MonthlyAttendanceSummaries.Clear();
+        MonthlySummaryTotals = new MonthlyAttendanceTotals();
+        SelectedMonthlySummary = null;
+    }
+
+    /// <summary>
+    /// Calculates monthly attendance summary for a single user.
+    /// </summary>
+    private async Task<MonthlyAttendanceSummary> CalculateUserMonthlySummaryAsync(User user, DateTime monthStart, DateTime monthEnd)
+    {
+        var userRecords = _currentMonthRecords
+            .Where(r => r != null && r.UserId == user.Id)
+            .ToList();
+
+        // Compute monthly stats
+        var stats = _attendanceRulesService.ComputeMonthly(user, SummaryMonth, userRecords);
+
+        // Calculate overtime pay
+        decimal overtimePay = CalculateOvertimePay(userRecords, stats.dailyRate, user?.OvertimeMultiplier ?? DefaultOvertimeMultiplier);
+
+        // Get expenses
+        decimal expensesTotal = await GetUserExpensesTotalAsync(user.Id, monthStart, monthEnd);
+
+        // Calculate virtual days pay for 28-day months
+        int daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+        decimal virtualDaysPay = daysInMonth == ShortMonthDays ? (VirtualDaysForShortMonth * stats.dailyRate) : 0m;
+
+        // Final payroll calculation
+        decimal fullSalary = user?.MonthlySalary ?? 0m;
+        decimal finalPayroll = fullSalary + overtimePay + stats.restPayout
+            - stats.absenceDeductions - expensesTotal + virtualDaysPay;
+
+        return new MonthlyAttendanceSummary
+        {
+            UserId = user.Id,
+            UserName = user.Name,
+            DaysPresent = userRecords.Count(r => r != null && r.IsPresent),
+            DaysAbsent = userRecords.Count(r => r != null && !r.IsPresent),
+            WorkedDays = stats.workedDays,
+            EarnedRestDays = stats.restDays,
+            RestDayPayout = stats.restPayout,
+            AbsenceWithPermission = stats.withPermissionAbsences,
+            AbsenceWithoutPermission = stats.withoutPermissionAbsences,
+            AbsenceDeductions = stats.absenceDeductions,
+            OvertimeHours = userRecords.Where(r => r != null).Sum(r => r.OvertimeHours),
+            TotalHours = userRecords.Where(r => r != null).Sum(r => r.RegularHours + r.OvertimeHours),
+            ExpensesTotal = expensesTotal,
+            Payroll = Math.Max(0m, finalPayroll)
+        };
+    }
+
+    /// <summary>
+    /// Calculates overtime pay for a user based on their records.
+    /// </summary>
+    private decimal CalculateOvertimePay(List<AttendanceRecord> userRecords, decimal dailyRate, decimal otMultiplier)
+    {
+        try
+        {
+            decimal hourlyRate = dailyRate / HoursPerWorkDay;
+            return userRecords
+                .Where(r => r != null && r.IsPresent && r.OvertimeHours > 0)
+                .Sum(r => r.OvertimeHours * hourlyRate * otMultiplier);
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("CalculateOvertimePay", ex);
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Gets the total expenses for a user in a given period.
+    /// </summary>
+    private async Task<decimal> GetUserExpensesTotalAsync(int userId, DateTime monthStart, DateTime monthEnd)
+    {
+        try
+        {
+            var expenses = await _databaseService.GetEmployeeExpensesAsync(userId, monthStart, monthEnd);
+            return expenses?.Sum(e => e?.Amount ?? 0m) ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("GetUserExpensesTotalAsync", ex);
+            return 0m;
+        }
+    }
+
+    /// <summary>
+    /// Updates the MonthlyAttendanceSummaries collection with new data.
+    /// </summary>
+    private void UpdateMonthlySummariesCollection(List<MonthlyAttendanceSummary> summaries)
+    {
+        MonthlyAttendanceSummaries.Clear();
         if (summaries != null && summaries.Any())
         {
             foreach (var summary in summaries.OrderBy(s => s?.UserName ?? ""))
@@ -499,49 +543,24 @@ public class AdminViewModel : INotifyPropertyChanged
                     MonthlyAttendanceSummaries.Add(summary);
             }
         }
+    }
 
-        // Calculate totals correctly - sum all components from individual summaries
-        // The Payroll field in each summary already includes: basePayroll + restPayout - absenceDeductions - expenses + virtualDaysPay
-        // So we can simply sum the Payroll values, but we need to recalculate to ensure accuracy
-        decimal totalRestPayout = summaries?.Where(s => s != null).Sum(s => s.RestDayPayout) ?? 0m;
-        decimal totalAbsenceDeductions = summaries?.Where(s => s != null).Sum(s => s.AbsenceDeductions) ?? 0m;
-        decimal totalExpenses = summaries?.Where(s => s != null).Sum(s => s.ExpensesTotal) ?? 0m;
-        
-        // Recalculate total payroll from individual summaries (which already have correct calculations)
-        decimal totalPayroll = summaries?.Where(s => s != null).Sum(s => s.Payroll) ?? 0m;
-        
-        MonthlySummaryTotals = new MonthlyAttendanceTotals
+    private MonthlyAttendanceTotals CalculateMonthlyTotals(List<MonthlyAttendanceSummary> summaries)
+    {
+        if (summaries == null)
+            return new MonthlyAttendanceTotals();
+
+        var validSummaries = summaries.Where(s => s != null).ToList();
+
+        return new MonthlyAttendanceTotals
         {
-            TotalPayroll = totalPayroll,
-            TotalOvertimeHours = summaries?.Where(s => s != null).Sum(s => s.OvertimeHours) ?? 0m,
-            TotalPresentDays = summaries?.Where(s => s != null).Sum(s => s.DaysPresent) ?? 0,
-            TotalAbsentDays = summaries?.Where(s => s != null).Sum(s => s.DaysAbsent) ?? 0,
-            TotalRestPayout = totalRestPayout,
-            TotalAbsenceDeductions = totalAbsenceDeductions
+            TotalRestPayout = validSummaries.Sum(s => s.RestDayPayout),
+            TotalAbsenceDeductions = validSummaries.Sum(s => s.AbsenceDeductions),
+            TotalPayroll = validSummaries.Sum(s => s.Payroll),
+            TotalOvertimeHours = validSummaries.Sum(s => s.OvertimeHours),
+            TotalPresentDays = validSummaries.Sum(s => s.DaysPresent),
+            TotalAbsentDays = validSummaries.Sum(s => s.DaysAbsent)
         };
-
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            SelectedMonthlySummary = MonthlyAttendanceSummaries?.FirstOrDefault();
-        });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in LoadMonthlySummaryAsync: {ex}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException}");
-            // Ensure collections are initialized even on error
-            // MonthlyAttendanceSummaries is read-only, so we can't assign to it
-            // Just ensure _currentMonthRecords is initialized
-            if (_currentMonthRecords == null)
-                _currentMonthRecords = new List<AttendanceRecord>();
-            
-            // Initialize empty summaries to prevent null reference errors
-            if (MonthlyAttendanceSummaries == null || !MonthlyAttendanceSummaries.Any())
-            {
-                MonthlySummaryTotals = new MonthlyAttendanceTotals();
-            }
-        }
     }
 
     // Permission properties
@@ -571,13 +590,7 @@ public class AdminViewModel : INotifyPropertyChanged
                 (ToggleUserStatusCommand as Command)?.ChangeCanExecute();
                 (AddAttendanceCommand as Command)?.ChangeCanExecute();
                 (ExportPayrollPdfCommand as Command)?.ChangeCanExecute();
-                (ExportSelectedEmployeePayrollPdfCommand as Command)?.ChangeCanExecute();
-                (ExportAttendanceToExcelCommand as Command)?.ChangeCanExecute();
-                (ExportAttendanceToPdfCommand as Command)?.ChangeCanExecute();
-                (ExportSalesReportCommand as Command)?.ChangeCanExecute();
-                (ExportInventoryReportCommand as Command)?.ChangeCanExecute();
-                (BulkDeleteCommand as Command)?.ChangeCanExecute();
-                (BulkEditCommand as Command)?.ChangeCanExecute();
+                (AddAttendanceCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -790,7 +803,8 @@ public class AdminViewModel : INotifyPropertyChanged
             }
         }
     }
-
+    public string SelectedAttendanceStatusKey => _selectedAttendanceStatusKey;
+    
     public string AttendanceNotes
     {
         get => _attendanceNotes;
@@ -845,6 +859,58 @@ public class AdminViewModel : INotifyPropertyChanged
         get => _isEditingAttendance;
         set { if (_isEditingAttendance != value) { _isEditingAttendance = value; OnPropertyChanged(); (UpdateAttendanceRecordCommand as Command)?.ChangeCanExecute(); } }
     }
+
+    // Collapsible section properties
+    public bool IsAddEditSectionExpanded
+    {
+        get => _isAddEditSectionExpanded;
+        set { if (_isAddEditSectionExpanded != value) { _isAddEditSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsStatisticsSectionExpanded
+    {
+        get => _isStatisticsSectionExpanded;
+        set { if (_isStatisticsSectionExpanded != value) { _isStatisticsSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsFilteringSectionExpanded
+    {
+        get => _isFilteringSectionExpanded;
+        set { if (_isFilteringSectionExpanded != value) { _isFilteringSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsRecordsSectionExpanded
+    {
+        get => _isRecordsSectionExpanded;
+        set { if (_isRecordsSectionExpanded != value) { _isRecordsSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsMonthlySummarySectionExpanded
+    {
+        get => _isMonthlySummarySectionExpanded;
+        set { if (_isMonthlySummarySectionExpanded != value) { _isMonthlySummarySectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsCalendarSectionExpanded
+    {
+        get => _isCalendarSectionExpanded;
+        set { if (_isCalendarSectionExpanded != value) { _isCalendarSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    public bool IsEmployeeComparisonSectionExpanded
+    {
+        get => _isEmployeeComparisonSectionExpanded;
+        set { if (_isEmployeeComparisonSectionExpanded != value) { _isEmployeeComparisonSectionExpanded = value; OnPropertyChanged(); } }
+    }
+
+    // Helper properties for arrow indicators
+    public string AddEditSectionArrow => IsAddEditSectionExpanded ? "▼" : "▶";
+    public string StatisticsSectionArrow => IsStatisticsSectionExpanded ? "▼" : "▶";
+    public string FilteringSectionArrow => IsFilteringSectionExpanded ? "▼" : "▶";
+    public string RecordsSectionArrow => IsRecordsSectionExpanded ? "▼" : "▶";
+    public string MonthlySummarySectionArrow => IsMonthlySummarySectionExpanded ? "▼" : "▶";
+    public string CalendarSectionArrow => IsCalendarSectionExpanded ? "▼" : "▶";
+    public string EmployeeComparisonSectionArrow => IsEmployeeComparisonSectionExpanded ? "▼" : "▶";
 
     public AttendanceSummary AttendanceSummary
     {
@@ -1165,8 +1231,7 @@ public class AdminViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in LoadUsersAsync: {ex}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            _loggingService?.LogError("LoadUsersAsync", ex);
         }
         finally
         {
@@ -1362,8 +1427,7 @@ public class AdminViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in LoadAttendanceAsync: {ex}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            _loggingService?.LogError("LoadAttendanceAsync", ex);
             ShowStatus("Error loading attendance data", true);
         }
         finally
@@ -1705,9 +1769,9 @@ public class AdminViewModel : INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine("Navigating via Application.Current.MainPage.Navigation");
                 await Application.Current.MainPage.Navigation.PushAsync(attendancePage);
                 System.Diagnostics.Debug.WriteLine("Navigation completed");
-                
-                // Load data after navigation to avoid blocking
-                _ = Task.Run(async () =>
+
+                // Load data after navigation on main thread to avoid race conditions
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
                     try
                     {
@@ -1725,9 +1789,9 @@ public class AdminViewModel : INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine("Navigating via Shell.Current.Navigation");
                 await Shell.Current.Navigation.PushAsync(attendancePage);
                 System.Diagnostics.Debug.WriteLine("Navigation completed");
-                
-                // Load data after navigation to avoid blocking
-                _ = Task.Run(async () =>
+
+                // Load data after navigation on main thread to avoid race conditions
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
                     try
                     {
@@ -1792,9 +1856,15 @@ public class AdminViewModel : INotifyPropertyChanged
             ShowStatus(_localizationService.GetString("SelectEmployeeForExpense"), true);
             return;
         }
-        if (!decimal.TryParse(ExpenseAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
+        if (string.IsNullOrWhiteSpace(ExpenseAmount))
         {
-            ShowStatus(_localizationService.GetString("EnterValidAmount"), true);
+            ShowStatus("Enter expense amount.", true);
+            return;
+        }
+
+        if (!decimal.TryParse(ExpenseAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0 || amount > MaxExpenseAmount)
+        {
+            ShowStatus("Enter valid amount.", true);
             return;
         }
         var expense = new EmployeeExpense
@@ -1838,13 +1908,13 @@ public class AdminViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (NewUserPassword.Length < 4)
+        if (NewUserPassword.Length < MinPasswordLength)
         {
             ShowStatus(_localizationService.GetString("PasswordMinLength"), true);
             return;
         }
 
-        if (!decimal.TryParse(NewUserSalary, NumberStyles.Number, CultureInfo.InvariantCulture, out var salary) || salary < 0)
+        if (!decimal.TryParse(NewUserSalary, NumberStyles.Number, CultureInfo.InvariantCulture, out var salary) || salary < 0 || salary > MaxSalaryAmount)
         {
             ShowStatus(_localizationService.GetString("EnterValidSalary"), true);
             return;
@@ -2575,12 +2645,20 @@ public class AdminViewModel : INotifyPropertyChanged
     // Filter and search methods
     private async Task ApplyFiltersAsync()
     {
+        // Validate date range
+        if (FilterEndDate < FilterStartDate)
+        {
+            ShowStatus("End date must be after start date", true);
+            return;
+        }
+
         IsBusy = true;
         try
         {
             var records = await _databaseService.GetAttendanceRecordsAsync(FilterStartDate, FilterEndDate);
             if (records == null)
                 records = new List<AttendanceRecord>();
+
             
             // Apply employee filter
             if (SelectedFilterEmployees != null && SelectedFilterEmployees.Any())
@@ -2712,8 +2790,50 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            ShowStatus("Excel export will be implemented soon", false);
-            // TODO: Implement Excel export
+            if (AttendanceRecords == null || AttendanceRecords.Count == 0)
+            {
+                ShowStatus("No attendance records to export.", true);
+                return;
+            }
+
+            var lines = new List<string>();
+            lines.Add("User,Date,Status,RegularHours,OvertimeHours,DailyPay,CheckIn,CheckOut,Notes,AbsencePermissionType");
+            foreach (var r in AttendanceRecords)
+            {
+                var user = r.UserName?.Replace(",", " ") ?? "";
+                var date = r.Date.ToString("yyyy-MM-dd");
+                var status = r.Status?.Replace(",", " ") ?? "";
+                var reg = r.RegularHours.ToString("F1");
+                var ot = r.OvertimeHours.ToString("F1");
+                var pay = r.DailyPay.ToString("F2");
+                var checkIn = r.CheckInTime.HasValue ? r.CheckInTime.Value.ToString("HH:mm") : "";
+                var checkOut = r.CheckOutTime.HasValue ? r.CheckOutTime.Value.ToString("HH:mm") : "";
+                var notes = (r.Notes ?? "").Replace(",", " ");
+                var perm = r.AbsencePermissionType ?? "";
+                lines.Add(string.Join(",", new[]{user, date, status, reg, ot, pay, checkIn, checkOut, notes, perm}));
+            }
+
+            var csv = string.Join(Environment.NewLine, lines);
+            var fileName = $"Attendance_{SummaryMonth:yyyy-MM}.csv";
+            var filePath = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.CacheDirectory, fileName);
+            await System.IO.File.WriteAllTextAsync(filePath, csv);
+
+            if (System.IO.File.Exists(filePath))
+            {
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    File = new ReadOnlyFile(filePath)
+                });
+                ShowStatus("Attendance CSV exported and opened.", false);
+            }
+            else
+            {
+                ShowStatus($"CSV file was not created at: {filePath}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error exporting CSV: {ex.Message}", true);
         }
         finally
         {
@@ -2726,8 +2846,42 @@ public class AdminViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            ShowStatus("PDF export will be implemented soon", false);
-            // TODO: Implement PDF export
+            if (AttendanceRecords == null || AttendanceRecords.Count == 0)
+            {
+                ShowStatus("No attendance records to export.", true);
+                return;
+            }
+
+            var pdfPath = await _pdfService.GenerateAttendancePdfAsync(AttendanceRecords.ToList(), SummaryMonth);
+            if (string.IsNullOrEmpty(pdfPath))
+            {
+                ShowStatus("Failed to generate attendance PDF.", true);
+                return;
+            }
+
+            try
+            {
+                if (System.IO.File.Exists(pdfPath))
+                {
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        File = new ReadOnlyFile(pdfPath)
+                    });
+                    ShowStatus("Attendance PDF exported and opened.", false);
+                }
+                else
+                {
+                    ShowStatus($"PDF file was not created at: {pdfPath}", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowStatus($"PDF generated at {pdfPath}. Error opening: {ex.Message}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error exporting attendance PDF: {ex.Message}", true);
         }
         finally
         {
@@ -2737,41 +2891,17 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task ExportSalesReportAsync()
     {
+        if (RecentOrders == null || !RecentOrders.Any())
+        {
+            ShowStatus("No sales data to export.", true);
+            return;
+        }
+
         IsBusy = true;
         try
         {
-            ShowStatus(_localizationService.GetString("GeneratingSalesReport") ?? "Generating sales report...", false);
-
-            var topProductsList = TopProducts.ToList();
-            var recentOrdersList = RecentOrders.ToList();
-
-            var filePath = await _pdfService.GenerateSalesReportPdfAsync(
-                TotalSales,
-                TotalOrders,
-                AverageOrderValue,
-                TotalItemsSold,
-                Last7DaysSales,
-                topProductsList,
-                recentOrdersList
-            );
-
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                await Launcher.OpenAsync(new OpenFileRequest
-                {
-                    File = new ReadOnlyFile(filePath)
-                });
-                ShowStatus(_localizationService.GetString("SalesReportExportedSuccessfully") ?? "Sales report exported successfully", false);
-            }
-            else
-            {
-                ShowStatus(_localizationService.GetString("FailedToGenerateSalesReport") ?? "Failed to generate sales report", true);
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"Error: {ex.Message}", true);
-            System.Diagnostics.Debug.WriteLine($"Error exporting sales report: {ex}");
+            ShowStatus("Sales report export will be implemented soon", false);
+            // TODO: Implement sales report export
         }
         finally
         {
@@ -2781,40 +2911,17 @@ public class AdminViewModel : INotifyPropertyChanged
 
     private async Task ExportInventoryReportAsync()
     {
+        if (Products == null || !Products.Any())
+        {
+            ShowStatus("No inventory data to export.", true);
+            return;
+        }
+
         IsBusy = true;
         try
         {
-            ShowStatus(_localizationService.GetString("GeneratingInventoryReport") ?? "Generating inventory report...", false);
-
-            int? locationId = SelectedReportLocation?.Id == 0 ? null : SelectedReportLocation?.Id;
-            var locationName = SelectedReportLocation?.Id == 0 
-                ? (_localizationService.GetString("AllBranches") ?? "All Branches")
-                : SelectedReportLocation?.LocationName ?? "Unknown";
-
-            var productsWithStock = await _databaseService.GetProductsWithStockByLocationAsync(locationId);
-
-            var filePath = await _pdfService.GenerateInventoryReportByLocationPdfAsync(
-                productsWithStock,
-                locationName
-            );
-
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                await Launcher.OpenAsync(new OpenFileRequest
-                {
-                    File = new ReadOnlyFile(filePath)
-                });
-                ShowStatus(_localizationService.GetString("InventoryReportExportedSuccessfully") ?? "Inventory report exported successfully", false);
-            }
-            else
-            {
-                ShowStatus(_localizationService.GetString("FailedToGenerateInventoryReport") ?? "Failed to generate inventory report", true);
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"Error: {ex.Message}", true);
-            System.Diagnostics.Debug.WriteLine($"Error exporting inventory report: {ex}");
+            ShowStatus("Inventory report export will be implemented soon", false);
+            // TODO: Implement inventory report export
         }
         finally
         {
@@ -2822,9 +2929,13 @@ public class AdminViewModel : INotifyPropertyChanged
         }
     }
 
+    #endregion
+
+    #region INotifyPropertyChanged
     public event PropertyChangedEventHandler PropertyChanged;
     protected void OnPropertyChanged(string propertyName = "") =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    #endregion
 }
 
 public class ProductReportItem
@@ -3051,6 +3162,9 @@ public class DailyAttendanceEntry : INotifyPropertyChanged
         IsCurrentMonth = false,
         IsFuture = true
     };
+
+
+
 
     public event PropertyChangedEventHandler PropertyChanged;
     protected void OnPropertyChanged(string propertyName = "") =>

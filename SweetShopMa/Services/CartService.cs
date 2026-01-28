@@ -172,43 +172,35 @@ public class CartService
     /// <returns>Created Order object if successful, null if cart is empty or error occurred</returns>
     public async Task<Order> CheckoutAsync(int userId, string userName)
     {
-        try
+        if (_cartItems.Count == 0) 
+            return null;
+
+        // Create order with current cart totals
+        var order = new Order
         {
-            if (_cartItems.Count == 0) 
-                return null;
+            UserId = userId,
+            UserName = userName,
+            OrderDate = DateTime.Now,
+            Total = GetTotal(),
+            ItemCount = (int)Math.Ceiling(_cartItems.Sum(x => x.Quantity)), // Round up for display
+            Status = "Completed"
+        };
 
-            // Create order with current cart totals
-            var order = new Order
-            {
-                UserId = userId,
-                UserName = userName,
-                OrderDate = DateTime.Now,
-                Total = GetTotal(),
-                ItemCount = (int)Math.Ceiling(_cartItems.Sum(x => x.Quantity)), // Round up for display
-                Status = "Completed"
-            };
-
-            // Save order and get its ID
-            // Use transaction to ensure data integrity
-            var resultOrder = await _databaseService.ProcessCheckoutAsync(order, _cartItems, _sessionContext.ActiveLocation.Id);
-            
-            if (resultOrder == null)
-            {
-                System.Diagnostics.Debug.WriteLine("Checkout failed: ProcessCheckoutAsync returned null");
-                return null;
-            }
-
-            // Clear cart memory only after successful checkout
-            _cartItems.Clear();
-            OnCartChanged?.Invoke();
-
-            return resultOrder;
-        }
-        catch (Exception ex)
+        // Save order and get its ID
+        // Use transaction to ensure data integrity
+        // Exceptions from DatabaseService will propagate to the ViewModel
+        var resultOrder = await _databaseService.ProcessCheckoutAsync(order, _cartItems, _sessionContext.ActiveLocation.Id);
+        
+        if (resultOrder == null)
         {
-            System.Diagnostics.Debug.WriteLine($"Error during checkout: {ex}");
-            // Don't clear cart on error - allow user to retry
+            System.Diagnostics.Debug.WriteLine("Checkout failed: ProcessCheckoutAsync returned null");
             return null;
         }
+
+        // Clear cart memory only after successful checkout
+        _cartItems.Clear();
+        OnCartChanged?.Invoke();
+
+        return resultOrder;
     }
 }

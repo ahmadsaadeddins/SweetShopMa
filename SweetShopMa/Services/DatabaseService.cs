@@ -548,21 +548,9 @@ public class DatabaseService
     public async Task SeedUsersAsync()
     {
         await InitializeAsync();
-        var count = await GetUserCountAsync();
-        if (count > 0) return; // Already seeded
-
-        // Create default developer user
-        var developer = new User
-        {
-            Username = "ama",
-            Password = PasswordHelper.HashPassword("AsrAma12@#"),
-            Role = "Developer",
-            Name = "ahmad",
-            IsEnabled = true,
-            MonthlySalary = 0m,
-            OvertimeMultiplier = 1.5m
-        };
-        await _database.InsertAsync(developer);
+        // Seeding is now handled by the Initial Setup flow (InitialSetupPage/ViewModel).
+        // This method is kept for backward compatibility or potential future seeding needs,
+        // but it no longer creates insecure default users.
     }
     
     public async Task<bool> HasAnyUsersAsync()
