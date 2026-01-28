@@ -14,6 +14,7 @@ public partial class ProductsPage : ContentPage
 {
     private readonly AdminViewModel _viewModel;
     private readonly LocalizationService _localizationService;
+    private readonly LoggingService _loggingService;
     private readonly IServiceProvider _serviceProvider;
 
     public ProductsPage(AdminViewModel viewModel, LocalizationService localizationService, IServiceProvider serviceProvider)
@@ -22,7 +23,10 @@ public partial class ProductsPage : ContentPage
         _viewModel = viewModel;
         _localizationService = localizationService;
         _serviceProvider = serviceProvider;
+        _loggingService = _serviceProvider.GetService<LoggingService>();
         BindingContext = _viewModel;
+        
+        _loggingService?.LogMethodEntry("ProductsPage", ".ctor");
         
         _localizationService.LanguageChanged += OnLanguageChanged;
         
@@ -36,16 +40,23 @@ public partial class ProductsPage : ContentPage
     private async void OnViewModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         // When IsEditingProduct becomes false (after update), focus search field
-        if (e.PropertyName == nameof(AdminViewModel.IsEditingProduct) && !_viewModel.IsEditingProduct)
+        if (e.PropertyName == nameof(AdminViewModel.IsEditingProduct))
         {
-            // Small delay to ensure UI has updated
-            await Task.Delay(200);
-            await FocusSearchField();
+            _loggingService?.LogDebug("ProductsPage", $"ViewModel.IsEditingProduct changed to: {_viewModel.IsEditingProduct}");
+            
+            if (!_viewModel.IsEditingProduct)
+            {
+                _loggingService?.LogDebug("ProductsPage", "Product edit finished, returning to search field");
+                // Small delay to ensure UI has updated
+                await Task.Delay(200);
+                await FocusSearchField();
+            }
         }
     }
 
     protected override async void OnAppearing()
     {
+        _loggingService?.LogMethodEntry("ProductsPage", nameof(OnAppearing));
         base.OnAppearing();
         
         UpdateLocalizedStrings();
@@ -53,6 +64,7 @@ public partial class ProductsPage : ContentPage
 
         if (!_viewModel.IsAuthorized)
         {
+            _loggingService?.LogWarning("ProductsPage", "Access denied: User not authorized for product management");
             var accessDenied = _localizationService.GetString("AccessDenied");
             var adminRequired = _localizationService.GetString("AdminPrivilegesRequired");
             var ok = _localizationService.GetString("OK");
@@ -62,6 +74,7 @@ public partial class ProductsPage : ContentPage
         }
 
         await _viewModel.InitializeAsync();
+        _loggingService?.LogMethodExit("ProductsPage", nameof(OnAppearing));
     }
 
     protected override void OnDisappearing()
@@ -160,12 +173,14 @@ public partial class ProductsPage : ContentPage
 
     private async void OnProductSearchCompleted(object sender, EventArgs e)
     {
+        _loggingService?.LogDebug("ProductsPage", $"Search completed with text: {_viewModel.ProductSearchText}");
         if (BindingContext is AdminViewModel viewModel)
         {
             // Get the first product from filtered results
             if (viewModel.FilteredProducts != null && viewModel.FilteredProducts.Count > 0)
             {
                 var firstProduct = viewModel.FilteredProducts[0];
+                _loggingService?.LogDebug("ProductsPage", $"Auto-selecting first search result: {firstProduct.Name}");
                 // Trigger edit command for the first product
                 if (viewModel.EditProductCommand.CanExecute(firstProduct))
                 {
@@ -209,12 +224,18 @@ public partial class ProductsPage : ContentPage
     private async void OnEditPriceCompleted(object sender, EventArgs e)
     {
         // When Enter is pressed in Price field, trigger Update command
+        _loggingService?.LogDebug("ProductsPage", "Enter pressed in Price field, triggering Update command");
         if (BindingContext is AdminViewModel viewModel)
         {
             if (viewModel.UpdateProductCommand.CanExecute(null))
             {
+                _loggingService?.LogDebug("ProductsPage", "Executing UpdateProductCommand");
                 viewModel.UpdateProductCommand.Execute(null);
                 // Focus will be handled by PropertyChanged event when IsEditingProduct becomes false
+            }
+            else
+            {
+                _loggingService?.LogWarning("ProductsPage", "UpdateProductCommand.CanExecute is FALSE - Cannot update");
             }
         }
     }

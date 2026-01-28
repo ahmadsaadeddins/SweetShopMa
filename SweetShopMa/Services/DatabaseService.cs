@@ -213,18 +213,20 @@ public class DatabaseService
     public async Task<List<Product>> GetProductsAsync()
     {
         await InitializeAsync();
-        var products = await _database.Table<Product>().ToListAsync();
         
-        // Optimized: Use SQL aggregation instead of loading all order items
-        var salesData = await _database.QueryAsync<ProductSalesData>(
-            "SELECT ProductId, SUM(Quantity) as TotalSold FROM OrderItem GROUP BY ProductId");
+        // Optimizing: Using a single query to get products with their total sales
+        // This is much faster than running a separate query and combining in memory
+        var query = @"
+            SELECT p.*, IFNULL(s.TotalSold, 0) as TotalSold 
+            FROM Product p
+            LEFT JOIN (
+                SELECT ProductId, SUM(Quantity) as TotalSold 
+                FROM OrderItem 
+                GROUP BY ProductId
+            ) s ON p.Id = s.ProductId
+            ORDER BY TotalSold DESC, p.Name ASC";
             
-        var salesByProduct = salesData.ToDictionary(s => s.ProductId, s => s.TotalSold);
-        
-        // Sort products by total sales (most sold first), then by name for products with same sales
-        return products.OrderByDescending(p => 
-            salesByProduct.TryGetValue(p.Id, out decimal sold) ? sold : 0m
-        ).ThenBy(p => p.Name).ToList();
+        return await _database.QueryAsync<Product>(query);
     }
 
     private class ProductSalesData

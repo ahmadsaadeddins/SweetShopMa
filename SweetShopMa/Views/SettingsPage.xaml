@@ -12,7 +12,7 @@
             <VerticalStackLayout Spacing="25" WidthRequest="600" HorizontalOptions="Center">
 
                 <!-- Navigation + Language Selector -->
-                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10" FlowDirection="LeftToRight">
                     <Button x:Name="BackButton"
                             Text=""
                             BackgroundColor="#f0f4f7"

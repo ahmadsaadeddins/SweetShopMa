@@ -532,8 +532,8 @@ public class ShopViewModel : INotifyPropertyChanged
                 return;
             }
 
-            var success = await _cartService.AddToCartAsync(product, quantity);
-            if (!success)
+            var result = await _cartService.AddToCartAsync(product, quantity);
+            if (!result.Success)
             {
                 var updatedProduct = await _databaseService.GetProductAsync(product.Id);
                 if (updatedProduct != null)
@@ -541,7 +541,7 @@ public class ShopViewModel : INotifyPropertyChanged
                     product.Stock = updatedProduct.Stock;
                     OnPropertyChanged(nameof(Products));
                 }
-                ShowNotification("⚠️ Not enough stock available", true);
+                ShowNotification($"⚠️ {result.Message}", true);
                 // Set error handling flag to prevent other focus changes
                 _isHandlingError = true;
                 // Instead of showing error, focus barcode field immediately
@@ -665,12 +665,12 @@ public class ShopViewModel : INotifyPropertyChanged
                 return;
             }
 
-            var success = await _cartService.AddToCartAsync(product, product.Quantity);
-            if (!success)
+            var result = await _cartService.AddToCartAsync(product, product.Quantity);
+            if (!result.Success)
             {
                 if (Application.Current?.MainPage != null)
                 {
-                    await Application.Current.MainPage.DisplayAlert("Error", "Not enough stock available", "OK");
+                    await Application.Current.MainPage.DisplayAlert("Error", result.Message, "OK");
                 }
                 var updatedProduct = await _databaseService.GetProductAsync(product.Id);
                 if (updatedProduct != null)

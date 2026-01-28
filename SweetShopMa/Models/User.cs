@@ -1,5 +1,7 @@
 using SQLite;
 
+using SweetShopMa.Utils;
+
 namespace SweetShopMa.Models;
 
 /// <summary>
@@ -82,22 +84,22 @@ public class User
     /// <summary>
     /// Returns true if user has Developer role.
     /// </summary>
-    public bool IsDeveloper => Role == "Developer";
+    public bool IsDeveloper => Role == RoleConstants.Developer;
     
     /// <summary>
     /// Returns true if user has Admin role.
     /// </summary>
-    public bool IsAdmin => Role == "Admin";
+    public bool IsAdmin => Role == RoleConstants.Admin;
     
     /// <summary>
     /// Returns true if user has Moderator role.
     /// </summary>
-    public bool IsModerator => Role == "Moderator";
+    public bool IsModerator => Role == RoleConstants.Moderator;
     
     /// <summary>
     /// Returns true if user has User role (normal user).
     /// </summary>
-    public bool IsUser => Role == "User";
+    public bool IsUser => Role == RoleConstants.User;
     
     // ============================================
     // PERMISSION CHECK PROPERTIES (Computed)

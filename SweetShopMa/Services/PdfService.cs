@@ -500,7 +500,7 @@ public class PdfService : IPdfService
         decimal averageOrderValue,
         decimal totalItemsSold,
         decimal last7DaysSales,
-        List<ViewModels.ProductReportItem> topProducts,
+        List<ProductReportItem> topProducts,
         List<Models.Order> recentOrders)
     {
         try

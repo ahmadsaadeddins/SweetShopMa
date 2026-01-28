@@ -8,7 +8,7 @@
              ControlTemplate="{StaticResource MainPageTemplate}">
     <ScrollView>
         <VerticalStackLayout Spacing="16" Padding="16">
-            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10" FlowDirection="LeftToRight">
                 <Button x:Name="BackButton"
                         Text="Back"
                         BackgroundColor="#f0f4f7"

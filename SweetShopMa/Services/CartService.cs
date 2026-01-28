@@ -51,13 +51,19 @@ public class CartService
     /// Adds a product to the cart or increments quantity if already present.
     /// Validates stock availability before adding.
     /// </summary>
-    /// <returns>True if successful, false if insufficient stock or error occurred</returns>
-    public async Task<bool> AddToCartAsync(Product product, decimal quantity)
+    /// <returns>ServiceResult indicating success or failure with message</returns>
+    public async Task<ServiceResult> AddToCartAsync(Product product, decimal quantity)
     {
         try
         {
-            if (product == null || quantity <= 0) 
-                return false;
+            if (product == null) 
+                return ServiceResult.Fail("Product cannot be null");
+            
+            if (quantity <= 0)
+                return ServiceResult.Fail("Quantity must be greater than zero");
+
+            if (quantity > 1000) // Sanity check for weight-based items
+                return ServiceResult.Fail("Quantity exceeds maximum limit");
 
             // Calculate new quantity if product already in cart
             var newQuantity = quantity;
@@ -71,19 +77,16 @@ public class CartService
             var isAvailable = await _databaseService.CheckStockAvailabilityAsync(product.Id, newQuantity, _sessionContext.ActiveLocation.Id);
             if (!isAvailable)
             {
-                return false; // Not enough stock
+                return ServiceResult.Fail("Insufficient stock available");
             }
 
             if (existingItem is not null)
             {
-                // Update existing item - CartItem's INotifyPropertyChanged will notify UI
                 existingItem.Quantity += quantity;
                 await _databaseService.SaveCartItemAsync(existingItem);
-                // UI will automatically update because CartItem.Quantity triggers PropertyChanged
             }
             else
             {
-                // Create new cart item
                 var cartItem = new CartItem
                 {
                     ProductId = product.Id,
@@ -97,14 +100,13 @@ public class CartService
                 _cartItems.Add(cartItem);
             }
 
-            // Notify UI that cart has changed
             OnCartChanged?.Invoke();
-            return true;
+            return ServiceResult.Ok();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error adding to cart: {ex}");
-            return false;
+            return ServiceResult.Fail($"Internal error: {ex.Message}");
         }
     }
 
@@ -134,35 +136,38 @@ public class CartService
     /// Updates the quantity of an item already in the cart.
     /// Validates stock availability before updating.
     /// </summary>
-    /// <returns>True if successful, false if insufficient stock or error occurred</returns>
-    public async Task<bool> UpdateCartItemQuantityAsync(CartItem item, decimal newQuantity)
+    /// <returns>ServiceResult indicating success or failure with message</returns>
+    public async Task<ServiceResult> UpdateCartItemQuantityAsync(CartItem item, decimal newQuantity)
     {
         try
         {
-            if (item == null) return false;
+            if (item == null) return ServiceResult.Fail("Item cannot be null");
             
             if (newQuantity <= 0)
             {
                 await RemoveFromCartAsync(item);
-                return true;
+                return ServiceResult.Ok("Item removed from cart");
             }
+
+            if (newQuantity > 1000)
+                return ServiceResult.Fail("Quantity exceeds maximum limit");
 
             // Check stock availability
             var isAvailable = await _databaseService.CheckStockAvailabilityAsync(item.ProductId, newQuantity, _sessionContext.ActiveLocation.Id);
             if (!isAvailable)
             {
-                return false; // Not enough stock
+                return ServiceResult.Fail("Insufficient stock available");
             }
 
             item.Quantity = newQuantity;
             await _databaseService.SaveCartItemAsync(item);
             OnCartChanged?.Invoke();
-            return true;
+            return ServiceResult.Ok();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error updating cart item quantity: {ex}");
-            return false;
+            return ServiceResult.Fail($"Internal error: {ex.Message}");
         }
     }
 

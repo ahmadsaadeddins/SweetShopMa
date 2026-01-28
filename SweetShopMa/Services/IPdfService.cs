@@ -17,9 +17,9 @@ public interface IPdfService
     /// <param name="month">The month and year for the report</param>
     /// <param name="totals">Monthly totals</param>
     /// <returns>Path to the generated PDF file, or null if generation failed</returns>
-    Task<string?> GeneratePayrollPdfAsync(List<ViewModels.MonthlyAttendanceSummary> summaries, DateTime month, ViewModels.MonthlyAttendanceTotals totals);
+    Task<string?> GeneratePayrollPdfAsync(List<Models.MonthlyAttendanceSummary> summaries, DateTime month, Models.MonthlyAttendanceTotals totals);
 
-    Task<string?> GenerateEmployeePayrollPdfAsync(ViewModels.MonthlyAttendanceSummary summary, DateTime month, List<EmployeeExpense> expenses);
+    Task<string?> GenerateEmployeePayrollPdfAsync(Models.MonthlyAttendanceSummary summary, DateTime month, List<EmployeeExpense> expenses);
 
     /// <summary>
     /// Generates a sales report PDF with metrics, top products, and recent orders.
@@ -38,7 +38,7 @@ public interface IPdfService
         decimal averageOrderValue,
         decimal totalItemsSold,
         decimal last7DaysSales,
-        List<ViewModels.ProductReportItem> topProducts,
+        List<Models.ProductReportItem> topProducts,
         List<Models.Order> recentOrders);
 
     /// <summary>

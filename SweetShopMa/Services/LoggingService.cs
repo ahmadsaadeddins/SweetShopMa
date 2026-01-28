@@ -54,6 +54,50 @@ public class LoggingService
     }
 
     /// <summary>
+    /// Whether debug logging is enabled.
+    /// </summary>
+    public bool IsDebugEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Logs a debug message.
+    /// </summary>
+    public void LogDebug(string context, string message)
+    {
+        if (!IsDebugEnabled) return;
+        var logMessage = $"[DEBUG] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {context}: {message}";
+        WriteLog(logMessage);
+        System.Diagnostics.Debug.WriteLine(logMessage);
+    }
+
+    /// <summary>
+    /// Logs method entry.
+    /// </summary>
+    public void LogMethodEntry(string className, string methodName, string parameters = null)
+    {
+        if (!IsDebugEnabled) return;
+        var message = $"[ENTRY] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {className}.{methodName}";
+        if (!string.IsNullOrEmpty(parameters))
+            message += $" | Params: {parameters}";
+        
+        WriteLog(message);
+        System.Diagnostics.Debug.WriteLine(message);
+    }
+
+    /// <summary>
+    /// Logs method exit.
+    /// </summary>
+    public void LogMethodExit(string className, string methodName, string result = null)
+    {
+        if (!IsDebugEnabled) return;
+        var message = $"[EXIT ] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {className}.{methodName}";
+        if (!string.IsNullOrEmpty(result))
+            message += $" | Result: {result}";
+        
+        WriteLog(message);
+        System.Diagnostics.Debug.WriteLine(message);
+    }
+
+    /// <summary>
     /// Writes log message to file.
     /// </summary>
     private void WriteLog(string message)

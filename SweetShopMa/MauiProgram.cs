@@ -84,6 +84,10 @@ public static class MauiProgram
             
             // ViewModels - Singleton (maintain state across navigation)
             // ViewModels hold business logic and should persist their state
+            .AddSingleton<UserManagementViewModel>()
+            .AddSingleton<ProductManagementViewModel>()
+            .AddSingleton<AttendanceViewModel>()
+            .AddSingleton<ReportsViewModel>()
             .AddSingleton<ShopViewModel>()      // Main shop interface logic
             .AddSingleton<AdminViewModel>()   // Admin panel logic
             .AddSingleton<MenuBarViewModel>()  // Menu bar logic

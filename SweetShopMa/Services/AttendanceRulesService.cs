@@ -15,9 +15,9 @@ public class AttendanceRulesService
         _databaseService = databaseService;
     }
 
-    public async Task<ViewModels.AttendanceCalculationResult> CalculateAsync(User user, DateTime date, string status, DateTime? checkIn, DateTime? checkOut)
+    public async Task<AttendanceCalculationResult> CalculateAsync(User user, DateTime date, string status, DateTime? checkIn, DateTime? checkOut)
     {
-        var result = new ViewModels.AttendanceCalculationResult
+        var result = new AttendanceCalculationResult
         {
             IsValid = true,
             ValidationMessage = "",
@@ -40,12 +40,12 @@ public class AttendanceRulesService
         if (requiresTimes)
         {
             if (!checkIn.HasValue || !checkOut.HasValue)
-                return ViewModels.AttendanceCalculationResult.Invalid("Specify check-in and out times.");
+                return AttendanceCalculationResult.Invalid("Specify check-in and out times.");
 
             var actualIn = checkIn.Value;
             var actualOut = checkOut.Value;
             if (actualOut <= actualIn)
-                return ViewModels.AttendanceCalculationResult.Invalid("Checkout must be after check-in.");
+                return AttendanceCalculationResult.Invalid("Checkout must be after check-in.");
 
             var scheduleStart = date.Date.AddHours(8);
             var scheduleEnd = scheduleStart.AddHours(8);

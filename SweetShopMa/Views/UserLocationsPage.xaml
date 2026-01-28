@@ -11,7 +11,7 @@
     <Grid RowDefinitions="Auto, *" Padding="20" ColumnSpacing="20">
 
         <!-- Navigation + Language Selector -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,10" FlowDirection="LeftToRight">
             <Button x:Name="BackButton"
                     Text=""
                     BackgroundColor="#f0f4f7"

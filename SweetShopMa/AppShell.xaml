@@ -6,7 +6,18 @@
     xmlns:local="clr-namespace:SweetShopMa.Views"
     xmlns:localUtil="clr-namespace:SweetShopMa.Utils"
     xmlns:controls="clr-namespace:SweetShopMa.Controls"
-    FlyoutBehavior="Disabled">
+    FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False">
+    
+    <Shell.Resources>
+        <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
+            <Setter Property="Shell.BackButtonBehavior">
+                <Setter.Value>
+                    <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Shell.Resources>
 
     <!-- FlyoutHeader removed as MenuBar is now in ControlTemplate -->
     
