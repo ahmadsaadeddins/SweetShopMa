@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
 using SweetShopMa.Utils;
+using Microsoft.Maui.ApplicationModel;
 
 namespace SweetShopMa.ViewModels;
 
@@ -270,6 +271,85 @@ public partial class AttendanceViewModel : BaseViewModel
     [RelayCommand]
     public async Task OpenAttendancePageAsync()
     {
-        await Shell.Current.GoToAsync("AttendancePage");
+        await Shell.Current.GoToAsync("attendance");
+    }
+
+    [RelayCommand]
+    public async Task ExportPayrollAsync()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            ShowStatus(_localizationService.GetString("GeneratingPayrollReport"), false);
+            
+            var month = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
+            var filePath = await _pdfService.GeneratePayrollPdfAsync(
+                MonthlyAttendanceSummaries.ToList(), 
+                month, 
+                MonthlySummaryTotals);
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = _localizationService.GetString("PayrollReport"),
+                    File = new ShareFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("PayrollExported"), false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("ExportPayrollAsync", ex);
+            ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task ExportAttendanceAsync()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            ShowStatus(_localizationService.GetString("GeneratingAttendanceReport"), false);
+            
+            var month = new DateTime(SummaryMonth.Year, SummaryMonth.Month, 1);
+            var filePath = await _pdfService.GenerateAttendancePdfAsync(
+                AttendanceRecords.ToList(), 
+                month);
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = _localizationService.GetString("AttendanceReport"),
+                    File = new ShareFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("AttendanceExported"), false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _loggingService?.LogError("ExportAttendanceAsync", ex);
+            ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }

@@ -10,7 +10,7 @@ namespace SweetShopMa.ViewModels;
 /// ViewModel for managing products.
 /// Extracted from AdminViewModel to follow SRP.
 /// </summary>
-public partial class ProductManagementViewModel : BaseViewModel
+public partial class ProductManagementViewModel : BaseViewModel, IDisposable
 {
     [ObservableProperty]
     private ObservableCollection<Product> _products = new();
@@ -38,7 +38,79 @@ public partial class ProductManagementViewModel : BaseViewModel
     [ObservableProperty]
     private string _productSearchText = "";
 
-    partial void OnProductSearchTextChanged(string value) => FilterProducts();
+    private CancellationTokenSource? _searchCts;
+    private readonly object _disposeLock = new object();
+    private bool _disposed;
+
+    partial void OnProductSearchTextChanged(string value)
+    {
+        // Cancel previous search task
+        var oldCts = Interlocked.Exchange(ref _searchCts, null);
+        if (oldCts != null)
+        {
+            try
+            {
+                oldCts.Cancel();
+                oldCts.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+        }
+
+        // Create new cancellation token for debounced search
+        var newCts = new CancellationTokenSource();
+        if (Interlocked.CompareExchange(ref _searchCts, newCts, null) != null)
+        {
+            // Another thread already set a new CTS, dispose this one
+            newCts.Dispose();
+            return;
+        }
+
+        var token = newCts.Token;
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested && !_disposed)
+                {
+                    MainThread.BeginInvokeOnMainThread(FilterProducts);
+                }
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                // Clean up CTS if it's still the current one
+                if (Interlocked.CompareExchange(ref _searchCts, null, newCts) == newCts)
+                {
+                    newCts.Dispose();
+                }
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        lock (_disposeLock)
+        {
+            if (_disposed) return;
+            
+            _disposed = true;
+            
+            // Cancel and dispose search CTS
+            var cts = Interlocked.Exchange(ref _searchCts, null);
+            if (cts != null)
+            {
+                try
+                {
+                    cts.Cancel();
+                    cts.Dispose();
+                }
+                catch (ObjectDisposedException) { }
+            }
+            
+            GC.SuppressFinalize(this);
+        }
+    }
 
     partial void OnSelectedProductChanged(Product value)
     {
@@ -91,6 +163,8 @@ public partial class ProductManagementViewModel : BaseViewModel
     [RelayCommand]
     public void FilterProducts()
     {
+        if (_disposed) return;
+
         if (string.IsNullOrWhiteSpace(ProductSearchText))
         {
             FilteredProducts = new ObservableCollection<Product>(Products);
@@ -147,9 +221,8 @@ public partial class ProductManagementViewModel : BaseViewModel
             // Add initial stock if provided
             if (stock > 0)
             {
-                // This would normally be handled by a StockManagement service, 
-                // but following original logic from AdminViewModel
-                await _databaseService.UpdateProductStockAsync(product.Id, 1, stock); // Default to location 1
+                // Use multi-location inventory (location 1 as default)
+                await _databaseService.UpdateProductStockAsync(product.Id, 1, stock);
             }
 
             ShowStatus(string.Format(_localizationService.GetString("CreatedProduct"), product.Name), false);

@@ -7,12 +7,21 @@ using SweetShopMa.Services;
 
 namespace SweetShopMa.ViewModels;
 
-public partial class UserLocationsViewModel : ObservableObject
+public partial class UserLocationsViewModel : ObservableObject, IDisposable
 {
     private readonly DatabaseService _db;
     private readonly IShopSettingsService _settingsService;
     private readonly AuthService _authService;
     private readonly LocalizationService _localizationService;
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _localizationService?.LanguageChanged -= OnLanguageChanged;
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
 
 
 

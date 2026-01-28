@@ -60,9 +60,9 @@ public partial class ShopLocationsPage : ContentPage
 
     protected override void OnDisappearing()
     {
-        base.OnDisappearing();
         _localizationService.LanguageChanged -= OnLanguageChanged;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        base.OnDisappearing();
     }
 
     private void OnBackButtonClicked(object sender, EventArgs e)

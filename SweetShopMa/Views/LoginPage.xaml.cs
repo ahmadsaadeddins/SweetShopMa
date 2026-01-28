@@ -110,6 +110,14 @@ public partial class LoginPage : ContentPage
         }
     }
 
+    protected override void OnDisappearing()
+    {
+        if (_localizationService != null)
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+            
+        base.OnDisappearing();
+    }
+    
     protected override async void OnAppearing()
     {
         base.OnAppearing();

@@ -163,8 +163,10 @@ public class DatabaseService
                 await _database.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_user_date ON \"AttendanceRecord\"(UserId, Date);");
                 await _database.ExecuteAsync("CREATE INDEX IF NOT EXISTS idx_attendance_user_date_range ON \"AttendanceRecord\"(UserId, Date);");
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error creating database indexes: {ex}");
+                throw;
             }
         }
         finally
@@ -659,20 +661,7 @@ public class DatabaseService
         }
         
         var records = await query.OrderByDescending(r => r.RestockDate).ToListAsync();
-        
-        // Populate missing user names from User table
-        foreach (var record in records)
-        {
-            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
-            {
-                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
-                if (user != null)
-                {
-                    record.UserName = user.Name;
-                }
-            }
-        }
-        
+        await PopulateUserNamesAsync(records);
         return records;
     }
 
@@ -683,20 +672,7 @@ public class DatabaseService
             .Where(r => r.ProductId == productId)
             .OrderByDescending(r => r.RestockDate)
             .ToListAsync();
-        
-        // Populate missing user names from User table
-        foreach (var record in records)
-        {
-            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
-            {
-                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
-                if (user != null)
-                {
-                    record.UserName = user.Name;
-                }
-            }
-        }
-        
+        await PopulateUserNamesAsync(records);
         return records;
     }
 
@@ -707,21 +683,36 @@ public class DatabaseService
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.RestockDate)
             .ToListAsync();
-        
-        // Populate missing user names from User table
-        foreach (var record in records)
+        await PopulateUserNamesAsync(records);
+        return records;
+    }
+
+    /// <summary>
+    /// Populates missing user names in restock records using a batch lookup to avoid N+1 queries.
+    /// </summary>
+    private async Task PopulateUserNamesAsync(List<RestockRecord> records)
+    {
+        var userIdsWithMissingNames = records
+            .Where(r => string.IsNullOrEmpty(r.UserName) && r.UserId > 0)
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToList();
+
+        if (userIdsWithMissingNames.Any())
         {
-            if (string.IsNullOrEmpty(record.UserName) && record.UserId > 0)
+            var userLookup = (await _database.Table<User>()
+                .Where(u => userIdsWithMissingNames.Contains(u.Id))
+                .ToListAsync())
+                .ToDictionary(u => u.Id, u => u.Name);
+
+            foreach (var record in records)
             {
-                var user = await _database.Table<User>().Where(u => u.Id == record.UserId).FirstOrDefaultAsync();
-                if (user != null)
+                if (string.IsNullOrEmpty(record.UserName) && userLookup.TryGetValue(record.UserId, out var name))
                 {
-                    record.UserName = user.Name;
+                    record.UserName = name;
                 }
             }
         }
-        
-        return records;
     }
 
     public async Task<int> CreateEmployeeExpenseAsync(EmployeeExpense expense)

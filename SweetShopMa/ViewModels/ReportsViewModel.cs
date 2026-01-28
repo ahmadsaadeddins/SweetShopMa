@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SweetShopMa.Models;
 using SweetShopMa.Services;
+using Microsoft.Maui.ApplicationModel;
+using System.Linq;
 
 namespace SweetShopMa.ViewModels;
 
@@ -55,12 +57,15 @@ public partial class ReportsViewModel : BaseViewModel
         IsBusy = true;
         try
         {
-            // Simplified loading logic for extraction
             var orders = await _databaseService.GetOrdersAsync();
+            var allOrderItems = await _databaseService.GetAllOrderItemsAsync();
+            var products = await _databaseService.GetProductsAsync();
+            
             RecentOrders.Clear();
-            if (orders != null)
+            if (orders != null && orders.Any())
             {
-                foreach (var order in orders.Take(10))
+                var sortedOrders = orders.OrderByDescending(o => o.OrderDate).ToList();
+                foreach (var order in sortedOrders.Take(20))
                 {
                     RecentOrders.Add(order);
                 }
@@ -68,9 +73,62 @@ public partial class ReportsViewModel : BaseViewModel
                 TotalSales = orders.Sum(o => o.Total);
                 TotalOrders = orders.Count;
                 AverageOrderValue = TotalOrders > 0 ? TotalSales / TotalOrders : 0;
+                
+                var sevenDaysAgo = DateTime.Today.AddDays(-7);
+                Last7DaysSales = orders.Where(o => o.OrderDate >= sevenDaysAgo).Sum(o => o.Total);
+            }
+            else
+            {
+                TotalSales = 0;
+                TotalOrders = 0;
+                AverageOrderValue = 0;
+                Last7DaysSales = 0;
+            }
+
+            if (allOrderItems != null && allOrderItems.Any())
+            {
+                TotalItemsSold = allOrderItems.Sum(i => i.Quantity);
+                
+                // Aggregate top products
+                var topItems = allOrderItems
+                    .GroupBy(i => i.ProductId)
+                    .Select(g =>
+                    {
+                        var product = products?.FirstOrDefault(p => p.Id == g.Key);
+                        return new ProductReportItem
+                        {
+                            Id = g.Key,
+                            Name = product?.Name ?? g.FirstOrDefault()?.Name ?? "Unknown",
+                            Quantity = g.Sum(i => i.Quantity),
+                            TotalSales = g.Sum(i => i.ItemTotal),
+                            Emoji = product?.Emoji ?? "📦",
+                            IsSoldByWeight = product?.IsSoldByWeight ?? false
+                        };
+                    })
+                    .OrderByDescending(i => i.TotalSales)
+                    .ToList();
+
+                TopProducts.Clear();
+                foreach (var item in topItems.Take(10))
+                {
+                    TopProducts.Add(item);
+                }
+
+                if (topItems.Any())
+                {
+                    var top = topItems.First();
+                    TopProductName = top.Name;
+                    TopProductDetails = $"{top.QuantityDisplay} {top.UnitLabel} - {top.TotalSales:F2} ج.م";
+                }
+            }
+            else
+            {
+                TotalItemsSold = 0;
+                TopProducts.Clear();
+                TopProductName = _localizationService.GetString("NoSalesYet");
+                TopProductDetails = _localizationService.GetString("AddItemsToSeeInsights");
             }
             
-            // In a real implementation, we'd also load top products here
             OnPropertyChanged(nameof(HasReportData));
             OnPropertyChanged(nameof(AverageOrderValueDisplay));
         }
@@ -87,13 +145,34 @@ public partial class ReportsViewModel : BaseViewModel
     [RelayCommand]
     public async Task ExportSalesReportAsync()
     {
+        if (IsBusy) return;
         IsBusy = true;
         try
         {
             ShowStatus(_localizationService.GetString("GeneratingSalesReport"), false);
-            // Call IPdfService to generate report
-            // await _pdfService.GenerateSalesReportAsync(...);
-            ShowStatus(_localizationService.GetString("SalesReportExported"), false);
+            
+            var filePath = await _pdfService.GenerateSalesReportPdfAsync(
+                TotalSales,
+                TotalOrders,
+                AverageOrderValue,
+                TotalItemsSold,
+                Last7DaysSales,
+                TopProducts.ToList(),
+                RecentOrders.ToList());
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = _localizationService.GetString("SalesReport"),
+                    File = new ShareFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("SalesReportExported"), false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+            }
         }
         catch (Exception ex)
         {
@@ -109,12 +188,28 @@ public partial class ReportsViewModel : BaseViewModel
     [RelayCommand]
     public async Task ExportInventoryReportAsync()
     {
+        if (IsBusy) return;
         IsBusy = true;
         try
         {
             ShowStatus(_localizationService.GetString("GeneratingInventoryReport"), false);
-            // await _pdfService.GenerateInventoryReportAsync(...);
-            ShowStatus(_localizationService.GetString("InventoryReportExported"), false);
+            
+            var products = await _databaseService.GetProductsAsync();
+            var filePath = await _pdfService.GenerateInventoryReportPdfAsync(products);
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = _localizationService.GetString("InventoryReport"),
+                    File = new ShareFile(filePath)
+                });
+                ShowStatus(_localizationService.GetString("InventoryReportExported"), false);
+            }
+            else
+            {
+                ShowStatus(_localizationService.GetString("FailedToExportReport"), true);
+            }
         }
         catch (Exception ex)
         {

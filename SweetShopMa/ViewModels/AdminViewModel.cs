@@ -125,6 +125,8 @@ public partial class AdminViewModel : BaseViewModel
     // Commands
     public IAsyncRelayCommand ExportSalesReportCommand => Reports.ExportSalesReportCommand;
     public IAsyncRelayCommand ExportInventoryReportCommand => Reports.ExportInventoryReportCommand;
+    public IAsyncRelayCommand ExportPayrollCommand => Attendance.ExportPayrollCommand;
+    public IAsyncRelayCommand ExportAttendanceCommand => Attendance.ExportAttendanceCommand;
     public IAsyncRelayCommand OpenAttendancePageCommand => Attendance.OpenAttendancePageCommand;
     public IAsyncRelayCommand AddProductCommand => ProductManagement.AddProductCommand;
     public IRelayCommand<Product> EditProductCommand => ProductManagement.EditProductCommand;

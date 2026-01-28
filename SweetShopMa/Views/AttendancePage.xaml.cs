@@ -38,6 +38,12 @@ public partial class AttendancePage : ContentPage
         }
     }
 
+    protected override void OnDisappearing()
+    {
+        _localizationService?.LanguageChanged -= OnLanguageChanged;
+        base.OnDisappearing();
+    }
+
     private void OnLanguageChanged()
     {
         UpdateLocalizedStrings();

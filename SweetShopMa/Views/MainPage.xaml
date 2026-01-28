@@ -60,7 +60,7 @@
                             CornerRadius="6"
                             FontSize="12"
                             Command="{Binding LoginCommand}"
-                            IsVisible="{Binding IsAuthenticated, Converter={StaticResource InverseBoolConverter}}"
+                            IsVisible="{Binding IsAuthenticated, Converter={StaticResource InvertedBoolConverter}}"
                             SemanticProperties.Hint="Login to the application"/>
                     <Button Text="{local:LocalizedString Key=AdminPanel}"
                             BackgroundColor="#0f5c66"

@@ -364,6 +364,13 @@ public partial class MainPage : ContentPage
         }
     }
 
+    protected override void OnDisappearing()
+    {
+        _localizationService?.LanguageChanged -= OnLanguageChanged;
+        _settingsService?.SettingsChanged -= OnSettingsChanged;
+        base.OnDisappearing();
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

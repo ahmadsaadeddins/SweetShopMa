@@ -24,10 +24,12 @@ public class PdfService : IPdfService
     #endregion
 
     private readonly LocalizationService _localizationService;
+    private readonly LoggingService _loggingService;
 
-    public PdfService(LocalizationService localizationService)
+    public PdfService(LocalizationService localizationService, LoggingService loggingService)
     {
         _localizationService = localizationService;
+        _loggingService = loggingService;
     }
 
     private bool IsArabic => _localizationService?.CurrentLanguage == "ar";
@@ -65,7 +67,7 @@ public class PdfService : IPdfService
                         .Column(column =>
                         {
                             // Group summaries into pages (10 per page)
-                            var pages = summaries
+                            var pages = (summaries ?? new List<MonthlyAttendanceSummary>())
                                 .Select((summary, index) => new { summary, index })
                                 .GroupBy(x => x.index / UsersPerPage)
                                 .ToList();
@@ -207,7 +209,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating PDF: {ex.Message}");
+            _loggingService?.LogError("GeneratePayrollPdfAsync", ex);
             return null;
         }
     }
@@ -362,7 +364,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating employee payroll PDF: {ex.Message}");
+            _loggingService?.LogError("GenerateEmployeePayrollPdfAsync", ex);
             return null;
         }
     }
@@ -428,20 +430,22 @@ public class PdfService : IPdfService
 
                             foreach (var r in records ?? new List<AttendanceRecord>())
                             {
+                                if (r == null) continue;
+
                                 if (IsArabic)
                                 {
-                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.UserName);
+                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.UserName ?? "");
                                     AlignText(table.Cell().Element(CellStyleRTL)).Text(r.Date.ToString("yyyy-MM-dd"));
-                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.Status);
+                                    AlignText(table.Cell().Element(CellStyleRTL)).Text(r.Status ?? "");
                                     AlignNumeric(table.Cell().Element(CellStyleRTL)).Text($"{r.RegularHours:F1}");
                                     AlignNumeric(table.Cell().Element(CellStyleRTL)).Text($"{r.OvertimeHours:F1}");
                                     AlignNumeric(table.Cell().Element(CellStyleRTL)).Text(FormatAmount(r.DailyPay));
                                 }
                                 else
                                 {
-                                    table.Cell().Element(CellStyle).Text(r.UserName);
+                                    table.Cell().Element(CellStyle).Text(r.UserName ?? "");
                                     table.Cell().Element(CellStyle).Text(r.Date.ToString("yyyy-MM-dd"));
-                                    table.Cell().Element(CellStyle).Text(r.Status);
+                                    table.Cell().Element(CellStyle).Text(r.Status ?? "");
                                     AlignNumeric(table.Cell().Element(CellStyle)).Text($"{r.RegularHours:F1}");
                                     AlignNumeric(table.Cell().Element(CellStyle)).Text($"{r.OvertimeHours:F1}");
                                     AlignNumeric(table.Cell().Element(CellStyle)).Text(FormatAmount(r.DailyPay));
@@ -471,7 +475,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating attendance PDF: {ex.Message}");
+            _loggingService?.LogError("GenerateAttendancePdfAsync", ex);
             return null;
         }
     }
@@ -507,6 +511,15 @@ public class PdfService : IPdfService
         {
             QuestPDF.Settings.License = LicenseType.Community;
             QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+            
+            // Validate inputs - ensure we have at least some data to report
+            if ((topProducts == null || !topProducts.Any()) && 
+                (recentOrders == null || !recentOrders.Any()))
+            {
+                _loggingService?.LogDebug("GenerateSalesReportPdfAsync", "No data to generate sales report");
+                return null;
+            }
+            
             var today = DateTime.Today;
             var fileName = $"SalesReport_{today:yyyy-MM-dd}.pdf";
             var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
@@ -720,7 +733,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating sales report PDF: {ex.Message}");
+            _loggingService?.LogError("GenerateSalesReportPdfAsync", ex);
             return null;
         }
     }
@@ -731,6 +744,12 @@ public class PdfService : IPdfService
     {
         try
         {
+            if (products == null || !products.Any())
+            {
+                _loggingService?.LogDebug("GenerateInventoryReportPdfAsync", "No products to generate inventory report");
+                return null;
+            }
+
             QuestPDF.Settings.License = LicenseType.Community;
             QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
             var today = DateTime.Today;
@@ -893,7 +912,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating inventory report PDF: {ex.Message}");
+            _loggingService?.LogError("GenerateInventoryReportPdfAsync", ex);
             return null;
         }
     }
@@ -905,6 +924,12 @@ public class PdfService : IPdfService
     {
         try
         {
+            if (productsWithStock == null || !productsWithStock.Any())
+            {
+                _loggingService?.LogDebug("GenerateInventoryReportByLocationPdfAsync", "No products to generate inventory report");
+                return null;
+            }
+
             QuestPDF.Settings.License = LicenseType.Community;
             QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
             var today = DateTime.Today;
@@ -912,11 +937,14 @@ public class PdfService : IPdfService
             var fileName = $"InventoryReport_{safeLocationName}_{today:yyyy-MM-dd}.pdf";
             var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
 
-            // Convert to list with stock values for filtering
-            var products = productsWithStock.Select(ps => 
-            {
-                return new { Product = ps.Product, Stock = ps.Stock };
-            }).ToList();
+            // Convert to list with stock values for filtering, filtering out null products
+            var products = productsWithStock
+                .Where(ps => ps.Product != null)
+                .Select(ps => 
+                {
+                    return new { Product = ps.Product, Stock = ps.Stock };
+                })
+                .ToList();
 
             // Separate products into categories based on location stock
             var outOfStock = products.Where(p => p.Stock <= 0).OrderBy(p => p.Product.Name).ToList();
@@ -1077,7 +1105,7 @@ public class PdfService : IPdfService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error generating inventory report PDF: {ex.Message}");
+            _loggingService?.LogError("GenerateInventoryReportPdfAsync", ex);
             return null;
         }
     }

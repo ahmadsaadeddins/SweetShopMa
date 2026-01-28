@@ -12,7 +12,6 @@
             </ResourceDictionary.MergedDictionaries>
             <utils:IsNotNullConverter x:Key="IsNotNullConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
             <utils:InvertedBoolConverter x:Key="InvertedBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
-            <utils:InverseBoolConverter x:Key="InverseBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
             <utils:BoolToFlowDirectionConverter x:Key="BoolToFlowDirectionConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
             <utils:StringToBoolConverter x:Key="StringToBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
 

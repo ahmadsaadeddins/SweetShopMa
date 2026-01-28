@@ -57,6 +57,7 @@ public partial class UserLocationsPage : ContentPage
             _localizationService.LanguageChanged -= OnLanguageChanged;
             _isDisposed = true;
         }
+        _viewModel?.Dispose();
         base.OnDisappearing();
     }
 
