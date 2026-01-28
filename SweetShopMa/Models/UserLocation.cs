@@ -1,4 +1,6 @@
 using SQLite;
+using System.ComponentModel.DataAnnotations;
+
 
 namespace SweetShopMa.Models;
 
@@ -11,10 +13,15 @@ public class UserLocation
     public int Id { get; set; }
 
     [Indexed]
+    [Required]
+    [Range(1, int.MaxValue)]
     public int UserId { get; set; }
 
     [Indexed]
+    [Required]
+    [Range(1, int.MaxValue)]
     public int LocationId { get; set; }
+
 
     public bool IsPrimary { get; set; } = false;
     public DateTime AssignedDate { get; set; } = DateTime.Now;

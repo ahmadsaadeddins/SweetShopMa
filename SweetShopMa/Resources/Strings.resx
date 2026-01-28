@@ -1371,4 +1371,11 @@
   <data name="FailedToGenerateInventoryReport" xml:space="preserve">
     <value>Failed to generate inventory report</value>
   </data>
+  <data name="UnauthorizedAction" xml:space="preserve">
+    <value>Unauthorized action. Admin rights required.</value>
+  </data>
+  <data name="FailedToLoadAssignments" xml:space="preserve">
+    <value>Failed to load user assignments.</value>
+  </data>
 </root>
+

@@ -1401,4 +1401,11 @@
   <data name="FailedToGenerateInventoryReport" xml:space="preserve">
     <value>فشل إنشاء تقرير المخزون</value>
   </data>
+  <data name="UnauthorizedAction" xml:space="preserve">
+    <value>إجراء غير مصرح به. مطلوب صلاحيات مسؤول.</value>
+  </data>
+  <data name="FailedToLoadAssignments" xml:space="preserve">
+    <value>فشل تحميل تعيينات المستخدم.</value>
+  </data>
 </root>
+

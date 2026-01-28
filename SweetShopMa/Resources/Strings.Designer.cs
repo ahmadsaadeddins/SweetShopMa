@@ -1592,5 +1592,24 @@ namespace SweetShopMa.Resources {
                 return ResourceManager.GetString("ExpenseRemoved", resourceCulture);
             }
         }
+
+        internal static string AssignmentSuccess {
+            get {
+                return ResourceManager.GetString("AssignmentSuccess", resourceCulture);
+            }
+        }
+
+        internal static string UnauthorizedAction {
+            get {
+                return ResourceManager.GetString("UnauthorizedAction", resourceCulture);
+            }
+        }
+
+        internal static string FailedToLoadAssignments {
+            get {
+                return ResourceManager.GetString("FailedToLoadAssignments", resourceCulture);
+            }
+        }
     }
 }
+

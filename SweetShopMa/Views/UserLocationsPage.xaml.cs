@@ -6,15 +6,27 @@ namespace SweetShopMa.Views;
 public partial class UserLocationsPage : ContentPage
 {
     private readonly LocalizationService _localizationService;
+    private readonly UserLocationsViewModel _viewModel;
+    private bool _isDisposed;
+
 
     public UserLocationsPage(UserLocationsViewModel viewModel, LocalizationService localizationService)
     {
         InitializeComponent();
-        BindingContext = viewModel;
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
         _localizationService = localizationService;
+        
         _localizationService.LanguageChanged += OnLanguageChanged;
         UpdateLocalizedStrings();
     }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await _viewModel.InitializeAsync();
+    }
+
 
     private void OnLanguageChanged()
     {
@@ -40,9 +52,14 @@ public partial class UserLocationsPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        if (!_isDisposed)
+        {
+            _localizationService.LanguageChanged -= OnLanguageChanged;
+            _isDisposed = true;
+        }
         base.OnDisappearing();
-        _localizationService.LanguageChanged -= OnLanguageChanged;
     }
+
 
     private void OnBackButtonClicked(object sender, EventArgs e)
     {

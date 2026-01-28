@@ -11,36 +11,74 @@ public partial class UserLocationsViewModel : ObservableObject
 {
     private readonly DatabaseService _db;
     private readonly IShopSettingsService _settingsService;
+    private readonly AuthService _authService;
+    private readonly LocalizationService _localizationService;
+
+
 
     [ObservableProperty] private ObservableCollection<User> _users = new();
     [ObservableProperty] private ObservableCollection<ShopLocation> _locations = new();
     [ObservableProperty] private ObservableCollection<UserLocation> _assignments = new();
 
-    [ObservableProperty] private User _selectedUser;
-    [ObservableProperty] private ShopLocation _selectedLocation;
+    [ObservableProperty] private User? _selectedUser;
+    [ObservableProperty] private ShopLocation? _selectedLocation;
     [ObservableProperty] private bool _isPrimary;
     [ObservableProperty] private bool _isBusy;
 
-    public UserLocationsViewModel(DatabaseService db, IShopSettingsService settingsService)
+    [ObservableProperty] private string _assignedLocationText = "";
+    [ObservableProperty] private string _primaryText = "";
+    [ObservableProperty] private string _removeText = "";
+
+
+
+    public UserLocationsViewModel(DatabaseService db, IShopSettingsService settingsService, AuthService authService, LocalizationService localizationService)
     {
         _db = db;
         _settingsService = settingsService;
-        LoadDataCommand.Execute(null);
+        _authService = authService;
+        _localizationService = localizationService;
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        UpdateLocalizedStrings();
     }
+
+    private void OnLanguageChanged()
+    {
+        UpdateLocalizedStrings();
+    }
+
+    private void UpdateLocalizedStrings()
+    {
+        AssignedLocationText = _localizationService.GetString("AssignedLocation");
+        PrimaryText = _localizationService.GetString("Primary");
+        RemoveText = _localizationService.GetString("Remove");
+    }
+
+    public async Task InitializeAsync()
+
+    {
+        await LoadDataAsync();
+    }
+
 
     [RelayCommand]
     private async Task LoadDataAsync()
     {
+        if (IsBusy) return;
         IsBusy = true;
         try
         {
             var userList = await _db.GetUsersAsync();
-            Users = new ObservableCollection<User>(userList);
+            UpdateCollection(Users, userList);
 
             var locationList = await _settingsService.GetLocationsAsync();
-            Locations = new ObservableCollection<ShopLocation>(locationList);
+            UpdateCollection(Locations, locationList);
 
             await LoadAssignmentsAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading data: {ex.Message}");
+            await Shell.Current.DisplayAlert(Strings.Error, Strings.FailedToLoadAssignments, Strings.OK);
         }
         finally
         {
@@ -48,27 +86,51 @@ public partial class UserLocationsViewModel : ObservableObject
         }
     }
 
+
     private async Task LoadAssignmentsAsync()
     {
-        if (SelectedUser != null)
+        try
         {
-            var list = await _db.GetUserLocationsAsync(SelectedUser.Id);
-            Assignments = new ObservableCollection<UserLocation>(list);
+            if (SelectedUser != null)
+            {
+                var list = await _db.GetUserLocationsAsync(SelectedUser.Id);
+                UpdateCollection(Assignments, list);
+            }
+            else
+            {
+                Assignments.Clear();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            Assignments.Clear();
+            System.Diagnostics.Debug.WriteLine($"Error loading assignments: {ex.Message}");
+            await Shell.Current.DisplayAlert(Strings.Error, Strings.FailedToLoadAssignments, Strings.OK);
         }
     }
 
-    partial void OnSelectedUserChanged(User value)
+    private void UpdateCollection<T>(ObservableCollection<T> collection, IEnumerable<T> newItems)
+    {
+        collection.Clear();
+        foreach (var item in newItems)
+            collection.Add(item);
+    }
+
+
+    partial void OnSelectedUserChanged(User? value)
     {
         _ = LoadAssignmentsAsync();
     }
 
+
     [RelayCommand]
     private async Task AssignAsync()
     {
+        if (!_authService.CanManageUsers)
+        {
+            await Shell.Current.DisplayAlert(Strings.Error, Strings.UnauthorizedAction, Strings.OK);
+            return;
+        }
+
         if (SelectedUser == null || SelectedLocation == null)
         {
             await Shell.Current.DisplayAlert(Strings.Error, Strings.PleaseSelectUserAndLocation, Strings.OK);
@@ -80,6 +142,11 @@ public partial class UserLocationsViewModel : ObservableObject
         {
             await _db.AssignUserToLocationAsync(SelectedUser.Id, SelectedLocation.Id, IsPrimary);
             await LoadAssignmentsAsync();
+            await Shell.Current.DisplayAlert(Strings.Success, Strings.AssignmentSuccess, Strings.OK);
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert(Strings.Error, ex.Message, Strings.OK);
         }
         finally
         {
@@ -87,9 +154,16 @@ public partial class UserLocationsViewModel : ObservableObject
         }
     }
 
+
     [RelayCommand]
     private async Task RemoveAssignmentAsync(UserLocation assignment)
     {
+        if (!_authService.CanManageUsers)
+        {
+            await Shell.Current.DisplayAlert(Strings.Error, Strings.UnauthorizedAction, Strings.OK);
+            return;
+        }
+
         bool confirm = await Shell.Current.DisplayAlert(Strings.Confirm, Strings.RemoveAssignmentConfirm, Strings.Yes, Strings.No);
         if (confirm)
         {
@@ -99,10 +173,15 @@ public partial class UserLocationsViewModel : ObservableObject
                 await _db.RemoveUserFromLocationAsync(assignment.UserId, assignment.LocationId);
                 await LoadAssignmentsAsync();
             }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert(Strings.Error, ex.Message, Strings.OK);
+            }
             finally
             {
                 IsBusy = false;
             }
         }
     }
+
 }

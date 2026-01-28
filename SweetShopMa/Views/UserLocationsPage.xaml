@@ -61,16 +61,18 @@
                             <Grid ColumnDefinitions="*, Auto">
                                 <HorizontalStackLayout Grid.Column="0" Spacing="10">
                                     <Label Text="{Binding LocationId}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
-                                    <Label Text="(Assigned Location)" VerticalOptions="Center" TextColor="Gray"/>
+                                    <Label Text="{Binding Source={RelativeSource AncestorType={x:Type vm:UserLocationsViewModel}}, Path=AssignedLocationText}" VerticalOptions="Center" TextColor="Gray"/>
                                     <Frame Padding="5,2" BackgroundColor="#4CAF50" CornerRadius="5" IsVisible="{Binding IsPrimary}">
-                                        <Label Text="PRIMARY" TextColor="White" FontSize="10" FontAttributes="Bold"/>
+                                        <Label Text="{Binding Source={RelativeSource AncestorType={x:Type vm:UserLocationsViewModel}}, Path=PrimaryText}" TextColor="White" FontSize="10" FontAttributes="Bold"/>
                                     </Frame>
                                 </HorizontalStackLayout>
                                 
-                                <Button Grid.Column="1" Text="Remove"
+                                <Button Grid.Column="1" Text="{Binding Source={RelativeSource AncestorType={x:Type vm:UserLocationsViewModel}}, Path=RemoveText}"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UserLocationsViewModel}}, Path=RemoveAssignmentCommand}"
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="#FF5252" HeightRequest="40"/>
+
+
                             </Grid>
                         </Frame>
                     </DataTemplate>
