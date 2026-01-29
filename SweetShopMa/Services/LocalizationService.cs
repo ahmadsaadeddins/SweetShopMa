@@ -123,6 +123,11 @@ public class LocalizationService : INotifyPropertyChanged
     /// </summary>
     public bool IsRTL => _currentCulture.TwoLetterISOLanguageName == "ar";
 
+    /// <summary>
+    /// Returns true if current language is Arabic.
+    /// </summary>
+    public bool IsArabic => _currentCulture.TwoLetterISOLanguageName == "ar";
+
     // ============================================
     // METHODS
     // ============================================

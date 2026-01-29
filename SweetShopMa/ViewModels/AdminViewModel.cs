@@ -152,6 +152,193 @@ public partial class AdminViewModel : BaseViewModel
     public string SelectedAttendanceStatusKey => Attendance.SelectedAttendanceStatusKey;
     public async Task LoadAttendanceAsync() => await Attendance.LoadAttendanceAsync();
 
+    // Attendance Records and Calendar
+    public ObservableCollection<AttendanceRecord> AttendanceRecords => Attendance.AttendanceRecords;
+    public ObservableCollection<DailyAttendanceEntry> AttendanceCalendarDays => Attendance.AttendanceCalendarDays;
+    public ObservableCollection<MonthlyAttendanceSummary> MonthlyAttendanceSummaries => Attendance.MonthlyAttendanceSummaries;
+    public MonthlyAttendanceTotals MonthlySummaryTotals => Attendance.MonthlySummaryTotals;
+    public MonthlyAttendanceSummary SelectedMonthlySummary
+    {
+        get => Attendance.SelectedMonthlySummary;
+        set => Attendance.SelectedMonthlySummary = value;
+    }
+    public AttendanceSummary AttendanceSummary => Attendance.AttendanceSummary;
+    public ObservableCollection<EmployeeComparisonItem> EmployeeComparisonData => Attendance.EmployeeComparisonData;
+
+    // Attendance Form Properties
+    public User SelectedAttendanceUser
+    {
+        get => Attendance.SelectedAttendanceUser;
+        set => Attendance.SelectedAttendanceUser = value;
+    }
+    public DateTime AttendanceDate
+    {
+        get => Attendance.AttendanceDate;
+        set => Attendance.AttendanceDate = value;
+    }
+    public string SelectedAttendanceStatus
+    {
+        get => Attendance.SelectedAttendanceStatus;
+        set => Attendance.SelectedAttendanceStatus = value;
+    }
+    public string AttendanceNotes
+    {
+        get => Attendance.AttendanceNotes;
+        set => Attendance.AttendanceNotes = value;
+    }
+    public TimeSpan AttendanceCheckInTime
+    {
+        get => Attendance.AttendanceCheckInTime;
+        set => Attendance.AttendanceCheckInTime = value;
+    }
+    public TimeSpan AttendanceCheckOutTime
+    {
+        get => Attendance.AttendanceCheckOutTime;
+        set => Attendance.AttendanceCheckOutTime = value;
+    }
+    public string AttendancePreview
+    {
+        get => Attendance.AttendancePreview;
+        set => Attendance.AttendancePreview = value;
+    }
+    public ObservableCollection<string> AttendanceStatuses
+    {
+        get => Attendance.AttendanceStatuses;
+        set => Attendance.AttendanceStatuses = value;
+    }
+    public bool IsAttendanceTimeEntryEnabled
+    {
+        get => Attendance.IsAttendanceTimeEntryEnabled;
+        set => Attendance.IsAttendanceTimeEntryEnabled = value;
+    }
+    public bool IsEditingAttendance
+    {
+        get => Attendance.IsEditingAttendance;
+        set => Attendance.IsEditingAttendance = value;
+    }
+    public AttendanceRecord EditingAttendanceRecord
+    {
+        get => Attendance.EditingAttendanceRecord;
+        set => Attendance.EditingAttendanceRecord = value;
+    }
+
+    // Collapsible Section Visibility
+    public bool IsAddEditSectionExpanded
+    {
+        get => Attendance.IsAddEditSectionExpanded;
+        set => Attendance.IsAddEditSectionExpanded = value;
+    }
+    public bool IsStatisticsSectionExpanded
+    {
+        get => Attendance.IsStatisticsSectionExpanded;
+        set => Attendance.IsStatisticsSectionExpanded = value;
+    }
+    public bool IsRecordsSectionExpanded
+    {
+        get => Attendance.IsRecordsSectionExpanded;
+        set => Attendance.IsRecordsSectionExpanded = value;
+    }
+    public bool IsMonthlySummarySectionExpanded
+    {
+        get => Attendance.IsMonthlySummarySectionExpanded;
+        set => Attendance.IsMonthlySummarySectionExpanded = value;
+    }
+    public bool IsCalendarSectionExpanded
+    {
+        get => Attendance.IsCalendarSectionExpanded;
+        set => Attendance.IsCalendarSectionExpanded = value;
+    }
+    public bool IsEmployeeComparisonSectionExpanded
+    {
+        get => Attendance.IsEmployeeComparisonSectionExpanded;
+        set => Attendance.IsEmployeeComparisonSectionExpanded = value;
+    }
+    public bool IsFilteringSectionExpanded
+    {
+        get => Attendance.IsFilteringSectionExpanded;
+        set => Attendance.IsFilteringSectionExpanded = value;
+    }
+
+    // Filtering Properties
+    public DateTime FilterStartDate
+    {
+        get => Attendance.FilterStartDate;
+        set => Attendance.FilterStartDate = value;
+    }
+    public DateTime FilterEndDate
+    {
+        get => Attendance.FilterEndDate;
+        set => Attendance.FilterEndDate = value;
+    }
+    public string FilterStatus
+    {
+        get => Attendance.FilterStatus;
+        set => Attendance.FilterStatus = value;
+    }
+    public string FilterOvertime
+    {
+        get => Attendance.FilterOvertime;
+        set => Attendance.FilterOvertime = value;
+    }
+    public string SearchText
+    {
+        get => Attendance.SearchText;
+        set => Attendance.SearchText = value;
+    }
+
+    // Selected Records for Bulk Operations
+    public ObservableCollection<AttendanceRecord> SelectedRecords
+    {
+        get => Attendance.SelectedRecords;
+        set => Attendance.SelectedRecords = value;
+    }
+    public bool HasSelectedRecords => Attendance.HasSelectedRecords;
+
+    // Monthly Summary Properties
+    public DateTime SummaryMonth
+    {
+        get => Attendance.SummaryMonth;
+        set => Attendance.SummaryMonth = value;
+    }
+
+    // Expense Properties
+    public DateTime ExpenseDate
+    {
+        get => Attendance.ExpenseDate;
+        set => Attendance.ExpenseDate = value;
+    }
+    public string ExpenseAmount
+    {
+        get => Attendance.ExpenseAmount;
+        set => Attendance.ExpenseAmount = value;
+    }
+    public string ExpenseCategory
+    {
+        get => Attendance.ExpenseCategory;
+        set => Attendance.ExpenseCategory = value;
+    }
+    public string ExpenseNotes
+    {
+        get => Attendance.ExpenseNotes;
+        set => Attendance.ExpenseNotes = value;
+    }
+
+    // Commands
+    public IAsyncRelayCommand AddAttendanceCommand => Attendance.AddAttendanceCommand;
+    public IAsyncRelayCommand UpdateAttendanceRecordCommand => Attendance.UpdateAttendanceRecordCommand;
+    public IRelayCommand<AttendanceRecord> EditAttendanceRecordCommand => Attendance.EditAttendanceRecordCommand;
+    public IAsyncRelayCommand<AttendanceRecord> DeleteAttendanceRecordCommand => Attendance.DeleteAttendanceRecordCommand;
+    public IAsyncRelayCommand ApplyFiltersCommand => Attendance.ApplyFiltersCommand;
+    public IRelayCommand ClearFiltersCommand => Attendance.ClearFiltersCommand;
+    public IAsyncRelayCommand BulkDeleteCommand => Attendance.BulkDeleteCommand;
+    public IRelayCommand ClearSelectionCommand => Attendance.ClearSelectionCommand;
+    public IAsyncRelayCommand ExportAttendanceToExcelCommand => Attendance.ExportAttendanceToExcelCommand;
+    public IAsyncRelayCommand ExportAttendanceToPdfCommand => Attendance.ExportAttendanceToPdfCommand;
+    public IAsyncRelayCommand ExportSelectedEmployeePayrollPdfCommand => Attendance.ExportSelectedEmployeePayrollPdfCommand;
+    public IAsyncRelayCommand<DailyAttendanceEntry> CalendarDayTappedCommand => Attendance.CalendarDayTappedCommand;
+    public IAsyncRelayCommand AddExpenseCommand => Attendance.AddExpenseCommand;
+    public IAsyncRelayCommand<EmployeeExpense> DeleteExpenseCommand => Attendance.DeleteExpenseCommand;
+
     public void RefreshLocalizedProperties()
     {
         OnPropertyChanged(nameof(AverageOrderValueDisplay));

@@ -429,8 +429,22 @@ public class DatabaseService
     public async Task<int> SaveAttendanceRecordAsync(AttendanceRecord record)
     {
         await InitializeAsync();
-        if (record.Id != 0)
+        
+        // Normalize the date to ensure consistent comparison (time part is set to 00:00:00)
+        record.Date = record.Date.Date;
+        
+        // Check if there's an existing record with the same UserId and Date
+        var existingRecord = await GetAttendanceRecordAsync(record.UserId, record.Date);
+        
+        if (existingRecord != null)
+        {
+            // Update the existing record by setting its Id to the existing record's Id
+            // This ensures we update the correct record in the database
+            record.Id = existingRecord.Id;
             return await _database.UpdateAsync(record);
+        }
+        
+        // If no existing record, insert new one
         return await _database.InsertAsync(record);
     }
 

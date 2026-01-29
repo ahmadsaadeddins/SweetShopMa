@@ -1,4 +1,5 @@
 using System;
+using SweetShopMa.Utils;
 
 namespace SweetShopMa.Models;
 
@@ -23,12 +24,16 @@ public class MonthlyAttendanceSummary
     public int DaysPresent { get; set; }
     public int DaysAbsent { get; set; }
     public decimal OvertimeHours { get; set; }
+    public string OvertimeDisplay => OvertimeHours > 0 ? $"OT {OvertimeHours:F1}h" : "";
     public decimal Payroll { get; set; }
+    public string PayrollDisplay => CurrencyHelper.FormatCurrency(Payroll);
     public decimal ExpensesTotal { get; set; }
     public decimal NetPay => Payroll - ExpensesTotal;
     
     public decimal AbsenceDeductions { get; set; }
     public decimal RestDayPayout { get; set; }
+    public string RestDayPayoutDisplay => RestDayPayout > 0 ? $"Rest {CurrencyHelper.FormatCurrency(RestDayPayout)}" : "";
+    public string AbsenceDeductionsDisplay => AbsenceDeductions > 0 ? $"Deduct -{CurrencyHelper.FormatCurrency(AbsenceDeductions)}" : "";
     public int EarnedRestDays { get; set; }
 }
 
@@ -45,11 +50,16 @@ public class MonthlyAttendanceTotals
 public class DailyAttendanceEntry
 {
     public DateTime Date { get; set; }
+    public string DayText { get; set; }
+    public string DetailText { get; set; }
     public string Status { get; set; }
-    public string StatusKey { get; set; }
+    public string StatusKey => Status ?? string.Empty;
     public bool IsPresent { get; set; }
+    public bool IsAbsent { get; set; }
+    public bool HasOvertime { get; set; }
     public bool IsToday => Date.Date == DateTime.Today;
     public bool IsWeekend => Date.DayOfWeek == DayOfWeek.Friday;
+    public bool IsPlaceholder { get; set; }
 }
 
 public class AttendanceCalculationResult

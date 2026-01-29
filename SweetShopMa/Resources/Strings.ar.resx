@@ -1407,5 +1407,89 @@
   <data name="FailedToLoadAssignments" xml:space="preserve">
     <value>فشل تحميل تعيينات المستخدم.</value>
   </data>
+  <data name="AttendanceSaved" xml:space="preserve">
+    <value>تم حفظ الحضور بنجاح.</value>
+  </data>
+  <data name="AttendanceRecordAlreadyExists" xml:space="preserve">
+    <value>سجل الحضور موجود بالفعل لهذا الموظف في هذا التاريخ.</value>
+  </data>
+  <data name="ErrorSavingAttendance" xml:space="preserve">
+    <value>خطأ في حفظ الحضور.</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>تأكيد الحذف</value>
+  </data>
+  <data name="ConfirmDeleteAttendance" xml:space="preserve">
+    <value>هل أنت متأكد من حذف سجل الحضور هذا؟</value>
+  </data>
+  <data name="ConfirmDeleteSelected" xml:space="preserve">
+    <value>هل أنت متأكد من حذف {0} سجل/سجلات محددة؟</value>
+  </data>
+  <data name="AttendanceUpdated" xml:space="preserve">
+    <value>تم تحديث الحضور بنجاح.</value>
+  </data>
+  <data name="ErrorUpdatingAttendance" xml:space="preserve">
+    <value>خطأ في تحديث الحضور.</value>
+  </data>
+  <data name="AttendanceDeleted" xml:space="preserve">
+    <value>تم حذف الحضور بنجاح.</value>
+  </data>
+  <data name="ErrorDeletingAttendance" xml:space="preserve">
+    <value>خطأ في حذف الحضور.</value>
+  </data>
+  <data name="RecordsDeleted" xml:space="preserve">
+    <value>تم حذف السجلات بنجاح.</value>
+  </data>
+  <data name="ErrorDeletingRecords" xml:space="preserve">
+    <value>خطأ في حذف السجلات.</value>
+  </data>
+  <data name="FeatureNotImplemented" xml:space="preserve">
+    <value>هذه الميزة لم يتم تنفيذها بعد.</value>
+  </data>
+  <data name="EmployeePayrollReport" xml:space="preserve">
+    <value>تقرير رواتب الموظف</value>
+  </data>
+  <data name="GeneratingPayrollReport" xml:space="preserve">
+    <value>جاري إنشاء تقرير الرواتب...</value>
+  </data>
+  <data name="PayrollExported" xml:space="preserve">
+    <value>تم تصدير الرواتب بنجاح.</value>
+  </data>
+  <data name="GeneratingAttendanceReport" xml:space="preserve">
+    <value>جاري إنشاء تقرير الحضور...</value>
+  </data>
+  <data name="AttendanceExported" xml:space="preserve">
+    <value>تم تصدير الحضور بنجاح.</value>
+  </data>
+  <data name="FailedToExportReport" xml:space="preserve">
+    <value>فشل تصدير التقرير.</value>
+  </data>
+  <data name="ErrorSavingExpense" xml:space="preserve">
+    <value>خطأ في حفظ المصروف.</value>
+  </data>
+  <data name="ExpenseDeleted" xml:space="preserve">
+    <value>تم حذف المصروف بنجاح.</value>
+  </data>
+  <data name="ErrorDeletingExpense" xml:space="preserve">
+    <value>خطأ في حذف المصروف.</value>
+  </data>
+  <data name="FiltersApplied" xml:space="preserve">
+    <value>تم تطبيق الفلاتر بنجاح.</value>
+  </data>
+  <data name="ErrorApplyingFilters" xml:space="preserve">
+    <value>خطأ في تطبيق الفلاتر.</value>
+  </data>
+  <data name="FiltersCleared" xml:space="preserve">
+    <value>تم مسح الفلاتر.</value>
+  </data>
+  <data name="SelectionCleared" xml:space="preserve">
+    <value>تم مسح التحديد.</value>
+  </data>
+  <data name="GeneratingExcelReport" xml:space="preserve">
+    <value>جاري إنشاء تقرير Excel...</value>
+  </data>
+  <data name="ExcelExported" xml:space="preserve">
+    <value>تم تصدير تقرير Excel بنجاح.</value>
+  </data>
 </root>
 

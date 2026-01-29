@@ -1377,5 +1377,89 @@
   <data name="FailedToLoadAssignments" xml:space="preserve">
     <value>Failed to load user assignments.</value>
   </data>
+  <data name="AttendanceSaved" xml:space="preserve">
+    <value>Attendance saved successfully.</value>
+  </data>
+  <data name="AttendanceRecordAlreadyExists" xml:space="preserve">
+    <value>Attendance record already exists for this user on this date.</value>
+  </data>
+  <data name="ErrorSavingAttendance" xml:space="preserve">
+    <value>Error saving attendance.</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>Confirm Delete</value>
+  </data>
+  <data name="ConfirmDeleteAttendance" xml:space="preserve">
+    <value>Are you sure you want to delete this attendance record?</value>
+  </data>
+  <data name="ConfirmDeleteSelected" xml:space="preserve">
+    <value>Are you sure you want to delete {0} selected record(s)?</value>
+  </data>
+  <data name="AttendanceUpdated" xml:space="preserve">
+    <value>Attendance updated successfully.</value>
+  </data>
+  <data name="ErrorUpdatingAttendance" xml:space="preserve">
+    <value>Error updating attendance.</value>
+  </data>
+  <data name="AttendanceDeleted" xml:space="preserve">
+    <value>Attendance deleted successfully.</value>
+  </data>
+  <data name="ErrorDeletingAttendance" xml:space="preserve">
+    <value>Error deleting attendance.</value>
+  </data>
+  <data name="RecordsDeleted" xml:space="preserve">
+    <value>Records deleted successfully.</value>
+  </data>
+  <data name="ErrorDeletingRecords" xml:space="preserve">
+    <value>Error deleting records.</value>
+  </data>
+  <data name="FeatureNotImplemented" xml:space="preserve">
+    <value>This feature is not yet implemented.</value>
+  </data>
+  <data name="EmployeePayrollReport" xml:space="preserve">
+    <value>Employee Payroll Report</value>
+  </data>
+  <data name="GeneratingPayrollReport" xml:space="preserve">
+    <value>Generating payroll report...</value>
+  </data>
+  <data name="PayrollExported" xml:space="preserve">
+    <value>Payroll exported successfully.</value>
+  </data>
+  <data name="GeneratingAttendanceReport" xml:space="preserve">
+    <value>Generating attendance report...</value>
+  </data>
+  <data name="AttendanceExported" xml:space="preserve">
+    <value>Attendance exported successfully.</value>
+  </data>
+  <data name="FailedToExportReport" xml:space="preserve">
+    <value>Failed to export report.</value>
+  </data>
+  <data name="ErrorSavingExpense" xml:space="preserve">
+    <value>Error saving expense.</value>
+  </data>
+  <data name="ExpenseDeleted" xml:space="preserve">
+    <value>Expense deleted successfully.</value>
+  </data>
+  <data name="ErrorDeletingExpense" xml:space="preserve">
+    <value>Error deleting expense.</value>
+  </data>
+  <data name="FiltersApplied" xml:space="preserve">
+    <value>Filters applied successfully.</value>
+  </data>
+  <data name="ErrorApplyingFilters" xml:space="preserve">
+    <value>Error applying filters.</value>
+  </data>
+  <data name="FiltersCleared" xml:space="preserve">
+    <value>Filters cleared.</value>
+  </data>
+  <data name="SelectionCleared" xml:space="preserve">
+    <value>Selection cleared.</value>
+  </data>
+  <data name="GeneratingExcelReport" xml:space="preserve">
+    <value>Generating Excel report...</value>
+  </data>
+  <data name="ExcelExported" xml:space="preserve">
+    <value>Excel report exported successfully.</value>
+  </data>
 </root>
 

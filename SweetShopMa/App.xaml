@@ -14,6 +14,7 @@
             <utils:InvertedBoolConverter x:Key="InvertedBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
             <utils:BoolToFlowDirectionConverter x:Key="BoolToFlowDirectionConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
             <utils:StringToBoolConverter x:Key="StringToBoolConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
+            <utils:CurrencyConverter x:Key="CurrencyConverter" xmlns:utils="clr-namespace:SweetShopMa.Utils" />
 
             <!-- Global Page Template with MenuBar overlaying -->
             <ControlTemplate x:Key="MainPageTemplate" xmlns:controls="clr-namespace:SweetShopMa.Controls">

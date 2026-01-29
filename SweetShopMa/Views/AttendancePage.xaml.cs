@@ -5,10 +5,10 @@ namespace SweetShopMa.Views;
 
 public partial class AttendancePage : ContentPage
 {
-    private readonly AdminViewModel _viewModel;
+    private readonly AttendanceViewModel _viewModel;
     private readonly LocalizationService _localizationService;
 
-    public AttendancePage(AdminViewModel viewModel, LocalizationService localizationService)
+    public AttendancePage(AttendanceViewModel viewModel, LocalizationService localizationService)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -258,9 +258,9 @@ public partial class AttendancePage : ContentPage
         }
         
         // Update ViewModel properties that depend on localization
-        if (BindingContext is AdminViewModel adminViewModel)
+        if (BindingContext is AttendanceViewModel attendanceViewModel)
         {
-            adminViewModel.RefreshLocalizedProperties();
+            attendanceViewModel.RefreshLocalizedProperties();
         }
     }
 
