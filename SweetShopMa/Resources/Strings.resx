@@ -460,6 +460,9 @@
   <data name="PleaseSelectEmployee" xml:space="preserve">
     <value>⚠️ Please select an employee.</value>
   </data>
+  <data name="PleaseSelectUser" xml:space="preserve">
+    <value>⚠️ Please select a user.</value>
+  </data>
   <data name="FutureDatesNotAllowed" xml:space="preserve">
     <value>⚠️ Future dates are not allowed.</value>
   </data>

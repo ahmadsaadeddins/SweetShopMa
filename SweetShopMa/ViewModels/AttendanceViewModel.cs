@@ -348,7 +348,7 @@ public partial class AttendanceViewModel : BaseViewModel
     {
         if (SelectedAttendanceUser == null)
         {
-            ShowStatus(_localizationService.GetString("PleaseSelectUser"), true);
+            ShowStatus(_localizationService.GetString("PleaseSelectEmployee"), true);
             return;
         }
 
@@ -437,7 +437,7 @@ public partial class AttendanceViewModel : BaseViewModel
     {
         if (SelectedAttendanceUser == null)
         {
-            ShowStatus(_localizationService.GetString("PleaseSelectUser"), true);
+            ShowStatus(_localizationService.GetString("PleaseSelectEmployee"), true);
             return;
         }
 

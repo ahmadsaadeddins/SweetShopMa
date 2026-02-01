@@ -460,6 +460,9 @@
   <data name="PleaseSelectEmployee" xml:space="preserve">
     <value>⚠️ يرجى اختيار موظف.</value>
   </data>
+  <data name="PleaseSelectUser" xml:space="preserve">
+    <value>⚠️ يرجى اختيار مستخدم.</value>
+  </data>
   <data name="FutureDatesNotAllowed" xml:space="preserve">
     <value>⚠️ التواريخ المستقبلية غير مسموحة.</value>
   </data>

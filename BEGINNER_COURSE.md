@@ -1441,5 +1441,62 @@ This documentation provides a comprehensive overview of the SweetShopMa applicat
 3. Add new features following the existing patterns
 4. Refer to this documentation when you need to understand a concept
 
+## Advanced MAUI Topics
+
+Once you're comfortable with the basics, explore these advanced topics:
+
+### 📚 MAUI_Basics Course (Complete Beginner to Advanced)
+
+The [MAUI_Basics](MAUI_Basics/README.md) folder contains a comprehensive course covering:
+
+**Beginner Topics:**
+1. [Introduction to MAUI](MAUI_Basics/01_Introduction_to_MAUI.md) - Setup and first app
+2. [XAML Basics](MAUI_Basics/02_XAML_Basics.md) - Building user interfaces
+3. [MVVM Pattern](MAUI_Basics/03_MVVM_Pattern.md) - Architecture fundamentals
+4. [Data Binding](MAUI_Basics/04_Data_Binding.md) - Connecting UI to data
+5. [Navigation](MAUI_Basics/05_Navigation.md) - Moving between screens
+6. [Dependency Injection](MAUI_Basics/06_Dependency_Injection.md) - Managing dependencies
+7. [Platform-Specific Code](MAUI_Basics/07_Platform_Specific_Code.md) - Cross-platform considerations
+8. [Local Storage](MAUI_Basics/08_Local_Storage.md) - SQLite integration
+9. [API Integration](MAUI_Basics/09_API_Integration.md) - Web services
+10. [Deployment](MAUI_Basics/10_Deployment.md) - Publishing your app
+11. [SQLite Basics](MAUI_Basics/11_SQLite_Basics.md) - Database operations
+12. [REST APIs](MAUI_Basics/12_REST_APIs.md) - HTTP communication
+13. [Serialization](MAUI_Basics/13_Serialization.md) - JSON handling
+
+**Advanced Topics:**
+14. [Custom Renderers](MAUI_Basics/14_Custom_Renderers.md) ⭐ NEW!
+    - Extend MAUI controls with platform-specific code
+    - Create custom controls for Android, iOS, and Windows
+    - Override control appearance and behavior
+    - Best practices for maintainable renderers
+
+15. [Effects](MAUI_Basics/15_Effects.md) ⭐ NEW!
+    - Add lightweight visual enhancements
+    - Understand when to use effects vs custom renderers
+    - Create reusable effects for common scenarios
+    - Build effect extensions for easy usage
+
+16. [Animations](MAUI_Basics/16_Animations.md) ⭐ NEW!
+    - Create smooth, engaging UI animations
+    - Master built-in animation methods
+    - Create compound and custom animations
+    - Use easing functions for natural motion
+    - Build practical animation examples
+
+### 🎯 MVVM Pattern Deep Dive
+
+Complete MVVM fundamentals series:
+- [MVVM Basics: Complete Guide](MAUI_Basics/MVVM_Basics_README.md)
+  - [01: Introduction to MVVM](MAUI_Basics/MVVM_Basics_01_Introduction.md)
+  - [02: Understanding the Model](MAUI_Basics/MVVM_Basics_02_Model.md)
+  - [03: Understanding the View](MAUI_Basics/MVVM_Basics_03_View.md)
+  - [04: Understanding the ViewModel](MAUI_Basics/MVVM_Basics_04_ViewModel.md)
+  - [05: Data Binding Deep Dive](MAUI_Basics/MVVM_Basics_05_Data_Binding.md)
+  - [06: Building Your First MVVM App](MAUI_Basics/MVVM_Basics_06_First_App.md)
+  - [07: Common MVVM Patterns](MAUI_Basics/MVVM_Basics_07_Patterns.md)
+  - [08: Best Practices](MAUI_Basics/MVVM_Basics_08_Best_Practices.md)
+  - [09: Quick Reference](MAUI_Basics/MVVM_Basics_09_Quick_Reference.md)
+
 **Happy Coding! 🎉**
 
