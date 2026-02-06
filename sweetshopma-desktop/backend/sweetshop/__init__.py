@@ -1,0 +1,3 @@
+"""
+SweetShopMa Django Project
+"""

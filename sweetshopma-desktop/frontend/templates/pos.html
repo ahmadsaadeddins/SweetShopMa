@@ -1,0 +1,742 @@
+{% extends "base.html" %}
+
+{% block title %}Point of Sale - SweetShopMa{% endblock %}
+
+{% block content %}
+<!-- Debug Console -->
+<div id="debugPanel"
+    style="background: #1e1e1e; color: #00ff00; padding: 15px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; border-bottom: 2px solid #333;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <strong>DEBUG CONSOLE</strong>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="copyDebugConsole()"
+                style="background: #333; color: #fff; border: 1px solid #555; padding: 2px 8px; cursor: pointer;">Copy</button>
+            <button onclick="clearDebugConsole()"
+                style="background: #333; color: #fff; border: 1px solid #555; padding: 2px 8px; cursor: pointer;">Clear</button>
+        </div>
+    </div>
+    <div id="debugOutput"></div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>{{ title }}</h1>
+                <button class="btn btn-secondary" onclick="navigateTo('dashboard')" style="margin-top: 10px;">
+                    &larr; Back to Dashboard
+                </button>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span class="badge badge-info" id="cartCount">0 items</span>
+                <button class="btn btn-secondary" onclick="openCashDrawer()" title="Open Cash Drawer">
+                    &#128176; Open Drawer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-3" style="grid-template-columns: 2fr 1fr;">
+        <!-- Products Grid -->
+        <div>
+            <div class="card">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="searchInput" placeholder="Search products..."
+                        style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <select id="categoryFilter" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
+                <div id="productsLoading" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+
+                <div id="productsGrid" class="grid grid-4" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart -->
+        <div>
+            <div class="card">
+                <h2 style="margin-bottom: 20px;">Cart</h2>
+
+                <div id="cartEmpty" style="text-align: center; padding: 40px; color: #64748b;">
+                    <p>Cart is empty</p>
+                    <p style="font-size: 14px; margin-top: 10px;">Add products to start a sale</p>
+                </div>
+
+                <div id="cartItems" style="display: none;">
+                    <div id="cartItemsList" style="margin-bottom: 20px;">
+                    </div>
+
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>Subtotal:</span>
+                            <span id="cartSubtotal">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>Tax:</span>
+                            <span id="cartTax">$0.00</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
+                            <span>Total:</span>
+                            <span id="cartTotal">$0.00</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select id="paymentMethod">
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="mobile">Mobile Payment</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-success" onclick="checkout()" style="width: 100%;">
+                            Complete Sale
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    var cart = [];
+    var products = [];
+    var userPermissions = {
+        is_authenticated: false,
+        is_staff: false,
+        can_restock: false
+    };
+
+    // Debug logging
+    function debugLog(message, data) {
+        var timestamp = new Date().toLocaleTimeString();
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            var logEntry = '<div>[' + timestamp + '] ' + message;
+            if (data) {
+                logEntry += '<div style="color:#ffff00; margin-left: 20px;">' + JSON.stringify(data) + '</div>';
+            }
+            logEntry += '</div>';
+            debugOutput.innerHTML += logEntry;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+    }
+
+    function clearDebugConsole() {
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            debugOutput.innerHTML = '';
+        }
+    }
+
+    function copyDebugConsole() {
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            var text = debugOutput.innerText || debugOutput.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    debugLog('✓ Debug console copied to clipboard');
+                }).catch(function (err) {
+                    debugLog('❌ Failed to copy: ' + err);
+                });
+            } else {
+                // Fallback for older browsers
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    debugLog('✓ Debug console copied to clipboard');
+                } catch (err) {
+                    debugLog('❌ Failed to copy: ' + err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+    }
+
+    // Verify DOM elements exist
+    function verifyDOMElements() {
+        var requiredElements = [
+            'searchInput',
+            'categoryFilter',
+            'productsGrid',
+            'productsLoading',
+            'cartEmpty',
+            'cartItems',
+            'cartItemsList',
+            'cartCount',
+            'cartSubtotal',
+            'cartTax',
+            'cartTotal',
+            'paymentMethod'
+        ];
+
+        for (var i = 0; i < requiredElements.length; i++) {
+            var element = document.getElementById(requiredElements[i]);
+            if (!element) {
+                debugLog('ERROR: Missing element: ' + requiredElements[i]);
+            } else {
+                debugLog('OK: Found ' + requiredElements[i]);
+            }
+        }
+    }
+
+    // Format currency
+    function formatCurrency(amount) {
+        return '$' + parseFloat(amount).toFixed(2);
+    }
+
+    // Load products
+    async function loadProducts() {
+        debugLog('Loading products...');
+        try {
+            var data = await apiCall('GET', 'products/');
+            debugLog('Products API response:', data);
+
+            if (data.results) {
+                products = data.results;
+                debugLog('Loaded ' + products.length + ' products');
+                displayProducts(products);
+                loadCategories();
+            } else {
+                debugLog('ERROR: No results in products response');
+            }
+        } catch (error) {
+            debugLog('ERROR: Failed to load products - ' + error.message);
+            showAlert('Failed to load products', 'error');
+        }
+    }
+
+    // Display products
+    function displayProducts(productsToShow) {
+        debugLog('Displaying ' + productsToShow.length + ' products');
+        var grid = document.getElementById('productsGrid');
+        if (!grid) {
+            debugLog('ERROR: productsGrid element not found!');
+            return;
+        }
+        grid.innerHTML = '';
+
+        if (productsToShow.length === 0) {
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b;">No products found</p>';
+            debugLog('WARNING: No products to display');
+            return;
+        }
+
+        for (var i = 0; i < productsToShow.length; i++) {
+            var product = productsToShow[i];
+            var card = document.createElement('div');
+            card.className = 'card';
+            card.style.margin = '0';
+            card.style.textAlign = 'center';
+
+            var stockClass = product.is_low_stock ? 'badge-warning' : 'badge-success';
+            var stockText = product.is_low_stock ? 'Low Stock' : 'In Stock';
+
+            card.innerHTML =
+                '<h3 style="font-size: 16px; margin-bottom: 10px;">' + product.name + '</h3>' +
+                '<p style="color: #64748b; font-size: 14px; margin-bottom: 5px;">' + (product.category_name || 'No category') + '</p>' +
+                '<p style="font-size: 20px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">' +
+                formatCurrency(product.price) +
+                '</p>' +
+                '<span class="badge ' + stockClass + '">' + stockText + ': ' + product.quantity + '</span>' +
+                '<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px;">' +
+                '<button class="btn btn-restock" id="restock-btn-' + product.id + '" ' +
+                'onclick="event.stopPropagation(); openRestockModalById(' + product.id + ')" ' +
+                'style="display: none; font-size: 12px; padding: 5px 10px;">' +
+                '&#128722; Restock' +
+                '</button>' +
+                '<button class="btn btn-primary" onclick="event.stopPropagation(); addToCartById(' + product.id + ')" ' +
+                'style="font-size: 12px; padding: 5px 10px;">' +
+                'Add to Cart' +
+                '</button>' +
+                '</div>';
+
+            grid.appendChild(card);
+        }
+
+        document.getElementById('productsLoading').style.display = 'none';
+        grid.style.display = 'grid';
+    }
+
+    // Load categories
+    async function loadCategories() {
+        try {
+            var data = await apiCall('GET', 'categories/');
+            var select = document.getElementById('categoryFilter');
+
+            for (var i = 0; i < data.results.length; i++) {
+                var category = data.results[i];
+                var option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            }
+        } catch (error) {
+            debugLog('ERROR: Failed to load categories - ' + error.message);
+        }
+    }
+
+    // Add to cart
+    function addToCart(product) {
+        debugLog('Adding to cart: ' + product.name);
+
+        if (product.quantity <= 0) {
+            showAlert('Product is out of stock', 'error');
+            debugLog('ERROR: Product out of stock');
+            return;
+        }
+
+        var existingItem = null;
+        for (var i = 0; i < cart.length; i++) {
+            if (cart[i].product_id === product.id) {
+                existingItem = cart[i];
+                break;
+            }
+        }
+
+        if (existingItem) {
+            if (existingItem.quantity >= product.quantity) {
+                showAlert('Not enough stock', 'error');
+                debugLog('ERROR: Not enough stock');
+                return;
+            }
+            existingItem.quantity++;
+            debugLog('Updated existing item quantity to ' + existingItem.quantity);
+        } else {
+            cart.push({
+                product_id: product.id,
+                name: product.name,
+                price: parseFloat(product.price),
+                quantity: 1
+            });
+            debugLog('Added new item to cart');
+        }
+
+        updateCart();
+    }
+
+    // Add to cart by ID (wrapper for onclick handlers)
+    function addToCartById(productId) {
+        debugLog('addToCartById called with product ID: ' + productId);
+
+        // Find product in the global products array
+        var product = null;
+        for (var i = 0; i < products.length; i++) {
+            if (products[i].id === productId) {
+                product = products[i];
+                break;
+            }
+        }
+
+        if (!product) {
+            debugLog('ERROR: Product not found with ID: ' + productId);
+            showAlert('Product not found', 'error');
+            return;
+        }
+
+        // Call the original addToCart function
+        addToCart(product);
+    }
+
+    // Open restock modal by ID (wrapper for onclick handlers)
+    function openRestockModalById(productId) {
+        debugLog('openRestockModalById called with product ID: ' + productId);
+
+        // Find product in the global products array
+        var product = null;
+        for (var i = 0; i < products.length; i++) {
+            if (products[i].id === productId) {
+                product = products[i];
+                break;
+            }
+        }
+
+        if (!product) {
+            debugLog('ERROR: Product not found with ID: ' + productId);
+            showAlert('Product not found', 'error');
+            return;
+        }
+
+        // Call the original openRestockModal function
+        openRestockModal(product);
+    }
+
+    // Update cart display
+    function updateCart() {
+        debugLog('Updating cart display (' + cart.length + ' items)');
+
+        var cartEmpty = document.getElementById('cartEmpty');
+        var cartItems = document.getElementById('cartItems');
+        var cartItemsList = document.getElementById('cartItemsList');
+        var cartCount = document.getElementById('cartCount');
+
+        if (!cartEmpty || !cartItems || !cartItemsList || !cartCount) {
+            debugLog('ERROR: Missing cart DOM elements');
+            return;
+        }
+
+        if (cart.length === 0) {
+            cartEmpty.style.display = 'block';
+            cartItems.style.display = 'none';
+            cartCount.textContent = '0 items';
+            debugLog('Cart is empty');
+            return;
+        }
+
+        cartEmpty.style.display = 'none';
+        cartItems.style.display = 'block';
+        cartCount.textContent = cart.length + ' items';
+
+        cartItemsList.innerHTML = '';
+        var subtotal = 0;
+
+        for (var i = 0; i < cart.length; i++) {
+            var item = cart[i];
+            var itemTotal = item.price * item.quantity;
+            subtotal += itemTotal;
+
+            var div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.padding = '10px 0';
+            div.style.borderBottom = '1px solid #e2e8f0';
+
+            div.innerHTML =
+                '<div style="flex: 1;">' +
+                '<div style="font-weight: 500;">' + item.name + '</div>' +
+                '<div style="color: #64748b; font-size: 14px;">' +
+                formatCurrency(item.price) + ' x ' + item.quantity +
+                '</div>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 10px;">' +
+                '<span style="font-weight: bold;">' + formatCurrency(itemTotal) + '</span>' +
+                '<button class="btn btn-danger" onclick="removeFromCart(' + i + ')" style="padding: 5px 10px;">×</button>' +
+                '</div>';
+
+            cartItemsList.appendChild(div);
+        }
+
+        var tax = subtotal * 0;
+        var total = subtotal + tax;
+
+        document.getElementById('cartSubtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('cartTax').textContent = formatCurrency(tax);
+        document.getElementById('cartTotal').textContent = formatCurrency(total);
+
+        debugLog('Cart total: ' + formatCurrency(total));
+    }
+
+    // Remove from cart
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCart();
+    }
+
+    // Checkout
+    async function checkout() {
+        debugLog('Checkout initiated');
+
+        if (cart.length === 0) {
+            showAlert('Cart is empty', 'error');
+            debugLog('ERROR: Cart is empty');
+            return;
+        }
+
+        var paymentMethod = document.getElementById('paymentMethod').value;
+        var subtotal = 0;
+        for (var i = 0; i < cart.length; i++) {
+            subtotal += cart[i].price * cart[i].quantity;
+        }
+        var tax = 0;
+        var total = subtotal + tax;
+
+        var saleData = {
+            subtotal: subtotal,
+            tax: tax,
+            discount: 0,
+            total: total,
+            payment_method: paymentMethod,
+            items: []
+        };
+
+        for (var i = 0; i < cart.length; i++) {
+            saleData.items.push({
+                product_id: cart[i].product_id,
+                quantity: cart[i].quantity,
+                price: cart[i].price
+            });
+        }
+
+        debugLog('Sending sale data:', saleData);
+
+        try {
+            showAlert('Processing sale...', 'info');
+            debugLog('Waiting for API response...');
+
+            var result = await apiCall('POST', 'sales/', saleData);
+            debugLog('API response:', result);
+
+            if (result.id) {
+                debugLog('SUCCESS: Sale completed! ID: ' + result.id);
+                showAlert('Sale completed successfully!', 'success');
+
+                // Print receipt
+                debugLog('Printing receipt...');
+                pywebview.api.print_receipt(result.id).then(function (printResult) {
+                    if (printResult.success) {
+                        debugLog('Receipt printed successfully');
+                    } else {
+                        debugLog('ERROR: Print failed - ' + printResult.error);
+                    }
+                });
+
+                cart = [];
+                updateCart();
+                await loadProducts();
+            } else {
+                debugLog('ERROR: Sale failed - ' + (result.error || 'Unknown error'));
+                throw new Error(result.error || 'Sale failed');
+            }
+        } catch (error) {
+            debugLog('ERROR: Checkout failed - ' + error.message);
+            showAlert('Failed to complete sale: ' + error.message, 'error');
+        }
+    }
+
+    // Open cash drawer
+    async function openCashDrawer() {
+        debugLog('Opening cash drawer...');
+        try {
+            var result = await pywebview.api.open_cash_drawer();
+            if (result.success) {
+                debugLog('Cash drawer opened successfully');
+                showAlert('Cash drawer opened', 'success');
+            } else {
+                debugLog('ERROR: Failed to open cash drawer - ' + (result.error || 'Unknown error'));
+                showAlert(result.error || 'Failed to open cash drawer', 'error');
+            }
+        } catch (error) {
+            debugLog('ERROR: Cash drawer exception - ' + error.message);
+            showAlert('Failed to open cash drawer', 'error');
+        }
+    }
+
+    // Navigate to page
+    function navigateTo(page) {
+        pywebview.api.get_page_html(page).then(function (result) {
+            if (result.success) {
+                document.documentElement.innerHTML = result.html;
+            }
+        });
+    }
+
+    // Load user permissions
+    async function loadUserPermissions() {
+        debugLog('Loading user permissions...');
+        try {
+            var result = await apiCall('GET', 'user/permissions/');
+            debugLog('User permissions:', result);
+            if (!result.error) {
+                userPermissions = result;
+                updateRestockButtonsVisibility();
+            } else {
+                debugLog('ERROR: Failed to load permissions - ' + result.error);
+            }
+        } catch (error) {
+            debugLog('ERROR: Failed to load user permissions - ' + error.message);
+        }
+    }
+
+    // Show/hide restock buttons based on permissions
+    function updateRestockButtonsVisibility() {
+        var restockButtons = document.querySelectorAll('[id^="restock-btn-"]');
+        for (var i = 0; i < restockButtons.length; i++) {
+            if (userPermissions.can_restock) {
+                restockButtons[i].style.display = 'inline-block';
+            } else {
+                restockButtons[i].style.display = 'none';
+            }
+        }
+        debugLog('Restock buttons visibility updated (can_restock=' + userPermissions.can_restock + ')');
+    }
+
+    // Include restock modal
+    async function includeRestockModal() {
+        try {
+            var result = await pywebview.api.get_page_html('components/restock_modal');
+            if (result.success) {
+                var tempDiv = document.createElement('div');
+                tempDiv.innerHTML = result.html;
+
+                var modal = tempDiv.querySelector('#restockModal');
+                if (modal) {
+                    document.body.appendChild(modal);
+
+                    var scripts = tempDiv.querySelectorAll('script');
+                    for (var i = 0; i < scripts.length; i++) {
+                        var script = document.createElement('script');
+                        script.textContent = scripts[i].textContent;
+                        document.head.appendChild(script);
+                    }
+                    debugLog('Restock modal loaded successfully');
+                }
+            }
+        } catch (error) {
+            debugLog('ERROR: Failed to load restock modal - ' + error.message);
+        }
+    }
+
+    // Setup search and filter event listeners
+    function setupEventListeners() {
+        var searchInput = document.getElementById('searchInput');
+        var categoryFilter = document.getElementById('categoryFilter');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function (e) {
+                var search = e.target.value.toLowerCase();
+                var filtered = [];
+                for (var i = 0; i < products.length; i++) {
+                    var p = products[i];
+                    if (p.name.toLowerCase().indexOf(search) !== -1 || (p.barcode && p.barcode.indexOf(search) !== -1)) {
+                        filtered.push(p);
+                    }
+                }
+                displayProducts(filtered);
+            });
+            debugLog('Search input event listener attached');
+        }
+
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function (e) {
+                var category = e.target.value;
+                var filtered = category ? products.filter(function (p) { return p.category == category; }) : products;
+                displayProducts(filtered);
+            });
+            debugLog('Category filter event listener attached');
+        }
+    }
+
+    // Initialize on page load (for direct browser access)
+    window.addEventListener('load', async function () {
+        debugLog('Page loaded via browser');
+        await initPage();
+    });
+
+    // Initialize page (for PyWebView dynamic loading)
+    async function initPage() {
+        debugLog('initPage() called - loading POS data');
+        verifyDOMElements();
+        setupEventListeners();
+        await loadProducts();
+        await loadUserPermissions();
+        await includeRestockModal();
+        debugLog('Initialization complete');
+    }
+</script>
+
+<style>
+    .btn-restock {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .btn-restock:hover {
+        background: #d97706;
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 15px 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

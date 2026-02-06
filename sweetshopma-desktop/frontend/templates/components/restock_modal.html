@@ -1,0 +1,122 @@
+{% extends "components/base.html" %}
+
+{% block content %}
+<div id="restockModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>&#128722; Restock Product</h3>
+            <button class="close-btn" onclick="closeRestockModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Product</label>
+                <input type="text" id="restockProductName" readonly>
+            </div>
+            <div class="form-group">
+                <label>Current Stock</label>
+                <input type="text" id="restockCurrentStock" readonly>
+            </div>
+            <div class="form-group">
+                <label for="restockQuantity">Quantity to Add</label>
+                <input type="number" id="restockQuantity" min="0.01" step="0.01" autofocus>
+            </div>
+            <div class="form-group">
+                <small>New stock will be: <strong id="restockNewStock">-</strong></small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeRestockModal()">Cancel</button>
+            <button class="btn-primary" onclick="confirmRestock()">Add Stock</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentRestockProduct = null;
+
+    function openRestockModal(product) {
+        currentRestockProduct = product;
+        document.getElementById('restockProductName').value = product.name;
+        document.getElementById('restockCurrentStock').value = product.quantity + ' ' + product.unit;
+        document.getElementById('restockQuantity').value = '';
+        document.getElementById('restockNewStock').textContent = '-';
+        document.getElementById('restockModal').style.display = 'block';
+        document.getElementById('restockQuantity').focus();
+    }
+
+    function closeRestockModal() {
+        document.getElementById('restockModal').style.display = 'none';
+        currentRestockProduct = null;
+    }
+
+    function updateRestockPreview() {
+        if (!currentRestockProduct) return;
+
+        var quantity = parseFloat(document.getElementById('restockQuantity').value) || 0;
+        var newStock = currentRestockProduct.quantity + quantity;
+        document.getElementById('restockNewStock').textContent = newStock + ' ' + currentRestockProduct.unit;
+    }
+
+    async function confirmRestock() {
+        if (!currentRestockProduct) return;
+
+        var quantity = parseFloat(document.getElementById('restockQuantity').value);
+
+        // Client-side validation
+        if (!quantity || quantity <= 0) {
+            showAlert('Please enter a valid quantity', 'error');
+            return;
+        }
+
+        if (quantity > 10000) {
+            showAlert('Quantity cannot exceed 10,000', 'error');
+            return;
+        }
+
+        try {
+            showAlert('Processing restock...', 'info');
+
+            var result = await apiCall('POST', 'restocks/restock/', {
+                product_id: currentRestockProduct.id,
+                quantity: quantity
+            });
+
+            if (result.error) {
+                // Handle specific error codes
+                if (result.code === 'PERMISSION_DENIED') {
+                    showAlert('Access denied: You do not have permission to restock', 'error');
+                } else if (result.code === 'PRODUCT_NOT_FOUND') {
+                    showAlert('Product not found - it may have been deleted', 'error');
+                } else if (result.code === 'QUANTITY_EXCEEDED') {
+                    showAlert('Quantity exceeds maximum limit', 'error');
+                } else {
+                    showAlert('Restock failed: ' + result.error, 'error');
+                }
+                return;
+            }
+
+            if (result.id) {
+                showAlert('Restocked successfully!', 'success');
+                closeRestockModal();
+
+                // Trigger product reload on POS page
+                if (typeof loadProducts === 'function') {
+                    await loadProducts();
+                }
+            } else {
+                throw new Error('Invalid response from server');
+            }
+        } catch (error) {
+            showAlert('Failed to restock: ' + error.message, 'error');
+        }
+    }
+
+    // Update preview when quantity changes
+    document.addEventListener('DOMContentLoaded', function () {
+        var quantityInput = document.getElementById('restockQuantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('input', updateRestockPreview);
+        }
+    });
+</script>
+{% endblock %}

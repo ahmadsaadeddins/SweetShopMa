@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SweetShopMa{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 400px; margin-top: 100px;">
+    <div class="card" style="text-align: center;">
+        <h1 style="color: #3b82f6; margin-bottom: 10px;">SweetShopMa</h1>
+        <p style="color: #64748b; margin-bottom: 30px;">Point of Sale System</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                Login
+            </button>
+        </form>
+
+        <div id="loginError" class="alert alert-error" style="display: none; margin-top: 20px;">
+            Invalid username or password
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 14px;">
+                <strong>Branch:</strong> {{ branch_name or 'Not configured' }}<br>
+                <strong>Version:</strong> {{ version }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        const submitBtn = this.querySelector('button[type="submit"]');
+
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in...';
+        errorDiv.style.display = 'none';
+
+        try {
+            // Call login API (for now, accept any credentials)
+            // In production, implement proper authentication
+            if (username && password) {
+                // Store session in global window object
+                window.sessionState.username = username;
+                window.sessionState.isLoggedIn = true;
+
+                // Navigate to dashboard using the proper page loader
+                window.loadPage('dashboard');
+            } else {
+                throw new Error('Please enter username and password');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            console.error('Error details:', JSON.stringify(error));
+
+            // Show detailed error
+            let errorMsg = error.message || 'Login failed';
+            if (error.error) {
+                errorMsg = error.error;
+            }
+
+            errorDiv.textContent = errorMsg;
+            errorDiv.style.display = 'block';
+
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Login';
+        }
+    });
+
+    // Check if already logged in
+    window.addEventListener('load', function () {
+        if (window.sessionState.isLoggedIn) {
+            // Navigate to dashboard using the proper page loader
+            window.loadPage('dashboard');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SweetShopMa{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #3b82f6;
+            font-size: 24px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @media (max-width: 768px) {
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card .label {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    {% block content %}{% endblock %}
+
+    <script>
+        // Custom Session Storage for PyWebView (bypasses security restrictions)
+        // MUST be defined before any other code that uses sessionStorage
+        (function () {
+            // Delete native sessionStorage (if it exists) to prevent conflicts
+            try {
+                delete window.sessionStorage;
+            } catch (e) {
+                // Ignore errors
+            }
+
+            // Create custom sessionStorage object
+            window.sessionStorage = {
+                _data: {},
+                setItem: function (id, val) {
+                    this._data[id] = String(val);
+                },
+                getItem: function (id) {
+                    return this._data.hasOwnProperty(id) ? this._data[id] : null;
+                },
+                removeItem: function (id) {
+                    delete this._data[id];
+                },
+                clear: function () {
+                    this._data = {};
+                },
+                key: function (index) {
+                    var keys = Object.keys(this._data);
+                    return keys[index] || null;
+                },
+                get length() {
+                    return Object.keys(this._data).length;
+                }
+            };
+        })();
+
+        // Global session state (persists across page navigations)
+        window.sessionState = {
+            isLoggedIn: false,
+            username: null
+        };
+
+        // Global error handler
+        window.addEventListener('error', function (e) {
+            console.error('Global error:', e.error);
+        });
+
+        // PROPER PAGE LOADER - Executes scripts when loading pages
+        window.loadPage = function (pageName) {
+            console.log('[loadPage] Loading page: ' + pageName);
+            if (!pywebview || !pywebview.api) {
+                console.error('[loadPage] pywebview.api not available');
+                return;
+            }
+
+            // Call cleanup function if it exists (e.g., to clear intervals)
+            if (typeof window.cleanupDashboard === 'function') {
+                console.log('[loadPage] Calling cleanupDashboard()...');
+                try {
+                    window.cleanupDashboard();
+                } catch (e) {
+                    console.error('[loadPage] Error calling cleanupDashboard():', e);
+                }
+            }
+
+            pywebview.api.get_page_html(pageName).then(function (result) {
+                if (!result.success) {
+                    console.error('[loadPage] Failed to load page:', result.error);
+                    alert('Failed to load page: ' + (result.error || 'Unknown error'));
+                    return;
+                }
+
+                console.log('[loadPage] Page HTML received, executing scripts...');
+
+                // Create a temporary div to parse the HTML
+                var tempDiv = document.createElement('div');
+                tempDiv.innerHTML = result.html;
+
+                // Extract all script tags
+                var scripts = tempDiv.getElementsByTagName('script');
+                var scriptContents = [];
+
+                for (var i = 0; i < scripts.length; i++) {
+                    scriptContents.push(scripts[i].textContent);
+                }
+
+                // Remove script tags from the HTML (we'll execute them separately)
+                for (var i = scripts.length - 1; i >= 0; i--) {
+                    scripts[i].parentNode.removeChild(scripts[i]);
+                }
+
+                // Update the body content (keep the head with base.html scripts)
+                document.body.innerHTML = tempDiv.innerHTML;
+
+                // Execute each script
+                console.log('[loadPage] Executing ' + scriptContents.length + ' scripts...');
+                for (var i = 0; i < scriptContents.length; i++) {
+                    try {
+                        console.log('[loadPage] Executing script ' + (i + 1) + '...');
+                        var script = document.createElement('script');
+                        script.textContent = scriptContents[i];
+                        document.body.appendChild(script);
+                    } catch (e) {
+                        console.error('[loadPage] Error executing script ' + (i + 1) + ':', e);
+                    }
+                }
+
+                console.log('[loadPage] Page loaded successfully');
+
+                // Call page initialization function if it exists
+                setTimeout(function () {
+                    console.log('[loadPage] Checking for initPage function...');
+                    console.log('[loadPage] typeof window.initPage = ' + typeof window.initPage);
+
+                    if (typeof window.initPage === 'function') {
+                        console.log('[loadPage] Calling initPage()...');
+                        try {
+                            window.initPage();
+                        } catch (e) {
+                            console.error('[loadPage] Error calling initPage():', e);
+                        }
+                    } else {
+                        console.log('[loadPage] No initPage() function found');
+                    }
+                }, 500);
+            }).catch(function (error) {
+                console.error('[loadPage] Error loading page:', error);
+                alert('Error loading page: ' + error.message);
+            });
+        };
+
+        console.log('[base.html] Page loader function registered');
+
+        // API helper functions
+        async function apiCall(method, endpoint, data) {
+            var url = 'http://127.0.0.1:8000/api/' + endpoint;
+            console.log('[API] ' + method + ' ' + url);
+            if (data) {
+                console.log('[API] Request data:', JSON.stringify(data));
+            }
+
+            // Try to use visual debug panel if available
+            if (typeof debugLog === 'function') {
+                debugLog('API [API] ' + method + ' ' + endpoint);
+                if (data) {
+                    debugLog('  Request data:', data);
+                }
+            }
+
+            // Try using PyWebView's API bridge first
+            if (typeof pywebview !== 'undefined' && pywebview.api) {
+                try {
+                    console.log('[API] Using PyWebView API bridge');
+                    if (typeof debugLog === 'function') {
+                        debugLog('Using PyWebView API bridge');
+                    }
+
+                    // Map endpoints to specific API methods
+                    var result;
+                    if (endpoint === 'dashboard/' || endpoint === 'dashboard') {
+                        result = await pywebview.api.get_dashboard_stats();
+                    } else if (endpoint.startsWith('sales/recent')) {
+                        var limit = 10;
+                        if (endpoint.indexOf('limit=') !== -1) {
+                            var match = endpoint.match(/limit=(\d+)/);
+                            if (match) limit = parseInt(match[1]);
+                        }
+                        result = await pywebview.api.get_recent_sales(limit);
+                    } else if (endpoint === 'sales/today_stats/') {
+                        result = await pywebview.api.get_today_stats();
+                    } else if (endpoint === 'sales/week_stats/') {
+                        result = await pywebview.api.get_week_stats();
+                    } else if (endpoint === 'sales/month_stats/') {
+                        result = await pywebview.api.get_month_stats();
+                    } else if (endpoint === 'user/permissions/') {
+                        result = await pywebview.api.get_user_permissions();
+                    } else if (endpoint === 'sales/' && method === 'POST') {
+                        result = await pywebview.api.create_sale(data);
+                    } else if (endpoint === 'restocks/restock/') {
+                        result = await pywebview.api.restock_product(data.product_id, data.quantity);
+                    } else if (endpoint.startsWith('sales/') && endpoint.endsWith('/receipt/')) {
+                        var saleId = endpoint.replace('sales/', '').replace('/receipt/', '');
+                        result = await pywebview.api.get_sale_receipt(parseInt(saleId));
+                    } else if (endpoint.startsWith('products/')) {
+                        result = await pywebview.api.get_products();
+                    } else if (endpoint.startsWith('categories/')) {
+                        result = await pywebview.api.get_categories();
+                    } else {
+                        throw new Error('Endpoint not mapped: ' + endpoint);
+                    }
+
+                    // Check if result has an error
+                    if (result && result.error) {
+                        console.error('[API] Error from PyWebView:', result.error);
+                        if (typeof debugLog === 'function') {
+                            debugLog('ERROR [API] PyWebView error: ' + result.error);
+                        }
+                        throw new Error(result.error);
+                    }
+
+                    console.log('[API] PyWebView response:', result);
+                    if (typeof debugLog === 'function') {
+                        debugLog('SUCCESS [API] PyWebView response:', result);
+                    }
+                    return result;
+                } catch (e) {
+                    console.error('[API] PyWebView API bridge failed:', e);
+                    if (typeof debugLog === 'function') {
+                        debugLog('ERROR [API] PyWebView bridge failed: ' + e.message);
+                    }
+                    // Fall through to fetch
+                }
+            } else {
+                console.log('[API] PyWebView API not available, using fetch');
+                if (typeof debugLog === 'function') {
+                    debugLog('WARNING PyWebView API not available, using fetch');
+                }
+            }
+
+            // Fallback to fetch
+            try {
+                var options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                console.log('[API] Sending fetch request...');
+                var response = await fetch(url, options);
+
+                console.log('[API] Response status:', response.status);
+
+                // Try to use visual debug panel if available
+                if (typeof debugLog === 'function') {
+                    if (response.ok) {
+                        debugLog('SUCCESS [API] Response: ' + response.status);
+                    } else {
+                        debugLog('ERROR [API] Error: ' + response.status);
+                    }
+                }
+
+                if (!response.ok) {
+                    var errorText = await response.text();
+                    console.error('[API] Error response body:', errorText);
+                    if (typeof debugLog === 'function') {
+                        debugLog('ERROR [API] Error body: ' + errorText);
+                    }
+                    throw new Error('API Error: ' + response.status + ' - ' + errorText);
+                }
+
+                var responseData = await response.json();
+                console.log('[API] Response data:', JSON.stringify(responseData));
+                if (typeof debugLog === 'function') {
+                    debugLog('DATA [API] Response data:', responseData);
+                }
+                return responseData;
+            } catch (error) {
+                console.error('[API] API call failed:', error);
+                if (typeof debugLog === 'function') {
+                    debugLog('ERROR [API] Call failed: ' + error.message);
+                }
+                throw error;
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            type = type || 'info';
+            var logMsg = '[ALERT] ' + type.toUpperCase() + ': ' + message;
+            console.log(logMsg);
+
+            // Try to use visual debug panel if available
+            if (typeof debugLog === 'function') {
+                var emoji = type === 'error' ? 'ERROR ' : type === 'success' ? 'SUCCESS ' : type === 'warning' ? 'WARNING ' : 'INFO ';
+                debugLog(emoji + '[ALERT] ' + type.toUpperCase() + ': ' + message);
+            }
+
+            var alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-' + type;
+            alertDiv.textContent = message;
+
+            var container = document.querySelector('.container');
+            if (container) {
+                console.log('[ALERT] Container found, inserting alert');
+                container.insertBefore(alertDiv, container.firstChild);
+
+                // Auto-remove after 5 seconds
+                setTimeout(function () {
+                    console.log('[ALERT] Auto-removing alert');
+                    alertDiv.remove();
+                }, 5000);
+            } else {
+                console.error('[ALERT] Container not found, cannot show alert');
+                if (typeof debugLog === 'function') {
+                    debugLog('ERROR [ALERT] Container not found');
+                }
+            }
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return '$' + parseFloat(amount).toFixed(2);
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            var date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

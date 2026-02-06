@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>SweetShopMa Desktop</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Core JS polyfills for ES5 compatibility -->
+    <script>
+        // Polyfill for Promise (if not available)
+        if (typeof Promise === 'undefined') {
+            console.warn('Promise polyfill needed - ensure core-js is loaded');
+        }
+
+        // Polyfill for fetch (if not available)
+        if (typeof fetch === 'undefined') {
+            console.warn('Fetch polyfill needed - ensure whatwg-fetch is loaded');
+        }
+    </script>
+</head>
+
+<body>
+    <!-- Root element for React app -->
+    <div id="root"></div>
+
+    <!-- Loading message shown before React loads -->
+    <noscript>
+        <div style="
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 50px;
+        color: #333;
+      ">
+            <h2>SweetShopMa Desktop</h2>
+            <p>JavaScript is required to run this application.</p>
+            <p>Please enable JavaScript in your browser settings.</p>
+        </div>
+    </noscript>
+
+    <!-- App initialization script -->
+    <script type="module" src="/src/index.js"></script>
+</body>
+
+</html>

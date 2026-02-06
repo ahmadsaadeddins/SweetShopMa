@@ -1,0 +1,27 @@
+# SweetShopMa Desktop Application Dependencies
+
+# Django
+django>=4.2,<5.0
+djangorestframework>=3.14.0
+
+# PyWebView
+pywebview>=5.0
+
+# SQLCipher (Encrypted SQLite)
+sqlcipher3
+
+# HTTP Requests
+requests>=2.31.0
+
+# Templates
+jinja2>=3.1.2
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Cryptography (for licensing)
+cryptography>=41.0.0
+
+# Build Tools
+pyinstaller>=6.0.0
+pyarmor>=8.0.0

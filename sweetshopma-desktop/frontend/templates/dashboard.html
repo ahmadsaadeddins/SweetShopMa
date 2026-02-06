@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SweetShopMa{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- DEBUG PANEL -->
+    <div id="debugPanel"
+        style="background: #1e1e1e; color: #00ff00; padding: 15px; margin-bottom: 20px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; border: 2px solid #00ff00;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong>🔍 DEBUG CONSOLE</strong>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="copyDebugPanel()"
+                    style="background: #444; color: white; border: 1px solid #666; padding: 5px 10px; cursor: pointer;">Copy</button>
+                <button onclick="clearDebugPanel()"
+                    style="background: #444; color: white; border: 1px solid #666; padding: 5px 10px; cursor: pointer;">Clear</button>
+            </div>
+        </div>
+        <div id="debugOutput">[DEBUG] Panel initialized...<br></div>
+    </div>
+
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>{{ title }}</h1>
+                <p style="color: #64748b; margin-top: 5px;">Welcome back!</p>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Status -->
+    <div class="card" id="syncStatus" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span class="badge badge-info" id="syncBadge">Syncing...</span>
+                <span style="margin-left: 10px; color: #64748b;" id="syncText">Checking sync status...</span>
+            </div>
+            <button class="btn btn-primary" onclick="syncNow()">Sync Now</button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-4" style="margin-bottom: 20px;">
+        <div class="stat-card">
+            <div class="label">Today's Sales</div>
+            <div class="value" id="todaySales">$0.00</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Today's Transactions</div>
+            <div class="value" id="todayTransactions">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Low Stock Items</div>
+            <div class="value" id="lowStockItems" style="color: #ef4444;">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total Products</div>
+            <div class="value" id="totalProducts">0</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">Quick Actions</h2>
+        <div class="grid grid-4">
+            <button class="btn btn-primary" onclick="navigateTo('pos')">
+                New Sale
+            </button>
+            <button class="btn btn-success" onclick="navigateTo('products')">
+                Manage Products
+            </button>
+            <button class="btn btn-secondary" onclick="navigateTo('sales')">
+                View Sales
+            </button>
+            <button class="btn btn-secondary" onclick="navigateTo('reports')">
+                Reports
+            </button>
+        </div>
+    </div>
+
+    <!-- Recent Sales -->
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">Recent Sales</h2>
+        <div id="recentSalesLoading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading recent sales...</p>
+        </div>
+        <table class="table" id="recentSalesTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="recentSalesBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // SIMPLE TEST - Is JavaScript working?
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            var debugOutput = document.getElementById('debugOutput');
+            if (debugOutput) {
+                debugOutput.innerHTML = '✅ JavaScript is WORKING!<br>';
+                debugOutput.innerHTML += '✅ DOM is ready!<br>';
+                debugOutput.innerHTML += '✅ Timestamp: ' + new Date().toLocaleTimeString() + '<br>';
+            } else {
+                alert('ERROR: debugOutput element not found!');
+            }
+        } catch (e) {
+            alert('JavaScript Error: ' + e.message);
+        }
+    });
+
+    // Auto-refresh interval ID (stored globally so we can clear it)
+    var dashboardRefreshInterval = null;
+
+    // Page initialization function - called by window.loadPage()
+    window.initPage = function () {
+        debugLog('🎯 initPage() called - loading dashboard data');
+        loadDashboard();
+
+        // Clear any existing interval before starting a new one
+        if (dashboardRefreshInterval) {
+            clearInterval(dashboardRefreshInterval);
+            debugLog('🔄 Cleared previous auto-refresh interval');
+        }
+
+        // Auto-refresh every 30 seconds
+        dashboardRefreshInterval = setInterval(function () {
+            debugLog('🔄 Auto-refresh triggered');
+            // Check if we're still on the dashboard page before refreshing
+            var todaySalesElement = document.getElementById('todaySales');
+            if (todaySalesElement) {
+                loadDashboard();
+            } else {
+                debugLog('⚠️ Dashboard page not visible, skipping auto-refresh');
+            }
+        }, 30000);
+
+        debugLog('✅ Auto-refresh interval started (30 seconds)');
+    };
+
+    // Visual debug logging (ES5 syntax)
+    function debugLog(message, data) {
+        var timestamp = new Date().toLocaleTimeString();
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            var logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '5px';
+            logEntry.innerHTML = '<span style="color: #888;">[' + timestamp + ']</span> ' + message;
+            if (data !== null && data !== undefined) {
+                var dataDiv = document.createElement('div');
+                dataDiv.style.marginLeft = '20px';
+                dataDiv.style.color = '#ffff00';
+                dataDiv.style.fontSize = '11px';
+                if (typeof data === 'object') {
+                    try {
+                        dataDiv.textContent = JSON.stringify(data, null, 2);
+                    } catch (e) {
+                        dataDiv.textContent = String(data);
+                    }
+                } else {
+                    dataDiv.textContent = String(data);
+                }
+                logEntry.appendChild(dataDiv);
+            }
+            debugOutput.appendChild(logEntry);
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+        // Still log to console for backup
+        try {
+            console.log(message, data);
+        } catch (e) { }
+    }
+
+    function clearDebugPanel() {
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            debugOutput.innerHTML = '[DEBUG] Panel cleared...<br>';
+        }
+    }
+
+    function copyDebugPanel() {
+        var debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            var text = debugOutput.innerText || debugOutput.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () {
+                    debugLog('✓ Debug console copied to clipboard');
+                }).catch(function (err) {
+                    debugLog('❌ Failed to copy: ' + err);
+                });
+            } else {
+                // Fallback for older browsers
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    debugLog('✓ Debug console copied to clipboard');
+                } catch (err) {
+                    debugLog('❌ Failed to copy: ' + err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+    }
+
+    // Load dashboard data
+    function loadDashboard() {
+        debugLog('🚀 loadDashboard() called');
+        debugLog('🔍 Checking if DOM elements exist...');
+
+        // Verify DOM elements exist
+        var requiredElements = {
+            'todaySales': 'todaySales',
+            'todayTransactions': 'todayTransactions',
+            'lowStockItems': 'lowStockItems',
+            'totalProducts': 'totalProducts',
+            'recentSalesLoading': 'recentSalesLoading',
+            'recentSalesTable': 'recentSalesTable',
+            'recentSalesBody': 'recentSalesBody'
+        };
+
+        var missingElements = [];
+        for (var key in requiredElements) {
+            var id = requiredElements[key];
+            var element = document.getElementById(id);
+            if (!element) {
+                missingElements.push(id);
+            } else {
+                debugLog('✓ Element found: ' + id);
+            }
+        }
+
+        if (missingElements.length > 0) {
+            debugLog('❌ Missing DOM elements: ' + missingElements.join(', '));
+            showAlert('Dashboard elements not found: ' + missingElements.join(', '), 'error');
+            return;
+        }
+
+        // Load stats
+        debugLog('📡 Fetching dashboard stats from API...');
+        apiCall('GET', 'dashboard/').then(function (stats) {
+            debugLog('📊 Dashboard stats response:', stats);
+
+            // Check if stats has expected structure
+            if (!stats) {
+                debugLog('❌ Stats is null or undefined');
+                showAlert('No data received from dashboard API', 'error');
+                return;
+            }
+
+            if (!stats.sales) {
+                debugLog('❌ Stats does not have sales property. Keys: ' + Object.keys(stats));
+                showAlert('Dashboard data missing sales information', 'error');
+                return;
+            }
+
+            if (!stats.inventory) {
+                debugLog('❌ Stats does not have inventory property. Keys: ' + Object.keys(stats));
+                showAlert('Dashboard data missing inventory information', 'error');
+                return;
+            }
+
+            debugLog('✅ Updating stat cards with data:');
+            debugLog('  - todaySales: ' + stats.sales.total_revenue);
+            debugLog('  - todayTransactions: ' + stats.sales.total_sales);
+            debugLog('  - lowStockItems: ' + stats.inventory.low_stock_products);
+            debugLog('  - totalProducts: ' + stats.inventory.total_products);
+
+            document.getElementById('todaySales').textContent = formatCurrency(stats.sales.total_revenue);
+            document.getElementById('todayTransactions').textContent = stats.sales.total_sales;
+            document.getElementById('lowStockItems').textContent = stats.inventory.low_stock_products;
+            document.getElementById('totalProducts').textContent = stats.inventory.total_products;
+
+            // Load recent sales
+            debugLog('📡 Fetching recent sales from API...');
+            return apiCall('GET', 'sales/recent/?limit=5');
+        }).then(function (recentSales) {
+            debugLog('📊 Recent sales response:', recentSales);
+
+            // Handle both paginated (results) and direct array responses
+            var salesArray = null;
+            if (Array.isArray(recentSales)) {
+                salesArray = recentSales;
+                debugLog('✅ Response is direct array with ' + salesArray.length + ' sales');
+            } else if (recentSales && recentSales.results && Array.isArray(recentSales.results)) {
+                salesArray = recentSales.results;
+                debugLog('✅ Response is paginated with ' + salesArray.length + ' sales');
+            } else {
+                debugLog('⚠️ No recent sales found or invalid response structure');
+                document.getElementById('recentSalesLoading').innerHTML = '<p>No recent sales</p>';
+                return;
+            }
+
+            if (salesArray.length > 0) {
+                debugLog('✅ Processing ' + salesArray.length + ' recent sales');
+                var tbody = document.getElementById('recentSalesBody');
+                tbody.innerHTML = '';
+
+                for (var i = 0; i < salesArray.length; i++) {
+                    var sale = salesArray[i];
+                    debugLog('  Processing sale ' + (i + 1) + ':', sale);
+                    var row = document.createElement('tr');
+                    var statusClass = sale.status === 'completed' ? 'success' : 'warning';
+                    row.innerHTML = '<td>#' + sale.id + '</td>' +
+                        '<td>' + formatCurrency(sale.total) + '</td>' +
+                        '<td>' + sale.payment_method + '</td>' +
+                        '<td><span class="badge badge-' + statusClass + '">' + sale.status + '</span></td>' +
+                        '<td>' + formatDate(sale.created_at) + '</td>';
+                    tbody.appendChild(row);
+                }
+
+                document.getElementById('recentSalesLoading').style.display = 'none';
+                document.getElementById('recentSalesTable').style.display = 'table';
+            }
+
+            // Load sync status
+            debugLog('🔄 Loading sync status...');
+            loadSyncStatus();
+
+            debugLog('✅ Dashboard load completed successfully');
+        }).catch(function (error) {
+            debugLog('❌ Error loading dashboard: ' + error.message);
+            debugLog('Error stack: ' + error.stack);
+            showAlert('Failed to load dashboard data: ' + error.message, 'error');
+        });
+    }
+
+    // Load sync status
+    function loadSyncStatus() {
+        debugLog('🔄 loadSyncStatus() called');
+        try {
+            if (!pywebview || !pywebview.api) {
+                debugLog('❌ pywebview.api is not available for sync status');
+                return;
+            }
+            debugLog('📡 Calling pywebview.api.get_sync_status...');
+            pywebview.api.get_sync_status().then(function (syncStatus) {
+                debugLog('📊 Sync status response:', syncStatus);
+
+                var syncDiv = document.getElementById('syncStatus');
+                var syncBadge = document.getElementById('syncBadge');
+                var syncText = document.getElementById('syncText');
+
+                if (!syncDiv || !syncBadge || !syncText) {
+                    debugLog('❌ Sync status DOM elements not found');
+                    return;
+                }
+
+                syncDiv.style.display = 'block';
+
+                if (syncStatus.is_online) {
+                    debugLog('✅ Sync status: Online');
+                    syncBadge.className = 'badge badge-success';
+                    syncBadge.textContent = 'Online';
+
+                    if (syncStatus.last_sync) {
+                        syncText.textContent = 'Last synced: ' + formatDate(syncStatus.last_sync);
+                    } else {
+                        syncText.textContent = 'Ready to sync';
+                    }
+                } else {
+                    debugLog('⚠️ Sync status: Offline');
+                    syncBadge.className = 'badge badge-warning';
+                    syncBadge.textContent = 'Offline';
+                    syncText.textContent = 'Working offline - will sync when online';
+                }
+            }).catch(function (error) {
+                debugLog('❌ Error loading sync status: ' + error.message);
+                debugLog('Error stack: ' + error.stack);
+            });
+        } catch (error) {
+            debugLog('❌ Exception in loadSyncStatus: ' + error.message);
+        }
+    }
+
+    // Sync now
+    function syncNow() {
+        debugLog('🔄 syncNow() called');
+        try {
+            showAlert('Syncing data...', 'info');
+            debugLog('ℹ️ Showing sync alert');
+
+            // This will be implemented by the sync service
+            // For now, just show a message
+            setTimeout(function () {
+                debugLog('✅ Sync timeout completed, showing success');
+                showAlert('Sync complete', 'success');
+                loadSyncStatus();
+            }, 2000);
+        } catch (error) {
+            debugLog('❌ Sync error: ' + error.message);
+            debugLog('Error stack: ' + error.stack);
+            showAlert('Sync failed', 'error');
+        }
+    }
+
+    // Navigate to page
+    function navigateTo(page) {
+        debugLog('🧭 navigateTo() called with page: ' + page);
+        if (!window.loadPage) {
+            debugLog('❌ window.loadPage function not available');
+            showAlert('Page loader not available', 'error');
+            return;
+        }
+        debugLog('📡 Using window.loadPage to navigate...');
+        window.loadPage(page);
+    }
+
+    // Logout
+    function logout() {
+        debugLog('🚪 logout() called');
+        window.sessionState.isLoggedIn = false;
+        window.sessionState.username = null;
+        debugLog('🗑️ Session cleared, navigating to login page');
+        if (!window.loadPage) {
+            debugLog('❌ window.loadPage function not available');
+            return;
+        }
+        debugLog('📡 Using window.loadPage to navigate to login...');
+        window.loadPage('login');
+    }
+
+    // Load dashboard on page load
+    window.addEventListener('load', function () {
+        debugLog('🚀 Page load event fired');
+        debugLog('🔍 Checking button elements...');
+
+        // Check if buttons exist
+        var buttons = document.querySelectorAll('button[onclick]');
+        debugLog('📊 Found ' + buttons.length + ' buttons with onclick handlers');
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            debugLog('  Button ' + (i + 1) + ': ' + button.textContent.trim() + ' -> ' + button.getAttribute('onclick'));
+        }
+
+        // Check if pywebview is available
+        debugLog('🔍 Checking pywebview availability...');
+        if (typeof pywebview !== 'undefined') {
+            debugLog('✅ pywebview is defined');
+            if (pywebview.api) {
+                debugLog('✅ pywebview.api is available');
+            } else {
+                debugLog('⚠️ pywebview.api is not available yet');
+            }
+        } else {
+            debugLog('⚠️ pywebview is not defined');
+        }
+
+        debugLog('🎯 Calling loadDashboard()...');
+        loadDashboard();
+    });
+
+    // Cleanup function to clear interval when leaving page
+    window.cleanupDashboard = function () {
+        if (dashboardRefreshInterval) {
+            clearInterval(dashboardRefreshInterval);
+            dashboardRefreshInterval = null;
+            debugLog('🔄 Dashboard auto-refresh interval cleared');
+        }
+    };
+
+    debugLog('✅ Dashboard script loaded and ready');
+</script>
+{% endblock %}
