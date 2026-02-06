@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(C:/Users/AMA/Documents/myhub/SweetShopMa/sweetshopma-desktop/.env << 'EOF'\n# SweetShopMa Desktop Environment Variables\n# Generated: 2026-02-06\nDJANGO_SECRET_KEY=209912b3cba34a3bffa107dde8f1a3c09c18c04da48f64df0db4cd97ba62f53889b7f185b0a0b2b9f71a0bbd81b4a0d841d7\nDJANGO_DEBUG=True\nEOF)",
+      "Bash(pip install:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
