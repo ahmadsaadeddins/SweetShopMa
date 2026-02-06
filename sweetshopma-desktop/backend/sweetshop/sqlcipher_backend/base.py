@@ -7,7 +7,71 @@ This backend wraps Django's sqlite3 backend and adds SQLCipher encryption suppor
 import sys
 from django.db.backends.sqlite3.base import DatabaseWrapper as SQLiteDatabaseWrapper
 from django.db.backends.sqlite3.base import DatabaseFeatures as SQLiteDatabaseFeatures
+from django.db.backends.sqlite3.base import DatabaseOperations as SQLiteDatabaseOperations
 from django.db.backends.sqlite3._functions import register as register_functions
+
+
+class DatabaseOperations(SQLiteDatabaseOperations):
+    """
+    Custom database operations for sqlcipher3.
+
+    Overrides last_executed_query to avoid parameter binding issues.
+    """
+
+    def last_executed_query(self, cursor, query, params):
+        """
+        Return the last executed query with parameters interpolated.
+
+        This override prevents Django from trying to re-execute the query
+        to get the formatted SQL, which fails with sqlcipher3 due to
+        parameter binding incompatibilities.
+        """
+        # Instead of trying to re-bind parameters (which fails),
+        # return a safe representation of the query
+        if params is None:
+            return query
+
+        # Simple parameter substitution for display purposes
+        # This is not 100% accurate but avoids the InterfaceError
+        try:
+            from decimal import Decimal
+
+            def quote_param(p):
+                """Convert parameter to string representation."""
+                if p is None:
+                    return 'NULL'
+                elif isinstance(p, bool):
+                    return '1' if p else '0'
+                elif isinstance(p, (int, float)):
+                    return str(p)
+                elif isinstance(p, Decimal):
+                    return str(float(p))
+                elif isinstance(p, str):
+                    # Escape single quotes
+                    return "'{}'".format(p.replace("'", "''"))
+                elif isinstance(p, bytes):
+                    return "<bytes>"
+                else:
+                    return str(p)
+
+            # Handle both ? style and %(name)s style parameters
+            if '?' in query:
+                # qmark style
+                param_list = params if isinstance(params, (list, tuple)) else [params]
+                parts = query.split('?')
+                result = []
+                for i, part in enumerate(parts[:-1]):
+                    result.append(part)
+                    if i < len(param_list):
+                        result.append(quote_param(param_list[i]))
+                result.append(parts[-1])
+                return ''.join(result)
+            else:
+                # Can't handle named parameters safely, return query with params
+                return query
+        except Exception:
+            # If anything goes wrong, return the original query
+            return query
 
 
 class DatabaseFeatures(SQLiteDatabaseFeatures):
@@ -136,8 +200,9 @@ class DatabaseWrapper(SQLiteDatabaseWrapper):
     This explicitly uses sqlcipher3.dbapi2 for encrypted database connections.
     """
 
-    # Use custom features class
+    # Use custom features and operations classes
     features_class = DatabaseFeatures
+    ops_class = DatabaseOperations
 
     # Explicitly use sqlcipher3's dbapi2 module
     Database = None  # Will be set in __init__

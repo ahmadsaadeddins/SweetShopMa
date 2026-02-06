@@ -48,20 +48,28 @@ function AttendancePage() {
 
     async function fetchUsers() {
         try {
-            console.log('[AttendancePage] Fetching users...');
-            var response = await api.getUsers();
-            console.log('[AttendancePage] Users response:', response);
+            console.log('[AttendancePage] Fetching employees for attendance...');
+            console.log('[AttendancePage] User role:', localStorage.getItem('userRole') || 'unknown');
+            var response = await api.getEmployeesForAttendance();
+            console.log('[AttendancePage] Employees response:', response);
 
             if (response && Array.isArray(response)) {
                 setUsers(response);
+                console.log('[AttendancePage] ✓ Successfully loaded ' + response.length + ' employees');
             } else if (response && response.results && Array.isArray(response.results)) {
                 setUsers(response.results);
+                console.log('[AttendancePage] ✓ Successfully loaded ' + response.results.length + ' employees');
+            } else if (response && response.error) {
+                console.error('[AttendancePage] API returned error:', response.error);
+                console.error('[AttendancePage] Error code:', response.code);
+                setUsers([]);
             } else {
-                console.warn('[AttendancePage] No users found, using fallback');
+                console.warn('[AttendancePage] No employees found');
                 setUsers([]);
             }
         } catch (e) {
-            console.error('[AttendancePage] Error fetching users:', e);
+            console.error('[AttendancePage] Error fetching employees:', e);
+            console.error('[AttendancePage] Error message:', e.message);
             // Fallback to empty list
             setUsers([]);
         }
@@ -149,6 +157,30 @@ function AttendancePage() {
     var currentMonth = currentMonthState[0];
     var setCurrentMonth = currentMonthState[1];
 
+    // Update filters when month changes
+    React.useEffect(function () {
+        if (!currentMonth) return;
+
+        var parts = currentMonth.split('-');
+        var year = parseInt(parts[0]);
+        var month = parseInt(parts[1]) - 1; // 0-indexed
+
+        // First day of month
+        var firstDay = new Date(year, month, 1);
+        // Handle timezone offset to ensure we get local YYYY-MM-DD
+        var firstDayStr = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000))
+            .toISOString().split('T')[0];
+
+        // Last day of month
+        var lastDay = new Date(year, month + 1, 0);
+        var lastDayStr = new Date(lastDay.getTime() - (lastDay.getTimezoneOffset() * 60000))
+            .toISOString().split('T')[0];
+
+        console.log('[AttendancePage] Month changed to ' + currentMonth + ', updating filters: ' + firstDayStr + ' to ' + lastDayStr);
+        setFilterStartDate(firstDayStr);
+        setFilterEndDate(lastDayStr);
+    }, [currentMonth]);
+
     // State for sections visibility
     var isAddEditExpandedState = React.useState(true);
     var isAddEditExpanded = isAddEditExpandedState[0];
@@ -186,6 +218,7 @@ function AttendancePage() {
     var getAttendanceExpenses = api.getAttendanceExpenses;
     var createAttendanceExpense = api.createAttendanceExpense;
     var deleteAttendanceExpense = api.deleteAttendanceExpense;
+    var checkAttendanceDuplicate = api.checkAttendanceDuplicate;
 
     // Fetch attendance records
     var attendanceRecordsResult = useAttendanceRecords({
@@ -298,6 +331,46 @@ function AttendancePage() {
         setTimeout(function () { setStatusMessage(null); }, 3000);
     }
 
+    // Check if record already exists for this user and date using API
+    async function checkDuplicateAttendance(userId, date) {
+        console.log('[checkDuplicateAttendance] Checking for duplicate via API...');
+        console.log('[checkDuplicateAttendance] User ID:', userId, 'Date:', date);
+
+        try {
+            var result = await checkAttendanceDuplicate(userId, date);
+            console.log('[checkDuplicateAttendance] API result:', result);
+
+            if (result && result.exists) {
+                console.log('[checkDuplicateAttendance] Duplicate found:', result.record);
+                return result.record;
+            }
+
+            console.log('[checkDuplicateAttendance] No duplicate found');
+            return null;
+        } catch (error) {
+            console.error('[checkDuplicateAttendance] Error checking duplicate:', error);
+            // Fallback to local check
+            console.log('[checkDuplicateAttendance] Falling back to local check...');
+
+            if (!attendanceRecords || !Array.isArray(attendanceRecords)) {
+                return null;
+            }
+
+            for (var i = 0; i < attendanceRecords.length; i++) {
+                var record = attendanceRecords[i];
+                // Handle type mismatches
+                var recordUserId = typeof record.user === 'string' ? parseInt(record.user) : record.user;
+                var selectedUserIdNum = typeof userId === 'string' ? parseInt(userId) : userId;
+
+                if (recordUserId === selectedUserIdNum && record.date === date) {
+                    return record;
+                }
+            }
+
+            return null;
+        }
+    }
+
     // Handle attendance submission
     var handleSubmitAttendance = async function (e) {
         e.preventDefault();
@@ -307,21 +380,12 @@ function AttendancePage() {
             return;
         }
 
-        // Check if record already exists for this user and date
-        if (attendanceRecords && attendanceRecords.length > 0) {
-            var existingRecord = null;
-            for (var i = 0; i < attendanceRecords.length; i++) {
-                if (attendanceRecords[i].user === selectedUser.id &&
-                    attendanceRecords[i].date === attendanceDate) {
-                    existingRecord = attendanceRecords[i];
-                    break;
-                }
-            }
+        // Check for duplicate using the helper function
+        var existingRecord = await checkDuplicateAttendance(selectedUser.id, attendanceDate);
 
-            if (existingRecord) {
-                showStatus('Attendance already recorded for ' + (selectedUser.username || selectedUser.email || 'this employee') + ' on ' + attendanceDate, true);
-                return;
-            }
+        if (existingRecord) {
+            showStatus('Attendance already recorded for ' + (selectedUser.username || selectedUser.email || 'this employee') + ' on ' + attendanceDate, true);
+            return;
         }
 
         setIsSubmitting(true);
@@ -339,6 +403,9 @@ function AttendancePage() {
                 absence_permission_type: getAbsencePermissionType(selectedStatus)
             };
 
+            console.log('[handleSubmitAttendance] Creating attendance record...');
+            console.log('[handleSubmitAttendance] Data:', JSON.stringify(data));
+
             await createAttendanceRecord(data);
             showStatus('Attendance saved successfully', false);
             refetchRecords();
@@ -346,8 +413,11 @@ function AttendancePage() {
 
             setAttendanceNotes('');
         } catch (error) {
+            console.error('[handleSubmitAttendance] Error saving attendance:', error);
+            console.error('[handleSubmitAttendance] Error message:', error.message);
+
             // Check for unique constraint error
-            if (error.message && error.message.includes('unique set')) {
+            if (error.message && (error.message.includes('unique set') || error.message.includes('already exists'))) {
                 showStatus('Attendance already recorded for this date', true);
             } else {
                 showStatus('Error saving attendance: ' + error.message, true);

@@ -702,15 +702,28 @@ class ApiBridge:
     def delete_attendance_record(self, record_id):
         """
         Delete attendance record.
-        
+
         Args:
             record_id (int): Attendance record ID
-        
+
         Returns:
             dict: Success status or error
         """
         return self._delete(f'attendance/{record_id}/')
-    
+
+    def check_attendance_duplicate(self, user_id, date):
+        """
+        Check if attendance record already exists for a user and date.
+
+        Args:
+            user_id (int): User profile ID
+            date (str): Date in YYYY-MM-DD format
+
+        Returns:
+            dict: {"exists": true/false, "record": {...}} or error
+        """
+        return self._get(f'attendance/check_duplicate/?user_id={user_id}&date={date}')
+
     def get_attendance_records_summary(self, query_params=''):
         """
         Get attendance records summary statistics.

@@ -94,6 +94,22 @@ class CanManageUsers(permissions.BasePermission):
         return self.has_permission(request, view)
 
 
+class CanViewEmployees(permissions.BasePermission):
+    """
+    Permission check for viewing employees list.
+    Developer, Admin, Moderator, and Employee can view employees for attendance tracking.
+    """
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        role = get_user_role(request.user)
+        permissions = get_role_permissions(role)
+        return permissions.get('can_view_employees', False)
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
 class CanManageStock(permissions.BasePermission):
     """
     Permission check for stock management.

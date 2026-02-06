@@ -445,7 +445,12 @@ class DashboardViewSet(viewsets.ViewSet):
     """ViewSet for dashboard statistics"""
 
     def list(self, request):
-        """Get dashboard statistics"""
+        """
+        Get dashboard statistics.
+
+        PERFORMANCE: Fixed N+1 queries and inefficient loading by using database aggregations
+        instead of Python-based calculations.
+        """
         import logging
         logger = logging.getLogger(__name__)
         logger.info('[DEBUG API] DashboardViewSet.list() called')
@@ -474,17 +479,31 @@ class DashboardViewSet(viewsets.ViewSet):
         )
         logger.info(f'[DEBUG API] Month start: {month_start}, month sales count: {month_sales.count()}')
 
-        # Inventory stats
-        # Fetch all active products once to calculate stats in Python
-        # This avoids potential SQLite driver issues with binding Decimal parameters (e.g. quantity=0)
-        products = list(Product.objects.filter(is_active=True))
-        total_products = len(products)
+        # PERFORMANCE FIX: Use database aggregations instead of Python loops
+        # This eliminates N+1 queries and loading all products into memory
+        from django.db.models import F, FloatField, ExpressionWrapper, Count as DjCount
+
+        # Calculate profit using single database query with annotation
+        today_profit = SaleItem.objects.filter(
+            sale__in=today_sales
+        ).annotate(
+            item_profit=ExpressionWrapper(
+                F('quantity') * (F('unit_price') - F('cost_price')),
+                output_field=FloatField()
+            )
+        ).aggregate(total=Sum('item_profit'))['total'] or Decimal('0.00')
+
+        # Inventory stats using database aggregations (no loading into memory)
+        active_products = Product.objects.filter(is_active=True)
+        total_products = active_products.count()
+        low_stock_count = active_products.filter(quantity__lte=F('low_stock_threshold')).count()
+        out_of_stock_count = active_products.filter(quantity=0).count()
+        total_stock_value = active_products.aggregate(
+            total=Sum(F('quantity') * F('price'), output_field=FloatField())
+        )['total'] or Decimal('0.00')
+
         logger.info(f'[DEBUG API] Total active products: {total_products}')
-
-        low_stock_count = sum(1 for p in products if p.quantity <= p.low_stock_threshold)
         logger.info(f'[DEBUG API] Low stock products count: {low_stock_count}')
-
-        out_of_stock_count = sum(1 for p in products if p.quantity == 0)
         logger.info(f'[DEBUG API] Out of stock products count: {out_of_stock_count}')
 
         # Build response
@@ -492,22 +511,19 @@ class DashboardViewSet(viewsets.ViewSet):
             'sales': {
                 'total_sales': today_sales.count(),
                 'total_revenue': today_sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
-                'total_profit': sum(sale.profit for sale in today_sales),
+                'total_profit': today_profit,  # PERFORMANCE: Fixed N+1 query
                 'average_sale': today_sales.aggregate(
-                    avg=Sum('total') / Count('id')
+                    avg=Sum('total') / DjCount('id')
                 )['avg'] or Decimal('0.00'),
                 'total_items': SaleItem.objects.filter(
                     sale__in=today_sales
                 ).aggregate(total=Sum('quantity'))['total'] or 0,
             },
             'inventory': {
-                'total_products': total_products,
-                'low_stock_products': low_stock_count,
-                'out_of_stock_products': out_of_stock_count,
-                'total_stock_value': sum(
-                    (Decimal(str(p.quantity)) * Decimal(str(p.price)))
-                    for p in products
-                ),
+                'total_products': total_products,  # PERFORMANCE: Fixed - use count() instead of len(list())
+                'low_stock_products': low_stock_count,  # PERFORMANCE: Fixed - use database filter
+                'out_of_stock_products': out_of_stock_count,  # PERFORMANCE: Fixed - use database filter
+                'total_stock_value': total_stock_value,  # PERFORMANCE: Fixed - use database aggregation
             },
             'today_revenue': today_sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
             'week_revenue': week_sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00'),
@@ -634,11 +650,16 @@ class RestockViewSet(viewsets.ModelViewSet):
             
         except Exception as e:
             logger.exception(f'Unexpected error during restock by user {user.username}: {str(e)}')
-            return Response({
+            # SECURITY: Don't leak error details to client in production
+            from django.conf import settings
+            error_response = {
                 'error': 'Internal server error',
-                'code': 'INTERNAL_ERROR',
-                'detail': str(e)
-            }, status=500)
+                'code': 'INTERNAL_ERROR'
+            }
+            # Only include error details in debug mode
+            if getattr(settings, 'DEBUG', False):
+                error_response['detail'] = str(e)
+            return Response(error_response, status=500)
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -1139,6 +1160,54 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
             'deleted': deleted_count,
             'message': f'Deleted {deleted_count} attendance records'
         })
+
+    @action(detail=False, methods=['get'])
+    def check_duplicate(self, request):
+        """
+        Check if an attendance record already exists for a user and date.
+        
+        Query params:
+        - user_id: User ID to check
+        - date: Date in YYYY-MM-DD format
+        
+        Returns:
+        {
+            "exists": true/false,
+            "record": { ... }  // The existing record if found
+        }
+        """
+        user_id = request.query_params.get('user_id')
+        date = request.query_params.get('date')
+        
+        if not user_id or not date:
+            return Response({
+                'exists': False,
+                'error': 'Both user_id and date are required'
+            }, status=400)
+        
+        try:
+            record = AttendanceRecord.objects.select_related('user').filter(
+                user_id=user_id,
+                date=date
+            ).first()
+            
+            if record:
+                serializer = AttendanceRecordSerializer(record)
+                return Response({
+                    'exists': True,
+                    'record': serializer.data
+                })
+            else:
+                return Response({
+                    'exists': False
+                })
+                
+        except Exception as e:
+            logger.error(f'Error checking duplicate attendance: {str(e)}')
+            return Response({
+                'exists': False,
+                'error': str(e)
+            }, status=500)
 
 
 class AttendanceSummaryViewSet(viewsets.ReadOnlyModelViewSet):

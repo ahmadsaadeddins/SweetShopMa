@@ -183,13 +183,23 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS Configuration - Allow all origins for PyWebView
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration - Restrict to localhost for development, specific origins for production
+# For PyWebView desktop app, these are the expected origins
+# SECURITY: Changed from CORS_ALLOW_ALL_ORIGINS = True to restrict access
+CORS_ALLOW_ALL_ORIGINS = False  # SECURITY: Disabled - was allowing any origin
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite default
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",  # Django admin/dev server
     "http://127.0.0.1:8000",
-    "http://localhost:8000",
 ]
+
+# For PyWebView which may use file:// or empty origin
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('DJANGO_DEBUG', 'False') == 'True'  # Only allow all in debug mode
+
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",

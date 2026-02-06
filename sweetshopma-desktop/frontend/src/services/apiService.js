@@ -67,6 +67,7 @@ const API_ENDPOINTS = {
     ATTENDANCE_EXPENSES: 'get_attendance_expenses',
     CREATE_ATTENDANCE_EXPENSE: 'create_attendance_expense',
     DELETE_ATTENDANCE_EXPENSE: 'delete_attendance_expense',
+    CHECK_ATTENDANCE_DUPLICATE: 'check_attendance_duplicate',
 
     // Users
     USERS: 'get_users',
@@ -78,6 +79,7 @@ const API_ENDPOINTS = {
     ALL_SALARY_HISTORY: 'get_all_salary_history',
     USER_ACTIVITIES: 'get_user_activities',
     ALL_ACTIVITIES: 'get_all_activities',
+    LIST_FOR_ATTENDANCE: 'get_users_for_attendance',
 
     // Sync
     SYNC_STATUS: 'get_sync_status',
@@ -340,6 +342,11 @@ export function useApi() {
         return await apiCall(API_ENDPOINTS.ALL_ACTIVITIES, filters);
     };
 
+    const getEmployeesForAttendance = async () => {
+        const response = await apiCall(API_ENDPOINTS.LIST_FOR_ATTENDANCE);
+        return normalizeResponse(response);
+    };
+
     // Attendance API
     const getAttendanceRecords = async (filters = {}) => {
         const params = new URLSearchParams();
@@ -411,6 +418,13 @@ export function useApi() {
         return await apiCall(API_ENDPOINTS.DELETE_ATTENDANCE_EXPENSE, id);
     };
 
+    const checkAttendanceDuplicate = async (userId, date) => {
+        console.log('[apiService] checkAttendanceDuplicate called:', userId, date);
+        const response = await apiCall(API_ENDPOINTS.CHECK_ATTENDANCE_DUPLICATE, userId, date);
+        console.log('[apiService] checkAttendanceDuplicate response:', response);
+        return response;
+    };
+
     return {
         isReady,
         // Products
@@ -466,6 +480,7 @@ export function useApi() {
         getAllSalaryHistory,
         getUserActivities,
         getAllActivities,
+        getEmployeesForAttendance,
         // Attendance
         getAttendanceRecords,
         getAttendanceRecord,
@@ -478,5 +493,6 @@ export function useApi() {
         getAttendanceExpenses,
         createAttendanceExpense,
         deleteAttendanceExpense,
+        checkAttendanceDuplicate,
     };
 }

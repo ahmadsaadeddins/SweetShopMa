@@ -105,6 +105,8 @@ class Product(models.Model):
             models.Index(fields=['sku']),
             models.Index(fields=['category']),
             models.Index(fields=['is_active']),
+            # PERFORMANCE: Composite index for low stock queries (dashboard)
+            models.Index(fields=['is_active', 'quantity']),
         ]
     
     def __str__(self):
@@ -236,6 +238,10 @@ class Sale(models.Model):
             models.Index(fields=['created_at']),
             models.Index(fields=['status']),
             models.Index(fields=['synced']),
+            # PERFORMANCE: Composite indexes for dashboard queries (today/week/month stats)
+            models.Index(fields=['created_at', 'status']),
+            models.Index(fields=['customer']),
+            models.Index(fields=['staff']),
         ]
     
     def __str__(self):

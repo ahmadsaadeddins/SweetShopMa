@@ -34,6 +34,7 @@ ALL_ROLES = [ROLE_DEVELOPER, ROLE_ADMIN, ROLE_MODERATOR, ROLE_EMPLOYEE, ROLE_SEL
 ROLE_PERMISSIONS = {
     ROLE_DEVELOPER: {
         'can_manage_users': True,
+        'can_view_employees': True,
         'can_manage_stock': True,
         'can_use_attendance': True,
         'can_restock': True,
@@ -43,6 +44,7 @@ ROLE_PERMISSIONS = {
     },
     ROLE_ADMIN: {
         'can_manage_users': True,
+        'can_view_employees': True,
         'can_manage_stock': True,
         'can_use_attendance': True,
         'can_restock': True,
@@ -52,6 +54,7 @@ ROLE_PERMISSIONS = {
     },
     ROLE_MODERATOR: {
         'can_manage_users': False,
+        'can_view_employees': True,  # Can view employees for attendance tracking
         'can_manage_stock': True,
         'can_use_attendance': True,
         'can_restock': True,
@@ -70,6 +73,7 @@ ROLE_PERMISSIONS = {
     },
     ROLE_EMPLOYEE: {
         'can_manage_users': False,
+        'can_view_employees': True,  # Can view employees for attendance tracking
         'can_manage_stock': False,
         'can_use_attendance': True,  # Employee can ONLY track attendance
         'can_restock': False,
