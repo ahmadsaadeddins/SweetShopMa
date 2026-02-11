@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """
-SweetShopMa Desktop - One-Click Build Script
+SweetShopMa Desktop - One-Click Build Script (Single EXE)
 
 Automates the entire build process:
 1. Clean previous builds (optional)
 2. Build React frontend (npm run build)
-3. Build Backend EXE (PyInstaller)
-4. Build Frontend EXE (PyInstaller)
-5. Package for distribution
+3. Build combined EXE (PyInstaller) — frontend + backend in one file
+4. Package for distribution
 
 Usage:
     python scripts/build.py          # Full build
@@ -52,9 +51,9 @@ def run_command(cmd, cwd=None, shell=True):
 
 def clean_build():
     """Clean build directories"""
-    print_step("1/5", "Cleaning previous build artifacts...")
+    print_step("1/4", "Cleaning previous build artifacts...")
     
-    # Clean PyInstaller build/work dirs (but keep dist for now to be safe with open files)
+    # Clean PyInstaller build/work dirs
     if BUILD_DIR.exists():
         try:
             shutil.rmtree(BUILD_DIR)
@@ -82,7 +81,7 @@ def clean_build():
 
 def build_frontend():
     """Build React frontend"""
-    print_step("2/5", "Building React Frontend...")
+    print_step("2/4", "Building React Frontend...")
     
     # Check if node_modules exists
     if not (FRONTEND_DIR / 'node_modules').exists():
@@ -93,9 +92,9 @@ def build_frontend():
     print("   Compiling React app...")
     return run_command('npm run build', cwd=FRONTEND_DIR)
 
-def build_backend_exe():
-    """Build Backend EXE using backend.spec"""
-    print_step("3/5", "Building Backend EXE (Django)...")
+def build_combined_exe():
+    """Build single combined EXE using SweetShopMa_Combined.spec"""
+    print_step("3/4", "Building Combined EXE (Frontend + Backend)...")
     
     cmd = [
         sys.executable, '-m', 'PyInstaller',
@@ -103,41 +102,23 @@ def build_backend_exe():
         '--clean',
         '--distpath', str(DIST_DIR),
         '--workpath', str(BUILD_DIR),
-        'backend.spec'
-    ]
-    
-    # Convert list to string for run_command to display it nicely, 
-    # but subprocess.run needs list if shell=False, or string if shell=True.
-    # Our run_command uses shell=True so we join it.
-    return run_command(' '.join(cmd))
-
-def build_frontend_exe():
-    """Build Frontend EXE using SweetShopMa.spec"""
-    print_step("4/5", "Building Frontend EXE (PyWebView)...")
-    
-    cmd = [
-        sys.executable, '-m', 'PyInstaller',
-        '--noconfirm',
-        '--clean',
-        '--distpath', str(DIST_DIR),
-        '--workpath', str(BUILD_DIR),
-        'SweetShopMa.spec'
+        'SweetShopMa_Combined.spec'
     ]
     
     return run_command(' '.join(cmd))
 
 def create_distribution_files():
     """Create README and other files"""
-    print_step("5/5", "Finalizing Distribution...")
+    print_step("4/4", "Finalizing Distribution...")
     
-    readme_content = f"""SweetShopMa Desktop Application
+    readme_content = """SweetShopMa Desktop Application
 ===============================
 
 How to Run
 ----------
 1. Double-click "SweetShopMa.exe" to start the application.
-2. This will automatically launch the backend server ("SweetShopMa_Backend.exe").
-3. On first run, the backend will:
+2. The backend server starts automatically inside the application.
+3. On first run, the app will:
    - Create the database (sweetshopma.db)
    - Apply all migrations
    - Create a default admin user (admin / admin)
@@ -153,7 +134,6 @@ To generate a license:
 Troubleshooting
 ---------------
 - If errors occur, delete "sweetshopma.db" to reset the database.
-- Check "backend_error.log".
 """
     
     readme_path = DIST_DIR / 'README_DIST.txt'
@@ -162,12 +142,11 @@ Troubleshooting
     print(f"   Created {readme_path}")
     
     # Check output
-    if (DIST_DIR / 'SweetShopMa.exe').exists() and (DIST_DIR / 'SweetShopMa_Backend.exe').exists():
+    if (DIST_DIR / 'SweetShopMa.exe').exists():
         print(f"\n   [SUCCESS] Build complete: {DIST_DIR}")
-        print(f"             SweetShopMa.exe (Frontend)")
-        print(f"             SweetShopMa_Backend.exe (Backend)")
+        print(f"             SweetShopMa.exe (Combined Frontend + Backend)")
     else:
-        print("\n   [ERROR] Missing executable(s) in dist folder!")
+        print("\n   [ERROR] SweetShopMa.exe not found in dist folder!")
 
 def main():
     start_time = time.time()
@@ -175,7 +154,7 @@ def main():
     fast_mode = '--fast' in sys.argv
     
     print("=" * 60)
-    print(f"  {APP_NAME} Build System")
+    print(f"  {APP_NAME} Build System (Single EXE)")
     print("=" * 60)
     
     if not fast_mode:
@@ -186,12 +165,8 @@ def main():
     else:
         print("\n[FAST MODE] Skipping clean and npm build")
         
-    if not build_backend_exe():
-        print("\n[FAILURE] Backend build failed.")
-        sys.exit(1)
-        
-    if not build_frontend_exe():
-        print("\n[FAILURE] Frontend build failed.")
+    if not build_combined_exe():
+        print("\n[FAILURE] Combined EXE build failed.")
         sys.exit(1)
         
     create_distribution_files()

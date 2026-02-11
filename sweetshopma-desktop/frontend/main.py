@@ -17,7 +17,6 @@ Usage:
 import sys
 import os
 import webview
-import subprocess
 import threading
 import time
 import argparse
@@ -105,8 +104,9 @@ class Application:
         self.api_bridge = None
         self.window = None
         self.django_thread = None
-        self.backend_process = None  # Backend EXE process
         self.django_ready = threading.Event()
+        self.django_error = threading.Event()
+        self.django_error_msg = ""
         self.sync_service = None
         self.dev_mode = dev_mode
         self.hardware_id = None  # Cache hardware ID
@@ -175,30 +175,96 @@ class Application:
         
         return True
     
+    def _run_django_server(self):
+        """Run Django server in background thread (called by start_django)"""
+        try:
+            # Set up paths
+            backend_dir = BUNDLE_DIR / 'backend'
+            db_path = EXE_DIR / 'sweetshopma.db'
+
+            # Set environment variables
+            os.environ['DJANGO_DEBUG'] = 'True'
+            os.environ['SWEETSHOP_DB_PATH'] = str(db_path)
+            os.environ['SWEETSHOP_EXE_DIR'] = str(EXE_DIR)
+            os.environ['DJANGO_SETTINGS_MODULE'] = 'sweetshop.settings'
+
+            # Load .env file from EXE directory
+            env_file = EXE_DIR / '.env'
+            print(f"[Backend] Looking for .env at: {env_file}")
+            if env_file.exists():
+                print(f"[Backend] Loading environment variables from .env")
+                try:
+                    with open(env_file, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                os.environ[key.strip()] = value.strip()
+                                if key.strip() == 'DJANGO_SECRET_KEY':
+                                    print("[Backend] Loaded DJANGO_SECRET_KEY")
+                except Exception as e:
+                    print(f"[Backend] Error loading .env: {e}")
+            else:
+                print("[Backend] Warning: .env file not found!")
+
+            print(f"[Backend] Backend dir: {backend_dir}")
+            print(f"[Backend] Database path: {db_path}")
+
+            # Change to backend directory BEFORE django.setup()
+            os.chdir(backend_dir)
+
+            # Add backend to path
+            if str(backend_dir) not in sys.path:
+                sys.path.insert(0, str(backend_dir))
+
+            # Import and setup Django
+            import django
+            django.setup()
+
+            from django.core.management import execute_from_command_line
+
+            # Run migrations
+            print("[Backend] Running database migrations...")
+            try:
+                execute_from_command_line(['manage.py', 'migrate', '--noinput'])
+                print("[Backend] Migrations completed")
+            except Exception as e:
+                print(f"[Backend] Error running migrations: {e}")
+
+            # Create default superuser
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                if not User.objects.filter(is_superuser=True).exists():
+                    print("[Backend] Creating default superuser (admin/admin)...")
+                    User.objects.create_superuser('admin', 'admin@example.com', 'admin')
+                    print("[Backend] Default superuser created")
+            except Exception as e:
+                print(f"[Backend] Error creating default data: {e}")
+
+            print("[Backend] Starting server on http://127.0.0.1:8000")
+            execute_from_command_line(['manage.py', 'runserver', '127.0.0.1:8000', '--noreload'])
+
+        except Exception as e:
+            import traceback
+            error_msg = f"{e}\n{traceback.format_exc()}"
+            print(f"[Backend] Error in Django thread: {error_msg}")
+            # Write error log next to EXE
+            try:
+                error_log = EXE_DIR / 'backend_error.log'
+                with open(error_log, 'w', encoding='utf-8') as f:
+                    f.write(error_msg)
+                print(f"[Backend] Error log written to: {error_log}")
+            except:
+                pass
+            # Signal the error to the main thread
+            self.django_error_msg = str(e)
+            self.django_error.set()
+
     def start_django(self):
-        """Start Django backend by launching the backend EXE"""
-        print("[App] Starting Django backend...")
-        
-        # Find backend executable or script
-        if not FROZEN:
-            # In development/source mode, run the python script
-            backend_script = EXE_DIR / 'backend_main.py'
-            if not backend_script.exists():
-                print(f"[App] [X] Backend script not found: {backend_script}")
-                return False
-            
-            cmd = [sys.executable, str(backend_script)]
-            print(f"[App] Backend script: {backend_script}")
-        else:
-            # In frozen mode, run the compiled EXE
-            backend_exe = EXE_DIR / 'SweetShopMa_Backend.exe'
-            if not backend_exe.exists():
-                print(f"[App] [X] Backend EXE not found: {backend_exe}")
-                return False
-            
-            cmd = [str(backend_exe)]
-            print(f"[App] Backend EXE: {backend_exe}")
-        
+        """Start Django backend in a background thread (in-process)"""
+        print("[App] Starting Django backend (in-process)...")
+
         # Check if backend is already running
         try:
             import requests
@@ -209,42 +275,41 @@ class Application:
                 return True
         except:
             pass  # Backend not running yet
-        
-        # Launch backend
-        try:
-            import subprocess
-            self.backend_process = subprocess.Popen(
-                cmd,
-                cwd=str(EXE_DIR),
-                creationflags=subprocess.CREATE_NEW_CONSOLE if not FROZEN else 0
-            )
-            print(f"[App] Backend process started (PID: {self.backend_process.pid})")
-        except Exception as e:
-            print(f"[App] [X] Failed to start backend: {e}")
-            return False
-        
+
+        # Start Django in a daemon thread
+        self.django_thread = threading.Thread(
+            target=self._run_django_server,
+            daemon=True,
+            name='DjangoServer'
+        )
+        self.django_thread.start()
+        print("[App] Django thread started")
+
         # Wait for Django to be ready
         print("[App] Waiting for Django to start...")
         for i in range(30):  # Wait up to 30 seconds
+            # Check if the thread crashed
+            if self.django_error.is_set():
+                print(f"[App] [X] Django thread crashed: {self.django_error_msg}")
+                return False
             try:
                 import requests
-                # Try root URL first (simpler check)
                 response = requests.get('http://127.0.0.1:8000/', timeout=1)
                 print(f"[App] Health check attempt {i+1}: Status {response.status_code}")
-                if response.status_code in [200, 404]:  # 404 is ok - means server is running
+                if response.status_code in [200, 404]:
                     print("[App] [OK] Django is ready")
                     self.django_ready.set()
                     return True
-            except requests.exceptions.ConnectionError as e:
+            except requests.exceptions.ConnectionError:
                 print(f"[App] Attempt {i+1}: Connection error - waiting...")
                 time.sleep(1)
-            except requests.exceptions.Timeout as e:
+            except requests.exceptions.Timeout:
                 print(f"[App] Attempt {i+1}: Timeout - waiting...")
                 time.sleep(1)
             except Exception as e:
                 print(f"[App] Attempt {i+1}: {type(e).__name__}: {e}")
                 time.sleep(1)
-        
+
         print("[App] [X] Django failed to start after 30 attempts")
         return False
     
@@ -252,8 +317,8 @@ class Application:
         """Create PyWebView window with React build or dev server"""
         print("[App] Creating application window...")
         
-        # Import API bridge
-        from api import ApiBridge
+        # Import API bridge (renamed to js_api to avoid collision with backend.api)
+        from js_api import ApiBridge
         self.api_bridge = ApiBridge()
         
         # Determine URL based on mode
@@ -334,21 +399,8 @@ class Application:
             print("[App] Sync service stopped")
 
     def stop_backend(self):
-        """Stop the backend process"""
-        if self.backend_process:
-            print(f"[App] Stopping backend process (PID: {self.backend_process.pid})...")
-            try:
-                # terminate() is gentler than kill()
-                self.backend_process.terminate()
-                try:
-                    self.backend_process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    print("[App] Backend did not stop, killing...")
-                    self.backend_process.kill()
-                print("[App] Backend process stopped")
-            except Exception as e:
-                print(f"[App] Error stopping backend: {e}")
-            self.backend_process = None
+        """Backend runs as a daemon thread — it stops automatically with the process"""
+        print("[App] Backend thread will stop with the process")
     
     def start(self):
         """Start the application"""
