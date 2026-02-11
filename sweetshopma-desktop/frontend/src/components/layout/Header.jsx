@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSidebar } from '../../context/SidebarContext';
 import { Menu, Sun, Moon, LogOut, User, Settings, Languages } from 'lucide-react';
+import LicenseCountdown from '../common/LicenseCountdown';
 
 /**
  * Header Component
@@ -138,6 +139,10 @@ function Header() {
 
             {/* Actions */}
             <div style={actionsStyle}>
+
+                {/* License Countdown */}
+                <LicenseCountdown />
+
                 {/* Language Switcher */}
                 <button
                     onClick={toggleLanguage}

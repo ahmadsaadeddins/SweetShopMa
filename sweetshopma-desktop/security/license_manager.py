@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from cryptography.fernet import Fernet, InvalidToken
 import hashlib
+from .clock_guard import ClockGuard
 
 
 class LicenseManager:
@@ -78,6 +79,7 @@ class LicenseManager:
         if len(secret_key) != 44:  # 32 bytes base64-encoded = 44 characters
             raise ValueError(f"Secret key must be 44 characters (32 bytes base64-encoded), got {len(secret_key)}")
         
+        self.secret_key = secret_key
         self.cipher = Fernet(secret_key)
     
     def generate_license(self, hardware_id, expiry_days=None, licensee_name="", 
@@ -165,6 +167,32 @@ class LicenseManager:
                         return False, f"License expired on {expiry_date.strftime('%Y-%m-%d')}", None
                 except ValueError:
                     return False, "Invalid expiry date in license", None
+            
+            # --- CLOCK TAMPERING CHECK ---
+            try:
+                # Initialize ClockGuard
+                guard = ClockGuard(self.secret_key)
+                
+                # Determine max days for usage count check
+                # For trial, we strictly enforce usage days (default 15 if not specified)
+                # For others, we set a high limit (effectively disabling usage count check) but KEEP the clock rewind check
+                is_trial = license_data.get('license_type') == 'trial'
+                max_days = 15 if is_trial else 99999
+                
+                # Run tamper check (Layers 1, 2, 3)
+                is_ok, reason = guard.check_tamper(max_trial_days=max_days)
+                
+                if not is_ok:
+                    return False, f"Security Check Failed: {reason}", None
+                
+                # If everything passed, record this launch
+                guard.record_launch()
+                
+            except Exception as e:
+                print(f"Warning: Clock guard check failed: {e}")
+                # We typically fail secure, but for now log warning
+                # return False, f"Security check error: {e}", None
+            # -----------------------------
             
             # License is valid
             licensee = license_data.get('licensee', 'Unknown')

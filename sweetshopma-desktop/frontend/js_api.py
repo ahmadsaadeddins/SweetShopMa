@@ -19,6 +19,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config.settings import BRANCH_ID, BRANCH_NAME
 from sync.sync_service import get_sync_service
 
+from security.license_manager import LicenseManager
+from security.clock_guard import ClockGuard
+from security.hardware_id import get_hardware_id
+
 # Credentials file path (in frontend directory)
 CREDENTIALS_FILE = Path(__file__).parent / '.credentials.json'
 CREDENTIALS_SALT = b'SweetShopMa_Credential_Salt_2024'  # Salt for password hashing
@@ -534,6 +538,77 @@ class ApiBridge:
         """Get dashboard statistics"""
         return self._get('dashboard/')
     
+    # License API
+
+    def get_license_status(self):
+        """
+        Get current license status.
+        
+        Returns:
+            dict: {
+                'valid': bool,
+                'licensee': str,
+                'is_trial': bool,
+                'days_remaining': int or None,
+                'expiry_date': str or None,
+                'message': str
+            }
+        """
+        try:
+            license_mgr = LicenseManager()
+            license_key = license_mgr.load_license()
+            
+            if not license_key:
+                return {
+                    'valid': False,
+                    'message': 'No license found'
+                }
+            
+            hw_id = get_hardware_id()
+            is_valid, message, info = license_mgr.validate_license(license_key, hw_id)
+            
+            if not is_valid:
+                return {
+                    'valid': False,
+                    'message': message
+                }
+            
+            # Calculate days remaining
+            days_remaining = None
+            if info.get('expiry_date'):
+                from datetime import datetime
+                expiry = datetime.fromisoformat(info['expiry_date'])
+                now = datetime.now()
+                delta = expiry - now
+                days_remaining = max(0, delta.days)
+                
+                # Check if trial and verify against usage days
+                if info.get('license_type') == 'trial':
+                    # We also need to check usage days from ClockGuard
+                    try:
+                        guard = ClockGuard(license_mgr.secret_key)
+                        # We need access to state, but check_tamper doesn't return it
+                        # Let's trust the expiry date for display, but user actual enforcement is done in validate_license
+                        # However, for a better UX, we should probably show the usage-based remaining days too.
+                        # Since ClockGuard hides its state, we'll rely on expiry date for now.
+                        pass
+                    except:
+                        pass
+            
+            return {
+                'valid': True,
+                'licensee': info.get('licensee', 'Unknown'),
+                'is_trial': info.get('licensee') == 'TRIAL_USER' or info.get('license_type') == 'trial',
+                'days_remaining': days_remaining,
+                'expiry_date': info.get('expiry_date'),
+                'message': 'License is valid'
+            }
+        except Exception as e:
+            return {
+                'valid': False,
+                'message': str(e)
+            }
+
     # Utility Methods
     
     def get_page_html(self, page):
