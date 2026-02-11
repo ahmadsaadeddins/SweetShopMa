@@ -17,6 +17,7 @@ Usage:
 import sys
 import os
 import webview
+import subprocess
 import threading
 import time
 import argparse
@@ -104,6 +105,7 @@ class Application:
         self.api_bridge = None
         self.window = None
         self.django_thread = None
+        self.backend_process = None  # For split build (subprocess)
         self.django_ready = threading.Event()
         self.django_error = threading.Event()
         self.django_error_msg = ""
@@ -262,8 +264,8 @@ class Application:
             self.django_error.set()
 
     def start_django(self):
-        """Start Django backend in a background thread (in-process)"""
-        print("[App] Starting Django backend (in-process)...")
+        """Start Django backend: trying in-process first, then fallback to subprocess"""
+        print("[App] Starting Django backend...")
 
         # Check if backend is already running
         try:
@@ -276,22 +278,63 @@ class Application:
         except:
             pass  # Backend not running yet
 
-        # Start Django in a daemon thread
-        self.django_thread = threading.Thread(
-            target=self._run_django_server,
-            daemon=True,
-            name='DjangoServer'
-        )
-        self.django_thread.start()
-        print("[App] Django thread started")
+        # 1. Try In-Process (Preferred for Single EXE and Dev)
+        try:
+            # Check if django is importable
+            import django
+            print("[App] Django found in environment. Starting in-process...")
+            
+            # Start Django in a daemon thread
+            self.django_thread = threading.Thread(
+                target=self._run_django_server,
+                daemon=True,
+                name='DjangoServer'
+            )
+            self.django_thread.start()
+            print("[App] Django thread started")
+            
+        except ImportError:
+            # 2. Fallback to Subprocess (For Split Build)
+            print("[App] Django not found in environment. Helping for external backend EXE...")
+            
+            backend_exe = EXE_DIR / 'SweetShopMa_Backend.exe'
+            if not backend_exe.exists():
+                print(f"[App] [X] Backend EXE not found: {backend_exe}")
+                # Also check python script as fallback for weird dev setups (though unlikely in frozen)
+                backend_script = EXE_DIR / 'backend_main.py'
+                if not FROZEN and backend_script.exists():
+                     print(f"[App] Falling back to script: {backend_script}")
+                     cmd = [sys.executable, str(backend_script)]
+                else:
+                     return False
+            else:
+                cmd = [str(backend_exe)]
+                print(f"[App] Backend EXE: {backend_exe}")
 
-        # Wait for Django to be ready
+            try:
+                self.backend_process = subprocess.Popen(
+                    cmd,
+                    cwd=str(EXE_DIR),
+                    creationflags=subprocess.CREATE_NEW_CONSOLE if not FROZEN else 0
+                )
+                print(f"[App] Backend process started (PID: {self.backend_process.pid})")
+            except Exception as e:
+                print(f"[App] [X] Failed to start backend subprocess: {e}")
+                return False
+
+        # Wait for Django to be ready (works for both modes)
         print("[App] Waiting for Django to start...")
         for i in range(30):  # Wait up to 30 seconds
-            # Check if the thread crashed
-            if self.django_error.is_set():
+            # Check if in-process thread crashed
+            if self.django_thread and self.django_error.is_set():
                 print(f"[App] [X] Django thread crashed: {self.django_error_msg}")
                 return False
+                
+            # Check if subprocess crashed
+            if self.backend_process and self.backend_process.poll() is not None:
+                print(f"[App] [X] Backend process exited unexpectedly with code {self.backend_process.returncode}")
+                return False
+
             try:
                 import requests
                 response = requests.get('http://127.0.0.1:8000/', timeout=1)
@@ -399,8 +442,22 @@ class Application:
             print("[App] Sync service stopped")
 
     def stop_backend(self):
-        """Backend runs as a daemon thread — it stops automatically with the process"""
-        print("[App] Backend thread will stop with the process")
+        """Stop the backend process or thread"""
+        if self.backend_process:
+            print(f"[App] Stopping backend process (PID: {self.backend_process.pid})...")
+            try:
+                self.backend_process.terminate()
+                try:
+                    self.backend_process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    print("[App] Backend did not stop, killing...")
+                    self.backend_process.kill()
+                print("[App] Backend process stopped")
+            except Exception as e:
+                print(f"[App] Error stopping backend: {e}")
+            self.backend_process = None
+        else:
+            print("[App] Backend thread will stop with the process")
     
     def start(self):
         """Start the application"""
