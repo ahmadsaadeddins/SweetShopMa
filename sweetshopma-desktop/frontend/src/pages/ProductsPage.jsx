@@ -4,6 +4,7 @@ import { useProducts, useCategories } from '../hooks';
 import { useApi } from '../services';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Sanitize filters for API calls
@@ -45,6 +46,7 @@ function normalizeData(data) {
  * Product management with search, filter, and CRUD operations
  */
 function ProductsPage() {
+    const { t } = useTranslation();
     const initialFilters = {
         search: '',
         category: '',
@@ -82,9 +84,9 @@ function ProductsPage() {
     const canRestock = user?.is_staff === true;
 
     const columns = [
-        { header: 'ID', field: 'id', width: '60px' },
+        { header: t('id'), field: 'id', width: '60px' },
         {
-            header: 'Name',
+            header: t('name'),
             field: 'name',
             render: (val, row) => (
                 <div>
@@ -93,10 +95,10 @@ function ProductsPage() {
                 </div>
             )
         },
-        { header: 'Category', field: 'category_name', render: (val) => val || '-' },
-        { header: 'Price', field: 'price', render: (val) => formatCurrency(val) },
+        { header: t('category'), field: 'category_name', render: (val) => val || '-' },
+        { header: t('price'), field: 'price', render: (val) => formatCurrency(val) },
         {
-            header: 'Stock',
+            header: t('stock'),
             field: 'quantity',
             width: '120px',
             render: (val, row) => (
@@ -113,17 +115,17 @@ function ProductsPage() {
             )
         },
         {
-            header: 'Status',
+            header: t('status'),
             field: 'is_active',
             width: '100px',
             render: (val) => (
                 <span className={`badge ${val ? 'bg-success' : 'bg-secondary'}`}>
-                    {val ? 'Active' : 'Inactive'}
+                    {val ? t('active') : t('inactive')}
                 </span>
             ),
         },
         {
-            header: 'Actions',
+            header: t('actions'),
             field: 'id',
             width: canRestock ? '200px' : '140px',
             render: (val, row) => (
@@ -133,7 +135,7 @@ function ProductsPage() {
                             size="small"
                             variant="outline-primary"
                             onClick={() => handleRestockClick(row)}
-                            title="Restock this product"
+                            title={t('restock_product')}
                         >
                             <i className="bi bi-plus-circle"></i>
                         </Button>
@@ -142,7 +144,7 @@ function ProductsPage() {
                         size="small"
                         variant="outline-secondary"
                         onClick={() => handleEdit(row)}
-                        title="Edit product"
+                        title={t('edit_product')}
                     >
                         <i className="bi bi-pencil"></i>
                     </Button>
@@ -150,7 +152,7 @@ function ProductsPage() {
                         size="small"
                         variant="outline-danger"
                         onClick={() => handleDelete(val)}
-                        title="Delete product"
+                        title={t('delete_product')}
                     >
                         <i className="bi bi-trash"></i>
                     </Button>
@@ -173,7 +175,7 @@ function ProductsPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+        if (!window.confirm(t('delete_confirm_product'))) {
             return;
         }
 
@@ -181,7 +183,7 @@ function ProductsPage() {
             await deleteProduct(id);
             refetch();
         } catch (error) {
-            alert(`Error deleting product: ${error.message}`);
+            alert(t('error_deleting_product', { error: error.message }));
         }
     };
 
@@ -211,18 +213,18 @@ function ProductsPage() {
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 className="h3 mb-1 fw-bold text-primary">Products</h1>
-                    <p className="text-muted mb-0">Manage your inventory and stock levels</p>
+                    <h1 className="h3 mb-1 fw-bold text-primary">{t('products')}</h1>
+                    <p className="text-muted mb-0">{t('inventory_management')}</p>
                 </div>
                 <Button variant="primary" onClick={handleAddNew} className="shadow-sm">
                     <i className="bi bi-plus-lg me-2"></i>
-                    Add Product
+                    {t('add_product')}
                 </Button>
             </div>
 
             {/* Error Alert */}
             {error && (
-                <Alert variant="danger" message={`Error loading products: ${error}`} dismissible />
+                <Alert variant="danger" message={t('error_loading_products', { error: error })} dismissible />
             )}
 
             {/* Filters Card */}
@@ -230,47 +232,47 @@ function ProductsPage() {
                 <div className="row g-3 align-items-end">
                     <div className="col-12 col-md-4">
                         <Input
-                            label="Search"
-                            placeholder="Name, barcode, or SKU..."
+                            label={t('search')}
+                            placeholder={t('search_products')}
                             value={filters.search}
                             onChange={(e) => handleFilterChange('search', e.target.value)}
                         />
                     </div>
                     <div className="col-12 col-md-2">
                         <Select
-                            label="Category"
+                            label={t('category')}
                             value={filters.category}
                             onChange={(e) => handleFilterChange('category', e.target.value)}
-                            options={[{ value: '', label: 'All Categories' }].concat(categories.map(cat => ({
+                            options={[{ value: '', label: t('all_categories') }].concat(categories.map(cat => ({
                                 value: cat.id,
                                 label: cat.name,
                             })))}
-                            placeholder="All Categories"
+                            placeholder={t('all_categories')}
                         />
                     </div>
                     <div className="col-12 col-md-2">
                         <Select
-                            label="Status"
+                            label={t('status')}
                             value={filters.is_active}
                             onChange={(e) => handleFilterChange('is_active', e.target.value)}
                             options={[
-                                { value: 'true', label: 'Active' },
-                                { value: 'false', label: 'Inactive' },
-                                { value: '', label: 'All' },
+                                { value: 'true', label: t('active') },
+                                { value: 'false', label: t('inactive') },
+                                { value: '', label: t('all') },
                             ]}
-                            placeholder="All Status"
+                            placeholder={t('all_status')}
                         />
                     </div>
                     <div className="col-12 col-md-2">
                         <Select
-                            label="Stock Level"
+                            label={t('stock_level')}
                             value={filters.low_stock}
                             onChange={(e) => handleFilterChange('low_stock', e.target.value)}
                             options={[
-                                { value: '', label: 'All Levels' },
-                                { value: 'true', label: 'Low Stock' },
+                                { value: '', label: t('all_levels') },
+                                { value: 'true', label: t('low_stock_filter') },
                             ]}
-                            placeholder="All Levels"
+                            placeholder={t('all_levels')}
                         />
                     </div>
                     <div className="col-12 col-md-2">
@@ -280,7 +282,7 @@ function ProductsPage() {
                             onClick={handleClearFilters}
                             disabled={JSON.stringify(filters) === JSON.stringify(initialFilters)}
                         >
-                            Clear
+                            {t('clear')}
                         </Button>
                     </div>
                 </div>
@@ -292,7 +294,7 @@ function ProductsPage() {
                     columns={columns}
                     data={products}
                     loading={loading}
-                    emptyMessage="No products found matching your criteria"
+                    emptyMessage={t('no_products_criteria')}
                     keyField="id"
                 />
             </Card>

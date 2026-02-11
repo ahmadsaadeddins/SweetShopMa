@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 
@@ -7,6 +8,7 @@ import { formatCurrency, formatDateTime } from '../../utils/formatters';
  * Reusable modal for displaying detailed sale/order information
  */
 function SaleDetailModal({ sale, show, onClose }) {
+    const { t } = useTranslation();
     if (!show || !sale) return null;
 
     const getStatusBadgeClass = (status) => {
@@ -47,7 +49,7 @@ function SaleDetailModal({ sale, show, onClose }) {
                         }}
                     >
                         <div className="modal-header">
-                            <h5 className="modal-title">Sale Details #{sale.id}</h5>
+                            <h5 className="modal-title">{t('id_with_hash', { id: sale.id })}</h5>
                             <button
                                 type="button"
                                 className="btn-close"
@@ -58,36 +60,34 @@ function SaleDetailModal({ sale, show, onClose }) {
                             {/* Sale Info */}
                             <div className="row mb-4">
                                 <div className="col-6">
-                                    <strong>Date:</strong>{' '}
+                                    <strong>{t('date_label')}</strong>{' '}
                                     {formatDateTime(sale.created_at)}
                                 </div>
                                 <div className="col-6">
-                                    <strong>Status:</strong>{' '}
+                                    <strong>{t('status_label')}</strong>{' '}
                                     <span className={`badge ${getStatusBadgeClass(sale.status)}`}>
-                                        {sale.status?.charAt(0).toUpperCase() +
-                                            sale.status?.slice(1)}
+                                        {t(sale.status?.toLowerCase(), { defaultValue: sale.status?.charAt(0).toUpperCase() + sale.status?.slice(1) })}
                                     </span>
                                 </div>
                                 <div className="col-6">
-                                    <strong>Cashier:</strong>{' '}
+                                    <strong>{t('cashier_label')}</strong>{' '}
                                     {sale.staff_name ? (
                                         <span className="text-success">{sale.staff_name}</span>
                                     ) : (
                                         <span className="text-muted" style={{ fontStyle: 'italic' }}>
-                                            Not Assigned
+                                            {t('not_assigned')}
                                         </span>
                                     )}
                                 </div>
                                 <div className="col-6">
-                                    <strong>Payment Method:</strong>{' '}
+                                    <strong>{t('payment_method_label')}</strong>{' '}
                                     {sale.payment_method ?
-                                        sale.payment_method.charAt(0).toUpperCase() +
-                                        sale.payment_method.slice(1) :
-                                        'N/A'}
+                                        t(sale.payment_method.toLowerCase(), { defaultValue: sale.payment_method.charAt(0).toUpperCase() + sale.payment_method.slice(1) }) :
+                                        t('n_a')}
                                 </div>
                                 {sale.customer_name && (
                                     <div className="col-6">
-                                        <strong>Customer:</strong>{' '}
+                                        <strong>{t('customer_label')}</strong>{' '}
                                         {sale.customer_name}
                                     </div>
                                 )}
@@ -97,20 +97,20 @@ function SaleDetailModal({ sale, show, onClose }) {
                             <div className="card mb-4">
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between mb-2">
-                                        <span>Subtotal:</span>
+                                        <span>{t('subtotal_label')}</span>
                                         <strong>{formatCurrency(sale.subtotal)}</strong>
                                     </div>
                                     <div className="d-flex justify-content-between mb-2">
-                                        <span>Tax:</span>
+                                        <span>{t('tax_label')}</span>
                                         <strong>{formatCurrency(sale.tax)}</strong>
                                     </div>
                                     <div className="d-flex justify-content-between mb-2">
-                                        <span>Discount:</span>
+                                        <span>{t('discount_label')}</span>
                                         <strong>{formatCurrency(sale.discount)}</strong>
                                     </div>
                                     <hr />
                                     <div className="d-flex justify-content-between">
-                                        <span className="h5 mb-0">Total:</span>
+                                        <span className="h5 mb-0">{t('total_label')}</span>
                                         <span className="h5 mb-0">
                                             {formatCurrency(sale.total)}
                                         </span>
@@ -119,15 +119,15 @@ function SaleDetailModal({ sale, show, onClose }) {
                             </div>
 
                             {/* Items */}
-                            <h6 className="mb-3">Sale Items</h6>
+                            <h6 className="mb-3">{t('sale_items_label')}</h6>
                             {sale.items && sale.items.length > 0 ? (
                                 <table className="table table-sm">
                                     <thead>
                                         <tr>
-                                            <th>Product</th>
-                                            <th className="text-center">Qty</th>
-                                            <th className="text-end">Price</th>
-                                            <th className="text-end">Total</th>
+                                            <th>{t('product')}</th>
+                                            <th className="text-center">{t('qty')}</th>
+                                            <th className="text-end">{t('price')}</th>
+                                            <th className="text-end">{t('total')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -146,13 +146,13 @@ function SaleDetailModal({ sale, show, onClose }) {
                                     </tbody>
                                 </table>
                             ) : (
-                                <p className="text-muted">No items found</p>
+                                <p className="text-muted">{t('no_items_found')}</p>
                             )}
 
                             {/* Notes */}
                             {sale.notes && (
                                 <div className="mt-3">
-                                    <strong>Notes:</strong>
+                                    <strong>{t('notes_label')}</strong>
                                     <p className="text-muted mb-0">{sale.notes}</p>
                                 </div>
                             )}
@@ -162,7 +162,7 @@ function SaleDetailModal({ sale, show, onClose }) {
                                 variant="secondary"
                                 onClick={onClose}
                             >
-                                Close
+                                {t('close')}
                             </Button>
                         </div>
                     </div>

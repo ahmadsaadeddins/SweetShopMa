@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Alert } from '../components/common';
 import { RestockModal } from '../components/common';
 import { useProducts, useCategories } from '../hooks';
@@ -11,6 +12,7 @@ import { formatCurrency } from '../utils';
  * Point of Sale interface with product grid and cart
  */
 function POSPage() {
+    const { t } = useTranslation();
     const [cart, setCart] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
@@ -54,7 +56,7 @@ function POSPage() {
     const addToCart = (product, qtyToAdd = 1) => {
         // Check if product is out of stock (only for positive additions)
         if (qtyToAdd > 0 && product.quantity <= 0) {
-            alert('This product is out of stock!');
+            alert(t('out_of_stock'));
             return;
         }
 
@@ -71,7 +73,7 @@ function POSPage() {
 
                 // Check if adding more would exceed available stock
                 if (qtyToAdd > 0 && newQty > product.quantity) {
-                    alert(`Only ${product.quantity} items available in stock!`);
+                    alert(t('low_stock_short_alert', { count: product.quantity }));
                     return prevCart;
                 }
 
@@ -117,7 +119,8 @@ function POSPage() {
         // Find the product to check available stock
         const product = localProducts?.find(p => p.id === productId);
         if (product && parsedQty > product.quantity) {
-            alert(`Only ${product.quantity} ${product.unit || 'units'} available in stock!`);
+            const unit = product.unit ? t(product.unit.toLowerCase(), { defaultValue: product.unit }) : t('pcs');
+            alert(t('low_stock_unit_alert', { count: product.quantity, unit: unit }));
             return;
         }
 
@@ -156,7 +159,7 @@ function POSPage() {
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
-            alert('Cart is empty!');
+            alert(t('cart_empty_alert'));
             return;
         }
 
@@ -199,14 +202,14 @@ function POSPage() {
                 setLocalProducts(updatedProducts);
             }
 
-            alert('Sale completed successfully!');
+            alert(t('sale_success'));
             clearCart();
             setShowCheckout(false);
 
             // Refresh products in background to ensure sync with backend
             refetchProducts();
         } catch (error) {
-            alert(`Error completing sale: ${error.message}`);
+            alert(t('error_sale_completion', { message: error.message }) || (`Error completing sale: ${error.message}`));
         }
     };
 
@@ -227,7 +230,7 @@ function POSPage() {
             return (
                 <div className="text-center py-5">
                     <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
+                        <span className="visually-hidden">{t('loading')}</span>
                     </div>
                 </div>
             );
@@ -236,7 +239,7 @@ function POSPage() {
         if (!localProducts || localProducts.length === 0) {
             return (
                 <div className="text-center py-5">
-                    <p className="text-muted">No products found</p>
+                    <p className="text-muted">{t('no_products_found')}</p>
                 </div>
             );
         }
@@ -260,9 +263,9 @@ function POSPage() {
                                 {/* Low Stock Badge */}
                                 {product.is_low_stock && !isOutOfStock && (
                                     <div className="position-absolute top-0 end-0 m-1">
-                                        <span className="badge bg-warning text-dark" title="Low stock">
+                                        <span className="badge bg-warning text-dark" title={t('low_stock')}>
                                             <i className="bi bi-exclamation-triangle me-1"></i>
-                                            Low
+                                            {t('low_stock')}
                                         </span>
                                     </div>
                                 )}
@@ -270,7 +273,7 @@ function POSPage() {
                                 {/* Out of Stock Badge */}
                                 {isOutOfStock && (
                                     <div className="position-absolute top-0 end-0 m-1">
-                                        <span className="badge bg-danger">Out of Stock</span>
+                                        <span className="badge bg-danger">{t('out_of_stock')}</span>
                                     </div>
                                 )}
 
@@ -318,10 +321,10 @@ function POSPage() {
                                                 </h6>
                                                 {product.quantity > 0 ? (
                                                     <small className={product.is_low_stock ? 'text-warning' : 'text-success'} style={{ marginTop: '2px', fontSize: '0.75rem', lineHeight: 1, maxWidth: '100%', textAlign: 'center' }}>
-                                                        {Number(product.quantity).toFixed(3)} {product.unit}
+                                                        {Number(product.quantity).toFixed(3)} {t(product.unit.toLowerCase(), { defaultValue: product.unit })}
                                                     </small>
                                                 ) : (
-                                                    <small className="text-danger fw-bold" style={{ marginTop: '2px', fontSize: '0.75rem', lineHeight: 1, textAlign: 'center' }}>Out of stock</small>
+                                                    <small className="text-danger fw-bold" style={{ marginTop: '2px', fontSize: '0.75rem', lineHeight: 1, textAlign: 'center' }}>{t('out_of_stock')}</small>
                                                 )}
                                             </div>
 
@@ -369,10 +372,10 @@ function POSPage() {
                                                     {product.is_low_stock && (
                                                         <i className="bi bi-exclamation-triangle me-1"></i>
                                                     )}
-                                                    In stock: {Number(product.quantity).toFixed(product.unit === 'kg' ? 3 : 0)} {product.unit || 'pcs'}
+                                                    {t('in_stock')}: {Number(product.quantity).toFixed(product.unit === 'kg' ? 3 : 0)} {product.unit ? t(product.unit.toLowerCase(), { defaultValue: product.unit }) : t('pcs')}
                                                 </small>
                                             ) : (
-                                                <small className="text-danger fw-bold">Out of stock</small>
+                                                <small className="text-danger fw-bold">{t('out_of_stock')}</small>
                                             )}
                                         </div>
                                     )}
@@ -384,10 +387,10 @@ function POSPage() {
                                         <button
                                             className="btn btn-outline-primary btn-sm w-100"
                                             onClick={(e) => handleRestockClick(product, e)}
-                                            title="Restock this product"
+                                            title={t('restock')}
                                         >
                                             <i className="bi bi-plus-circle me-1"></i>
-                                            Restock
+                                            {t('restock')}
                                         </button>
                                     </div>
                                 )}
@@ -407,8 +410,8 @@ function POSPage() {
                 <div className="col-12 col-lg-8">
                     {/* Header */}
                     <div className="mb-4">
-                        <h1 className="h3 mb-1">Point of Sale</h1>
-                        <p className="text-muted mb-0">Select products to add to cart</p>
+                        <h1 className="h3 mb-1">{t('pos_title')}</h1>
+                        <p className="text-muted mb-0">{t('pos_subtitle')}</p>
                     </div>
 
                     {/* Search and Filter */}
@@ -416,7 +419,7 @@ function POSPage() {
                         <div className="row g-3">
                             <div className="col-12 col-md-8">
                                 <Input
-                                    placeholder="Search products..."
+                                    placeholder={t('search_products')}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -427,7 +430,7 @@ function POSPage() {
                                     value={selectedCategory}
                                     onChange={(e) => setSelectedCategory(e.target.value)}
                                 >
-                                    <option value="">All Categories</option>
+                                    <option value="">{t('all_categories')}</option>
                                     {categories?.map(cat => (
                                         <option key={cat.id} value={cat.id}>
                                             {cat.name}
@@ -447,8 +450,8 @@ function POSPage() {
                 {/* Cart Section */}
                 <div className="col-12 col-lg-4">
                     <Card
-                        title="Shopping Cart"
-                        subtitle={`${cart.length} item${cart.length !== 1 ? 's' : ''}`}
+                        title={t('cart_title')}
+                        subtitle={cart.length === 1 ? t('item_count_one') : t('item_count_other', { count: cart.length })}
                         actions={
                             cart.length > 0 && (
                                 <Button
@@ -456,16 +459,16 @@ function POSPage() {
                                     variant="danger"
                                     onClick={clearCart}
                                 >
-                                    Clear
+                                    {t('clear_cart')}
                                 </Button>
                             )
                         }
                     >
                         {cart.length === 0 ? (
                             <div className="text-center py-5">
-                                <p className="text-muted mb-0">Cart is empty</p>
+                                <p className="text-muted mb-0">{t('cart_empty')}</p>
                                 <small className="text-muted">
-                                    Click on products to add them to the cart
+                                    {t('cart_hint')}
                                 </small>
                             </div>
                         ) : (
@@ -500,7 +503,7 @@ function POSPage() {
                                                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                                                         onBlur={(e) => handleQuantityBlur(item.id, e.target.value)}
                                                     />
-                                                    <span className="text-muted small me-2">{item.unit || 'pcs'}</span>
+                                                    <span className="text-muted small me-2">{item.unit ? t(item.unit.toLowerCase(), { defaultValue: item.unit }) : t('pcs')}</span>
                                                     <Button
                                                         size="small"
                                                         variant="secondary"
@@ -526,17 +529,17 @@ function POSPage() {
                                 {/* Cart Summary */}
                                 <div className="cart-summary">
                                     <div className="d-flex justify-content-between mb-2">
-                                        <span>Subtotal:</span>
+                                        <span>{t('subtotal')}:</span>
                                         <strong>{formatCurrency(subtotal)}</strong>
                                     </div>
                                     {tax > 0 && (
                                         <div className="d-flex justify-content-between mb-2">
-                                            <span>Tax:</span>
+                                            <span>{t('tax')}:</span>
                                             <strong>{formatCurrency(tax)}</strong>
                                         </div>
                                     )}
                                     <div className="d-flex justify-content-between mb-2 align-items-center">
-                                        <span>Discount (%):</span>
+                                        <span>{t('discount_percent')}:</span>
                                         <input
                                             type="number"
                                             className="form-control form-control-sm"
@@ -550,13 +553,13 @@ function POSPage() {
                                     </div>
                                     {discountAmount > 0 && (
                                         <div className="d-flex justify-content-between mb-2 text-success">
-                                            <span>Discount:</span>
+                                            <span>{t('discount_amount')}:</span>
                                             <strong>-{formatCurrency(discountAmount)}</strong>
                                         </div>
                                     )}
                                     <hr />
                                     <div className="d-flex justify-content-between mb-3">
-                                        <span className="h5 mb-0">Total:</span>
+                                        <span className="h5 mb-0">{t('total_payable')}:</span>
                                         <span className="h5 mb-0 text-primary">
                                             {formatCurrency(total)}
                                         </span>
@@ -569,20 +572,20 @@ function POSPage() {
                                             className="w-100"
                                             onClick={() => setShowCheckout(true)}
                                         >
-                                            Proceed to Checkout
+                                            {t('proceed_checkout')}
                                         </Button>
                                     ) : (
                                         <>
                                             <div className="mb-3">
-                                                <label className="form-label">Payment Method</label>
+                                                <label className="form-label">{t('payment_method')}</label>
                                                 <select
                                                     className="form-select"
                                                     value={paymentMethod}
                                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                                 >
-                                                    <option value="cash">Cash</option>
-                                                    <option value="card">Card</option>
-                                                    <option value="mobile">Mobile Payment</option>
+                                                    <option value="cash">{t('cash')}</option>
+                                                    <option value="card">{t('card')}</option>
+                                                    <option value="mobile">{t('mobile_payment')}</option>
                                                 </select>
                                             </div>
                                             <div className="d-flex gap-2">
@@ -591,14 +594,14 @@ function POSPage() {
                                                     className="flex-grow-1"
                                                     onClick={() => setShowCheckout(false)}
                                                 >
-                                                    Back
+                                                    {t('back')}
                                                 </Button>
                                                 <Button
                                                     variant="success"
                                                     className="flex-grow-1"
                                                     onClick={handleCheckout}
                                                 >
-                                                    Complete Sale
+                                                    {t('complete_sale')}
                                                 </Button>
                                             </div>
                                         </>

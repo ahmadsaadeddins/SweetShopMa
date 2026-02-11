@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -24,30 +25,30 @@ function Sidebar() {
     const location = useLocation();
     const { isCollapsed } = useSidebar();
     const { user } = useAuth();
+    const { t, i18n } = useTranslation();
 
     // Check if user is Seller - hide sidebar for Sellers
     const isSeller = user?.role === 'Seller';
-
-    // DEBUG logging
-    console.log('[Sidebar] user:', user);
-    console.log('[Sidebar] user?.role:', user?.role);
-    console.log('[Sidebar] isSeller:', isSeller);
 
     // If seller, don't render sidebar
     if (isSeller) {
         return null;
     }
 
+    const isRtl = i18n.language === 'ar';
+
     const sidebarStyle = {
         width: isCollapsed ? '72px' : '240px',
         backgroundColor: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-border)',
+        borderRight: isRtl ? 'none' : '1px solid var(--color-border)',
+        borderLeft: isRtl ? '1px solid var(--color-border)' : 'none',
         padding: '16px 8px',
         overflowY: 'auto',
-        transition: 'width var(--transition-normal)',
+        transition: 'width var(--transition-normal), left var(--transition-normal), right var(--transition-normal)',
         position: 'fixed',
         top: '60px',
-        left: 0,
+        left: isRtl ? 'auto' : 0,
+        right: isRtl ? 0 : 'auto',
         bottom: 0,
         zIndex: 100
     };
@@ -89,48 +90,48 @@ function Sidebar() {
         {
             path: '/dashboard',
             icon: LayoutDashboard,
-            label: 'Dashboard'
+            label: t('dashboard')
         },
         {
             path: '/pos',
             icon: ShoppingCart,
-            label: 'Point of Sale'
+            label: t('pos')
         },
         {
             path: '/products',
             icon: Package,
-            label: 'Products'
+            label: t('products')
         },
         {
             path: '/restocks',
             icon: ArrowUpCircle,
-            label: 'Restock Records'
+            label: t('restock_records')
         },
         {
             path: '/sales',
             icon: Receipt,
-            label: 'Sales'
+            label: t('sales')
         },
         {
             path: '/expenses',
             icon: DollarSign,
-            label: 'Expenses'
+            label: t('expenses')
         },
         {
             path: '/attendance',
             icon: Calendar,
-            label: 'Attendance'
+            label: t('attendance')
         },
         {
             path: '/users',
             icon: Users,
-            label: 'Users',
+            label: t('users'),
             roles: ['Developer', 'Admin']  // Only show for Developer and Admin roles
         },
         {
             path: '/settings',
             icon: Settings,
-            label: 'Settings'
+            label: t('settings')
         }
     ];
 

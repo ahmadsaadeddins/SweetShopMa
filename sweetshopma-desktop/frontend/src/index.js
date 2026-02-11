@@ -9,6 +9,9 @@ import './styles/variables.css';
 // Import root App component
 import App from './App';
 
+// Import i18n
+import './i18n/i18n';
+
 // Import error boundary
 import ErrorBoundary from './components/common/ErrorBoundary';
 

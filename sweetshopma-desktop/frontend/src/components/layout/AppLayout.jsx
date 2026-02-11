@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { DebugConsole } from '../common';
@@ -16,6 +17,9 @@ function AppLayout() {
     const { isReady, isPolling } = useApiContext();
     const { isCollapsed } = useSidebar();
     const { user } = useAuth();
+    const { t, i18n } = useTranslation();
+
+    const isRtl = i18n.language === 'ar';
 
     // Check if user is Seller - hide sidebar for Sellers
     const isSeller = user?.role === 'Seller';
@@ -34,13 +38,16 @@ function AppLayout() {
         overflow: 'hidden'
     };
 
+    const sidebarWidth = isCollapsed ? '72px' : '240px';
+
     const mainStyle = {
         flex: 1,
         overflow: 'auto',
         padding: '24px',
         backgroundColor: 'var(--color-background)',
-        marginLeft: isSeller ? '0' : (isCollapsed ? '72px' : '240px'),
-        transition: 'margin-left var(--transition-normal)',
+        marginLeft: isSeller ? '0' : (!isRtl ? sidebarWidth : '0'),
+        marginRight: isSeller ? '0' : (isRtl ? sidebarWidth : '0'),
+        transition: 'margin var(--transition-normal)',
         width: isSeller ? '100%' : 'auto'
     };
 
@@ -89,7 +96,7 @@ function AppLayout() {
                         }`}
                     </style>
                     <div style={loadingSpinnerStyle} />
-                    <div style={loadingTextStyle}>Initializing API...</div>
+                    <div style={loadingTextStyle}>{t('loading_api', 'Initializing API...')}</div>
                 </div>
             )}
 
@@ -105,7 +112,7 @@ function AppLayout() {
             </div>
 
             {/* Debug Console */}
-            <DebugConsole position="bottom-right" />
+            <DebugConsole position={isRtl ? "bottom-left" : "bottom-right"} />
         </div>
     );
 }

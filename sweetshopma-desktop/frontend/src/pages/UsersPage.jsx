@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUsers, useUserSalaryHistory, useAllSalaryHistory, useAllActivities } from '../hooks/useApiData';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
+import { useTranslation } from 'react-i18next';
 
 // Role choices for dropdown
 var ROLE_CHOICES = [
@@ -41,7 +42,33 @@ var ACTIVITY_TYPES = [
     { key: 'other', label: 'Other' }
 ];
 
+// Helper to translate roles
+const getRoleLabel = (role, t) => {
+    return t(role.toLowerCase());
+};
+
+// Helper to translate activity types
+const getActivityLabel = (type, t) => {
+    switch (type) {
+        case 'login': return t('user_login');
+        case 'logout': return t('user_logout');
+        case 'create': return t('create_record');
+        case 'update': return t('update_record');
+        case 'delete': return t('delete_record_activity');
+        case 'sale': return t('create_sale_activity');
+        case 'restock': return t('restock_product_activity');
+        case 'attendance': return t('attendance_action');
+        case 'expense': return t('expense_action');
+        case 'password_change': return t('password_change');
+        case 'role_change': return t('role_change');
+        case 'salary_change': return t('salary_change');
+        case '': return t('all_activities');
+        default: return t('other');
+    }
+};
+
 function UsersPage() {
+    var { t } = useTranslation();
     var api = useApi();
     var auth = useAuth();
     var isReady = api.isReady;
@@ -55,40 +82,42 @@ function UsersPage() {
 
     if (!canManageUsers && !canViewReports) {
         return React.createElement(ErrorMessage, {
-            message: 'You do not have permission to access this page.'
+            message: t('permissions_error')
         });
     }
 
     return React.createElement('div', { className: 'page-container' },
         React.createElement('div', { className: 'page-header' },
-            React.createElement('h1', null, 'User Management'),
+            React.createElement('h1', null, t('user_management')),
             canManageUsers && React.createElement('button', {
                 className: 'btn btn-primary',
                 onClick: function () { window.location.href = '#/users?action=add'; }
-            }, '+ Add User')
+            }, '+ ' + t('add_user'))
         ),
         React.createElement('div', { className: 'tabs' },
             React.createElement('button', {
                 className: 'tab' + (activeTab === 'users' ? ' active' : ''),
                 onClick: function () { setActiveTab('users'); }
-            }, 'Users'),
+            }, t('users')),
             canViewReports && React.createElement('button', {
                 className: 'tab' + (activeTab === 'activity' ? ' active' : ''),
                 onClick: function () { setActiveTab('activity'); }
-            }, 'Activity Log'),
+            }, t('activity_log')),
             canViewReports && React.createElement('button', {
                 className: 'tab' + (activeTab === 'salary' ? ' active' : ''),
                 onClick: function () { setActiveTab('salary'); }
-            }, 'Salary History')
+            }, t('salary_history'))
         ),
-        activeTab === 'users' && React.createElement(UsersTab, { canManageUsers: canManageUsers }),
-        activeTab === 'activity' && canViewReports && React.createElement(ActivityLogTab, null),
-        activeTab === 'salary' && canViewReports && React.createElement(SalaryHistoryTab, null)
+        activeTab === 'users' && React.createElement(UsersTab, { canManageUsers: canManageUsers, t: t, getRoleLabel: getRoleLabel }),
+        activeTab === 'activity' && canViewReports && React.createElement(ActivityLogTab, { t: t, getActivityLabel: getActivityLabel }),
+        activeTab === 'salary' && canViewReports && React.createElement(SalaryHistoryTab, { t: t })
     );
 }
 
 function UsersTab(props) {
     var canManageUsers = props.canManageUsers;
+    var t = props.t;
+    var getRoleLabel = props.getRoleLabel;
     var api = useApi();
     var isReady = api.isReady;
 
@@ -135,7 +164,7 @@ function UsersTab(props) {
                 setShowAddModal(null);
                 refetch();
             } else {
-                alert('Error creating user: ' + (result.error || 'Unknown error'));
+                alert(t('error_loading_records') + ': ' + (result.error || 'Unknown error'));
             }
         });
     }
@@ -146,37 +175,37 @@ function UsersTab(props) {
                 setEditingUser(null);
                 refetch();
             } else {
-                alert('Error updating user: ' + (result.error || 'Unknown error'));
+                alert(t('error_loading_records') + ': ' + (result.error || 'Unknown error'));
             }
         });
     }
 
     function handleDeleteUser(userId) {
-        if (confirm('Are you sure you want to delete this user?')) {
+        if (confirm(t('delete_confirm_user'))) {
             api.deleteUser(userId).then(function (result) {
                 if (!result.error) {
                     setDeletingUser(null);
                     refetch();
                 } else {
-                    alert('Error deleting user: ' + (result.error || 'Unknown error'));
+                    alert(t('error_loading_records') + ': ' + (result.error || 'Unknown error'));
                 }
             });
         }
     }
 
     if (loading) {
-        return React.createElement(LoadingSpinner, { message: 'Loading users...' });
+        return React.createElement(LoadingSpinner, { message: t('loading_users') });
     }
 
     if (error) {
-        return React.createElement(ErrorMessage, { message: 'Error loading users: ' + error });
+        return React.createElement(ErrorMessage, { message: t('error_loading_records') + ': ' + error });
     }
 
     return React.createElement('div', { className: 'users-tab' },
         React.createElement('div', { className: 'filters-bar' },
             React.createElement('input', {
                 type: 'text',
-                placeholder: 'Search users...',
+                placeholder: t('search_users'),
                 value: searchQuery,
                 onChange: function (e) { setSearchQuery(e.target.value); },
                 className: 'search-input'
@@ -186,55 +215,55 @@ function UsersTab(props) {
                 onChange: function (e) { setRoleFilter(e.target.value); },
                 className: 'role-filter'
             },
-                React.createElement('option', { value: '' }, 'All Roles'),
+                React.createElement('option', { value: '' }, t('all_roles')),
                 ROLE_CHOICES.map(function (role) {
-                    return React.createElement('option', { key: role.key, value: role.key }, role.label);
+                    return React.createElement('option', { key: role.key, value: role.key }, getRoleLabel(role.key, t));
                 })
             )
         ),
         React.createElement('table', { className: 'data-table' },
             React.createElement('thead', null,
                 React.createElement('tr', null,
-                    React.createElement('th', null, 'Username'),
-                    React.createElement('th', null, 'Email'),
-                    React.createElement('th', null, 'Role'),
-                    React.createElement('th', null, 'Salary'),
-                    React.createElement('th', null, 'Status'),
-                    React.createElement('th', null, 'Actions')
+                    React.createElement('th', null, t('username')),
+                    React.createElement('th', null, t('email')),
+                    React.createElement('th', null, t('role')),
+                    React.createElement('th', null, t('salary')),
+                    React.createElement('th', null, t('status')),
+                    React.createElement('th', null, t('actions'))
                 )
             ),
             React.createElement('tbody', null,
                 filteredUsers.length === 0 ?
                     React.createElement('tr', null,
-                        React.createElement('td', { colSpan: 6, style: { textAlign: 'center' } }, 'No users found')
+                        React.createElement('td', { colSpan: 6, style: { textAlign: 'center' } }, t('no_users_found'))
                     ) :
                     filteredUsers.map(function (user) {
                         return React.createElement('tr', { key: user.id },
                             React.createElement('td', null, user.username),
                             React.createElement('td', null, user.email || '-'),
                             React.createElement('td', null,
-                                React.createElement('span', { className: 'role-badge role-' + user.role.toLowerCase() }, user.role)
+                                React.createElement('span', { className: 'role-badge role-' + user.role.toLowerCase() }, getRoleLabel(user.role, t))
                             ),
                             React.createElement('td', null, '$' + (parseFloat(user.monthly_salary) || 0).toLocaleString()),
                             React.createElement('td', null,
                                 React.createElement('span', {
                                     className: 'status-badge ' + (user.is_active ? 'status-active' : 'status-inactive')
-                                }, user.is_active ? 'Active' : 'Inactive')
+                                }, user.is_active ? t('active') : t('inactive'))
                             ),
                             React.createElement('td', null,
                                 React.createElement('div', { className: 'action-buttons' },
                                     canManageUsers && React.createElement('button', {
                                         className: 'btn btn-sm',
                                         onClick: function () { setEditingUser(user); }
-                                    }, 'Edit'),
+                                    }, t('edit')),
                                     React.createElement('button', {
                                         className: 'btn btn-sm btn-secondary',
                                         onClick: function () { setViewingSalaryHistory(user); }
-                                    }, 'History'),
+                                    }, t('history')),
                                     canManageUsers && React.createElement('button', {
                                         className: 'btn btn-sm btn-danger',
                                         onClick: function () { setDeletingUser(user); }
-                                    }, 'Delete')
+                                    }, t('delete'))
                                 )
                             )
                         );
@@ -244,22 +273,28 @@ function UsersTab(props) {
         showAddModal && React.createElement(UserModal, {
             mode: 'add',
             onSave: handleAddUser,
-            onClose: function () { setShowAddModal(null); }
+            onClose: function () { setShowAddModal(null); },
+            t: t,
+            getRoleLabel: getRoleLabel
         }),
         editingUser && React.createElement(UserModal, {
             mode: 'edit',
             user: editingUser,
             onSave: function (data) { handleUpdateUser(editingUser.id, data); },
-            onClose: function () { setEditingUser(null); }
+            onClose: function () { setEditingUser(null); },
+            t: t,
+            getRoleLabel: getRoleLabel
         }),
         deletingUser && React.createElement(DeleteConfirmModal, {
             user: deletingUser,
             onConfirm: function () { handleDeleteUser(deletingUser.id); },
-            onClose: function () { setDeletingUser(null); }
+            onClose: function () { setDeletingUser(null); },
+            t: t
         }),
         viewingSalaryHistory && React.createElement(SalaryHistoryModal, {
             user: viewingSalaryHistory,
-            onClose: function () { setViewingSalaryHistory(null); }
+            onClose: function () { setViewingSalaryHistory(null); },
+            t: t
         })
     );
 }
@@ -269,6 +304,8 @@ function UserModal(props) {
     var user = props.user;
     var onSave = props.onSave;
     var onClose = props.onClose;
+    var t = props.t;
+    var getRoleLabel = props.getRoleLabel;
 
     var _useState7 = useState({
         username: '',
@@ -310,7 +347,7 @@ function UserModal(props) {
         var data = Object.assign({}, formData);
         if (mode === 'add') {
             if (!data.password || data.password.length < 8) {
-                alert('Password must be at least 8 characters');
+                alert(t('password_length_error'));
                 return;
             }
         } else {
@@ -325,12 +362,12 @@ function UserModal(props) {
     return React.createElement('div', { className: 'modal-overlay', onClick: onClose },
         React.createElement('div', { className: 'modal', onClick: function (e) { e.stopPropagation(); } },
             React.createElement('div', { className: 'modal-header' },
-                React.createElement('h2', null, mode === 'add' ? 'Add New User' : 'Edit User'),
+                React.createElement('h2', null, mode === 'add' ? t('add_new_user') : t('edit_user')),
                 React.createElement('button', { className: 'close-btn', onClick: onClose }, '×')
             ),
             React.createElement('form', { onSubmit: handleSubmit, className: 'modal-body' },
                 mode === 'add' && React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Username *'),
+                    React.createElement('label', null, t('username') + ' *'),
                     React.createElement('input', {
                         type: 'text',
                         name: 'username',
@@ -340,7 +377,7 @@ function UserModal(props) {
                     })
                 ),
                 mode === 'add' && React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Password *'),
+                    React.createElement('label', null, t('password') + ' *'),
                     React.createElement('input', {
                         type: 'password',
                         name: 'password',
@@ -348,11 +385,11 @@ function UserModal(props) {
                         onChange: handleChange,
                         required: true,
                         minLength: 8,
-                        placeholder: 'At least 8 characters'
+                        placeholder: t('password_length_error')
                     })
                 ),
                 React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Email'),
+                    React.createElement('label', null, t('email')),
                     React.createElement('input', {
                         type: 'email',
                         name: 'email',
@@ -361,17 +398,17 @@ function UserModal(props) {
                     })
                 ),
                 React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Role'),
+                    React.createElement('label', null, t('role')),
                     React.createElement('select', {
                         name: 'role',
                         value: formData.role,
                         onChange: handleChange
                     }, ROLE_CHOICES.map(function (role) {
-                        return React.createElement('option', { key: role.key, value: role.key }, role.label);
+                        return React.createElement('option', { key: role.key, value: role.key }, getRoleLabel(role.key, t));
                     }))
                 ),
                 React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Monthly Salary'),
+                    React.createElement('label', null, t('monthly_salary')),
                     React.createElement('input', {
                         type: 'number',
                         name: 'monthly_salary',
@@ -382,7 +419,7 @@ function UserModal(props) {
                     })
                 ),
                 React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Overtime Multiplier'),
+                    React.createElement('label', null, t('overtime_multiplier')),
                     React.createElement('input', {
                         type: 'number',
                         name: 'overtime_multiplier',
@@ -394,18 +431,18 @@ function UserModal(props) {
                     })
                 ),
                 mode === 'edit' && React.createElement('div', { className: 'form-group' },
-                    React.createElement('label', null, 'Reason for Change'),
+                    React.createElement('label', null, t('reason_for_change')),
                     React.createElement('input', {
                         type: 'text',
                         name: 'change_reason',
                         value: formData.change_reason,
                         onChange: handleChange,
-                        placeholder: 'Optional: Document why you are making this change'
+                        placeholder: t('optional_document_reason')
                     })
                 ),
                 React.createElement('div', { className: 'modal-footer' },
-                    React.createElement('button', { type: 'button', className: 'btn btn-secondary', onClick: onClose }, 'Cancel'),
-                    React.createElement('button', { type: 'submit', className: 'btn btn-primary' }, mode === 'add' ? 'Create User' : 'Save Changes')
+                    React.createElement('button', { type: 'button', className: 'btn btn-secondary', onClick: onClose }, t('cancel')),
+                    React.createElement('button', { type: 'submit', className: 'btn btn-primary' }, mode === 'add' ? t('create_user_btn') : t('save_changes_btn'))
                 )
             )
         )
@@ -416,20 +453,21 @@ function DeleteConfirmModal(props) {
     var user = props.user;
     var onConfirm = props.onConfirm;
     var onClose = props.onClose;
+    var t = props.t;
 
     return React.createElement('div', { className: 'modal-overlay', onClick: onClose },
         React.createElement('div', { className: 'modal modal-small', onClick: function (e) { e.stopPropagation(); } },
             React.createElement('div', { className: 'modal-header' },
-                React.createElement('h2', null, 'Delete User'),
+                React.createElement('h2', null, t('delete')),
                 React.createElement('button', { className: 'close-btn', onClick: onClose }, '×')
             ),
             React.createElement('div', { className: 'modal-body' },
-                React.createElement('p', null, 'Are you sure you want to delete user "' + user.username + '"?'),
-                React.createElement('p', { style: { color: '#e74c3c' } }, 'This action cannot be undone.')
+                React.createElement('p', null, t('delete_confirm_user') + ' "' + user.username + '"?'),
+                React.createElement('p', { style: { color: '#e74c3c' } }, t('delete_confirm_product'))
             ),
             React.createElement('div', { className: 'modal-footer' },
-                React.createElement('button', { className: 'btn btn-secondary', onClick: onClose }, 'Cancel'),
-                React.createElement('button', { className: 'btn btn-danger', onClick: onConfirm }, 'Delete')
+                React.createElement('button', { className: 'btn btn-secondary', onClick: onClose }, t('cancel')),
+                React.createElement('button', { className: 'btn btn-danger', onClick: onConfirm }, t('delete'))
             )
         )
     );
@@ -438,6 +476,7 @@ function DeleteConfirmModal(props) {
 function SalaryHistoryModal(props) {
     var user = props.user;
     var onClose = props.onClose;
+    var t = props.t;
 
     var _useUserSalaryHistory = useUserSalaryHistory(user.id),
         history = _useUserSalaryHistory.data,
@@ -447,23 +486,23 @@ function SalaryHistoryModal(props) {
     return React.createElement('div', { className: 'modal-overlay', onClick: onClose },
         React.createElement('div', { className: 'modal modal-large', onClick: function (e) { e.stopPropagation(); } },
             React.createElement('div', { className: 'modal-header' },
-                React.createElement('h2', null, 'Salary History: ' + user.username),
+                React.createElement('h2', null, t('salary_history') + ': ' + user.username),
                 React.createElement('button', { className: 'close-btn', onClick: onClose }, '×')
             ),
             React.createElement('div', { className: 'modal-body' },
                 loading ?
-                    React.createElement(LoadingSpinner, { message: 'Loading salary history...' }) :
+                    React.createElement(LoadingSpinner, { message: t('loading') }) :
                     error ?
-                        React.createElement(ErrorMessage, { message: 'Error loading history: ' + error }) :
+                        React.createElement(ErrorMessage, { message: t('error_loading_records') + ': ' + error }) :
                         history && history.length > 0 ?
                             React.createElement('table', { className: 'data-table' },
                                 React.createElement('thead', null,
                                     React.createElement('tr', null,
-                                        React.createElement('th', null, 'Date'),
-                                        React.createElement('th', null, 'Old Salary'),
-                                        React.createElement('th', null, 'New Salary'),
-                                        React.createElement('th', null, 'Changed By'),
-                                        React.createElement('th', null, 'Reason')
+                                        React.createElement('th', null, t('date')),
+                                        React.createElement('th', null, t('old_salary')),
+                                        React.createElement('th', null, t('new_salary')),
+                                        React.createElement('th', null, t('changed_by')),
+                                        React.createElement('th', null, t('reason'))
                                     )
                                 ),
                                 React.createElement('tbody', null,
@@ -474,22 +513,24 @@ function SalaryHistoryModal(props) {
                                             React.createElement('td', null,
                                                 React.createElement('strong', null, '$' + parseFloat(record.new_salary).toLocaleString())
                                             ),
-                                            React.createElement('td', null, record.changed_by_name || 'Unknown'),
+                                            React.createElement('td', null, record.changed_by_name || t('unknown')),
                                             React.createElement('td', null, record.change_reason || '-')
                                         );
                                     })
                                 )
                             ) :
-                            React.createElement('p', { style: { textAlign: 'center', color: '#666' } }, 'No salary history records found.')
+                            React.createElement('p', { style: { textAlign: 'center', color: '#666' } }, t('no_salary_records_found'))
             ),
             React.createElement('div', { className: 'modal-footer' },
-                React.createElement('button', { className: 'btn btn-secondary', onClick: onClose }, 'Close')
+                React.createElement('button', { className: 'btn btn-secondary', onClick: onClose }, t('close'))
             )
         )
     );
 }
 
-function ActivityLogTab() {
+function ActivityLogTab(props) {
+    var t = props.t;
+    var getActivityLabel = props.getActivityLabel;
     var _useState8 = useState({}),
         filters = _useState8[0],
         setFilters = _useState8[1];
@@ -512,11 +553,11 @@ function ActivityLogTab() {
     }
 
     if (loading) {
-        return React.createElement(LoadingSpinner, { message: 'Loading activity log...' });
+        return React.createElement(LoadingSpinner, { message: t('loading_activities') });
     }
 
     if (error) {
-        return React.createElement(ErrorMessage, { message: 'Error loading activities: ' + error });
+        return React.createElement(ErrorMessage, { message: t('error_loading_records') + ': ' + error });
     }
 
     return React.createElement('div', { className: 'activity-tab' },
@@ -525,17 +566,17 @@ function ActivityLogTab() {
                 value: queryFilters.activity_type,
                 onChange: function (e) { handleFilterChange('activity_type', e.target.value); }
             }, ACTIVITY_TYPES.map(function (type) {
-                return React.createElement('option', { key: type.key, value: type.key }, type.label);
+                return React.createElement('option', { key: type.key, value: type.key }, getActivityLabel(type.key, t));
             })),
             React.createElement('input', {
                 type: 'date',
-                placeholder: 'Start Date',
+                placeholder: t('start_date'),
                 value: queryFilters.start_date || '',
                 onChange: function (e) { handleFilterChange('start_date', e.target.value); }
             }),
             React.createElement('input', {
                 type: 'date',
-                placeholder: 'End Date',
+                placeholder: t('end_date'),
                 value: queryFilters.end_date || '',
                 onChange: function (e) { handleFilterChange('end_date', e.target.value); }
             })
@@ -543,11 +584,11 @@ function ActivityLogTab() {
         React.createElement('table', { className: 'data-table' },
             React.createElement('thead', null,
                 React.createElement('tr', null,
-                    React.createElement('th', null, 'Timestamp'),
-                    React.createElement('th', null, 'User'),
-                    React.createElement('th', null, 'Activity'),
-                    React.createElement('th', null, 'Description'),
-                    React.createElement('th', null, 'Resource')
+                    React.createElement('th', null, t('timestamp')),
+                    React.createElement('th', null, t('user')),
+                    React.createElement('th', null, t('activity_log')),
+                    React.createElement('th', null, t('description')),
+                    React.createElement('th', null, t('resource'))
                 )
             ),
             React.createElement('tbody', null,
@@ -555,10 +596,10 @@ function ActivityLogTab() {
                     activities.map(function (activity) {
                         return React.createElement('tr', { key: activity.id },
                             React.createElement('td', null, activity.timestamp_display),
-                            React.createElement('td', null, activity.user_name || 'Unknown'),
+                            React.createElement('td', null, activity.user_name || t('unknown')),
                             React.createElement('td', null,
                                 React.createElement('span', { className: 'activity-badge activity-' + activity.activity_type },
-                                    ACTIVITY_TYPES.find(function (t) { return t.key === activity.activity_type; })?.label || activity.activity_type
+                                    getActivityLabel(activity.activity_type, t)
                                 )
                             ),
                             React.createElement('td', null, activity.description || '-'),
@@ -570,37 +611,38 @@ function ActivityLogTab() {
                         );
                     }) :
                     React.createElement('tr', null,
-                        React.createElement('td', { colSpan: 5, style: { textAlign: 'center' } }, 'No activities found')
+                        React.createElement('td', { colSpan: 5, style: { textAlign: 'center' } }, t('no_activities_found'))
                     )
             )
         )
     );
 }
 
-function SalaryHistoryTab() {
+function SalaryHistoryTab(props) {
+    var t = props.t;
     var _useAllSalaryHistory = useAllSalaryHistory(),
         history = _useAllSalaryHistory.data,
         loading = _useAllSalaryHistory.loading,
         error = _useAllSalaryHistory.error;
 
     if (loading) {
-        return React.createElement(LoadingSpinner, { message: 'Loading salary history...' });
+        return React.createElement(LoadingSpinner, { message: t('loading') });
     }
 
     if (error) {
-        return React.createElement(ErrorMessage, { message: 'Error loading salary history: ' + error });
+        return React.createElement(ErrorMessage, { message: t('error_loading_records') + ': ' + error });
     }
 
     return React.createElement('div', { className: 'salary-history-tab' },
         React.createElement('table', { className: 'data-table' },
             React.createElement('thead', null,
                 React.createElement('tr', null,
-                    React.createElement('th', null, 'Date'),
-                    React.createElement('th', null, 'User'),
-                    React.createElement('th', null, 'Old Salary'),
-                    React.createElement('th', null, 'New Salary'),
-                    React.createElement('th', null, 'Changed By'),
-                    React.createElement('th', null, 'Reason')
+                    React.createElement('th', null, t('date')),
+                    React.createElement('th', null, t('user')),
+                    React.createElement('th', null, t('old_salary')),
+                    React.createElement('th', null, t('new_salary')),
+                    React.createElement('th', null, t('changed_by')),
+                    React.createElement('th', null, t('reason'))
                 )
             ),
             React.createElement('tbody', null,
@@ -612,19 +654,19 @@ function SalaryHistoryTab() {
                                 record.user_profile ?
                                     record.user_profile.user ?
                                         record.user_profile.user.username :
-                                        'User #' + record.user_profile :
-                                    'Unknown'
+                                        t('user') + ' #' + record.user_profile :
+                                    t('unknown')
                             ),
                             React.createElement('td', null, '$' + parseFloat(record.old_salary).toLocaleString()),
                             React.createElement('td', null,
                                 React.createElement('strong', null, '$' + parseFloat(record.new_salary).toLocaleString())
                             ),
-                            React.createElement('td', null, record.changed_by_name || 'Unknown'),
+                            React.createElement('td', null, record.changed_by_name || t('unknown')),
                             React.createElement('td', null, record.change_reason || '-')
                         );
                     }) :
                     React.createElement('tr', null,
-                        React.createElement('td', { colSpan: 6, style: { textAlign: 'center' } }, 'No salary history records found.')
+                        React.createElement('td', { colSpan: 6, style: { textAlign: 'center' } }, t('no_salary_records_found'))
                     )
             )
         )

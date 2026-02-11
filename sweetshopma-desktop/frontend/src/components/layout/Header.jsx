@@ -1,9 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useSidebar } from '../../context/SidebarContext';
-import { Menu, Sun, Moon, LogOut, User, Settings } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, User, Settings, Languages } from 'lucide-react';
 
 /**
  * Header Component
@@ -15,6 +16,15 @@ function Header() {
     const { theme, toggleTheme } = useTheme();
     const { toggleSidebar } = useSidebar();
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'ar' ? 'en' : 'ar';
+        i18n.changeLanguage(newLang);
+        document.dir = newLang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = newLang;
+        localStorage.setItem('i18nextLng', newLang);
+    };
 
     // Check if user is Seller
     const isSeller = user?.role === 'Seller';
@@ -99,15 +109,15 @@ function Header() {
         if (!user) return 'U';
         const first = user.first_name || user.username || '';
         const last = user.last_name || '';
-        return (first[0] + last[0]).toUpperCase();
+        return (first[0] + (last[0] || '')).toUpperCase();
     };
 
     const getDisplayName = () => {
-        if (!user) return 'User';
+        if (!user) return t('user');
         if (user.first_name && user.last_name) {
             return `${user.first_name} ${user.last_name}`;
         }
-        return user.username || 'User';
+        return user.username || t('user');
     };
 
     return (
@@ -128,12 +138,26 @@ function Header() {
 
             {/* Actions */}
             <div style={actionsStyle}>
+                {/* Language Switcher */}
+                <button
+                    onClick={toggleLanguage}
+                    style={{
+                        ...buttonStyle,
+                        backgroundColor: 'var(--color-gray-100)',
+                        border: '1px solid var(--color-gray-200)'
+                    }}
+                    title={t('language')}
+                >
+                    <Languages size={18} />
+                    <span>{i18n.language === 'ar' ? 'English' : 'العربية'}</span>
+                </button>
+
                 {/* Theme Toggle - Hide for Sellers */}
                 {!isSeller && (
                     <button
                         onClick={toggleTheme}
                         style={buttonStyle}
-                        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                        title={theme === 'light' ? t('switch_dark_mode') : t('switch_light_mode')}
                     >
                         {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                     </button>
@@ -144,7 +168,7 @@ function Header() {
                     <button
                         onClick={() => navigate('/settings')}
                         style={buttonStyle}
-                        title="Settings"
+                        title={t('settings')}
                     >
                         <Settings size={18} />
                     </button>
@@ -161,7 +185,7 @@ function Header() {
                                 {getDisplayName()}
                             </div>
                             <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
-                                {user?.role || 'User'}
+                                {user?.role || t('user')}
                             </div>
                         </div>
                     )}
@@ -174,7 +198,7 @@ function Header() {
                         ...buttonStyle,
                         color: 'var(--color-error-600)'
                     }}
-                    title="Logout"
+                    title={t('logout')}
                 >
                     <LogOut size={18} />
                 </button>

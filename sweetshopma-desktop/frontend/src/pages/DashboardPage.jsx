@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatCard, Card, Table, Alert, Button, SaleDetailModal, RestockModal } from '../components/common';
 import { useDashboardStats, useRecentSales, useLowStockProducts } from '../hooks';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +10,7 @@ import { formatCurrency, formatDateTime } from '../utils';
  * Main dashboard with statistics and recent activity
  */
 function DashboardPage() {
+    const { t } = useTranslation();
     const { data: stats, loading: statsLoading, error: statsError } = useDashboardStats();
     const { data: recentSales, loading: salesLoading } = useRecentSales(10);
     const { data: lowStockProducts, loading: stockLoading, refetch: refetchLowStock } = useLowStockProducts();
@@ -46,40 +48,40 @@ function DashboardPage() {
     };
 
     const salesColumns = [
-        { header: 'ID', field: 'id', width: '80px' },
-        { header: 'Time', field: 'created_at', render: (val) => formatDateTime(val) },
+        { header: t('id'), field: 'id', width: '80px' },
+        { header: t('time'), field: 'created_at', render: (val) => formatDateTime(val) },
         {
-            header: 'Cashier',
+            header: t('cashier'),
             field: 'staff_name',
             width: '120px',
             render: (val) => val || '-'
         },
         {
-            header: 'Items',
+            header: t('items'),
             field: 'items_summary',
             width: '200px',
             render: (val, row) => {
                 const itemNames = row.items?.map(i => i.product_name) || [];
                 if (itemNames.length === 0) return '-';
                 const display = itemNames.slice(0, 2).join(', ');
-                const more = itemNames.length > 2 ? ` +${itemNames.length - 2} more` : '';
+                const more = itemNames.length > 2 ? ` +${itemNames.length - 2} ${t('more') || 'more'}` : '';
                 return `${display}${more}`;
             }
         },
-        { header: 'Qty', field: 'item_count', width: '60px', render: (val) => val || 0 },
-        { header: 'Total', field: 'total', width: '100px', render: (val) => formatCurrency(val) },
+        { header: t('qty'), field: 'item_count', width: '60px', render: (val) => val || 0 },
+        { header: t('total'), field: 'total', width: '100px', render: (val) => formatCurrency(val) },
         {
-            header: 'Status',
+            header: t('status'),
             field: 'status',
             width: '100px',
             render: (val) => (
                 <span className={`badge ${getStatusBadgeClass(val)}`}>
-                    {val?.charAt(0).toUpperCase() + val?.slice(1) || '-'}
+                    {t(val?.toLowerCase(), { defaultValue: val?.charAt(0).toUpperCase() + val?.slice(1) || '-' })}
                 </span>
             )
         },
         {
-            header: 'Actions',
+            header: t('actions'),
             field: 'id',
             width: '100px',
             render: (val) => (
@@ -91,19 +93,19 @@ function DashboardPage() {
                         handleViewDetails(val);
                     }}
                 >
-                    View
+                    {t('view')}
                 </Button>
             ),
         },
     ];
 
     const lowStockColumns = [
-        { header: 'Product', field: 'name' },
-        { header: 'Category', field: 'category_name', render: (val) => val || '-' },
-        { header: 'Stock', field: 'quantity', width: '100px' },
-        { header: 'Min Stock', field: 'low_stock_threshold', width: '100px' },
+        { header: t('product'), field: 'name' },
+        { header: t('category'), field: 'category_name', render: (val) => val || '-' },
+        { header: t('stock'), field: 'quantity', width: '100px' },
+        { header: t('min_stock'), field: 'low_stock_threshold', width: '100px' },
         ...(canRestock ? [{
-            header: 'Actions',
+            header: t('actions'),
             field: 'id',
             width: '100px',
             render: (val, row) => (
@@ -116,7 +118,7 @@ function DashboardPage() {
                     }}
                 >
                     <i className="bi bi-plus-circle me-1"></i>
-                    Restock
+                    {t('restock')}
                 </Button>
             ),
         }] : []),
@@ -136,7 +138,7 @@ function DashboardPage() {
     if (statsError) {
         return (
             <div className="p-4">
-                <Alert variant="danger" message={`Error loading dashboard: ${statsError}`} />
+                <Alert variant="danger" message={`${t('error_loading_dashboard')}: ${statsError}`} />
             </div>
         );
     }
@@ -145,44 +147,44 @@ function DashboardPage() {
         <div className="p-4">
             {/* Header */}
             <div className="mb-4">
-                <h1 className="h3 mb-1">Dashboard</h1>
-                <p className="text-muted">Welcome to SweetShopMa Desktop</p>
+                <h1 className="h3 mb-1">{t('dashboard_title')}</h1>
+                <p className="text-muted">{t('dashboard_subtitle')}</p>
             </div>
 
             {/* Stats Grid */}
             <div className="row g-3 mb-4">
                 <div className="col-12 col-md-6 col-lg-3">
                     <StatCard
-                        title="Today's Sales"
+                        title={t('today_sales')}
                         value={formatCurrency(stats?.today_revenue || 0)}
-                        subtitle={`${stats?.sales?.total_sales || 0} transactions`}
+                        subtitle={t('transactions_other', { count: stats?.sales?.total_sales || 0 })}
                         variant="primary"
                         loading={statsLoading}
                     />
                 </div>
                 <div className="col-12 col-md-6 col-lg-3">
                     <StatCard
-                        title="Today's Profit"
+                        title={t('today_profit')}
                         value={formatCurrency(stats?.sales?.total_profit || 0)}
-                        subtitle="From completed sales"
+                        subtitle={t('from_completed_sales')}
                         variant="danger"
                         loading={statsLoading}
                     />
                 </div>
                 <div className="col-12 col-md-6 col-lg-3">
                     <StatCard
-                        title="Average Sale"
+                        title={t('average_sale')}
                         value={formatCurrency(stats?.sales?.average_sale || 0)}
-                        subtitle="Per transaction"
+                        subtitle={t('per_transaction')}
                         variant="success"
                         loading={statsLoading}
                     />
                 </div>
                 <div className="col-12 col-md-6 col-lg-3">
                     <StatCard
-                        title="Low Stock Items"
+                        title={t('low_stock_items')}
                         value={lowStockProducts?.length || 0}
-                        subtitle="Need attention"
+                        subtitle={t('need_attention')}
                         variant="warning"
                         loading={stockLoading}
                     />
@@ -193,27 +195,27 @@ function DashboardPage() {
             <div className="row g-3 mb-4">
                 <div className="col-12 col-md-6 col-lg-4">
                     <StatCard
-                        title="Week's Sales"
+                        title={t('weeks_sales')}
                         value={formatCurrency(stats?.week_revenue || 0)}
-                        subtitle="This week"
+                        subtitle={t('this_week')}
                         variant="info"
                         loading={statsLoading}
                     />
                 </div>
                 <div className="col-12 col-md-6 col-lg-4">
                     <StatCard
-                        title="Month's Sales"
+                        title={t('months_sales')}
                         value={formatCurrency(stats?.month_revenue || 0)}
-                        subtitle="This month"
+                        subtitle={t('this_month')}
                         variant="info"
                         loading={statsLoading}
                     />
                 </div>
                 <div className="col-12 col-md-6 col-lg-4">
                     <StatCard
-                        title="Total Products"
+                        title={t('total_products')}
                         value={stats?.inventory?.total_products || 0}
-                        subtitle={`${stats?.inventory?.low_stock_products || 0} low stock`}
+                        subtitle={t('item_count_low_stock_other', { count: stats?.inventory?.low_stock_products || 0 })}
                         variant="secondary"
                         loading={statsLoading}
                     />
@@ -221,12 +223,12 @@ function DashboardPage() {
             </div>
 
             {/* Recent Sales */}
-            <Card title="Recent Sales" className="mb-4">
+            <Card title={t('recent_sales')} className="mb-4">
                 <Table
                     columns={salesColumns}
                     data={recentSales}
                     loading={salesLoading}
-                    emptyMessage="No sales today"
+                    emptyMessage={t('no_sales_today')}
                     keyField="id"
                     onRowClick={(row) => handleViewDetails(row.id)}
                 />
@@ -234,12 +236,12 @@ function DashboardPage() {
 
             {/* Low Stock Alert */}
             {lowStockProducts && lowStockProducts.length > 0 && (
-                <Card title="Low Stock Alert" variant="warning">
+                <Card title={t('low_stock_alert')} variant="warning">
                     <Table
                         columns={lowStockColumns}
                         data={lowStockProducts}
                         loading={stockLoading}
-                        emptyMessage="No low stock items"
+                        emptyMessage={t('no_low_stock_items')}
                         keyField="id"
                     />
                 </Card>

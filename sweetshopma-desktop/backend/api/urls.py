@@ -16,6 +16,7 @@ from .views import (
     AttendanceRecordViewSet,
     AttendanceSummaryViewSet,
     AttendanceExpenseViewSet,
+    ShopSettingsViewSet,
 )
 
 # Create router and register viewsets
@@ -31,6 +32,7 @@ router.register(r'user', UserViewSet, basename='user')
 router.register(r'attendance', AttendanceRecordViewSet, basename='attendance')
 router.register(r'attendance-summary', AttendanceSummaryViewSet, basename='attendance-summary')
 router.register(r'attendance-expenses', AttendanceExpenseViewSet, basename='attendance-expense')
+router.register(r'shop-settings', ShopSettingsViewSet, basename='shop-settings')
 
 urlpatterns = [
     path('', include(router.urls)),

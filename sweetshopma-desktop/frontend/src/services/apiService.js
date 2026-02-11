@@ -68,6 +68,8 @@ const API_ENDPOINTS = {
     CREATE_ATTENDANCE_EXPENSE: 'create_attendance_expense',
     DELETE_ATTENDANCE_EXPENSE: 'delete_attendance_expense',
     CHECK_ATTENDANCE_DUPLICATE: 'check_attendance_duplicate',
+    BULK_CREATE_ATTENDANCE: 'bulk_create_attendance',
+    EXPORT_ATTENDANCE_PDF: 'export_attendance_pdf',
 
     // Users
     USERS: 'get_users',
@@ -84,6 +86,10 @@ const API_ENDPOINTS = {
     // Sync
     SYNC_STATUS: 'get_sync_status',
     SYNC_NOW: 'sync_now',
+
+    // Shop Settings
+    GET_SHOP_SETTINGS: 'get_shop_settings',
+    UPDATE_SHOP_SETTINGS: 'update_shop_settings',
 };
 
 /**
@@ -425,8 +431,38 @@ export function useApi() {
         return response;
     };
 
+    const bulkCreateAttendance = async (data) => {
+        console.log('[apiService] bulkCreateAttendance called:', data);
+        return await apiCall(API_ENDPOINTS.BULK_CREATE_ATTENDANCE, data);
+    };
+
+    const exportAttendancePdf = async (userId, month, lang = 'ar') => {
+        console.log('[apiService] Exporting PDF for user:', userId, 'month:', month, 'lang:', lang);
+        const response = await apiCall(API_ENDPOINTS.EXPORT_ATTENDANCE_PDF, userId, month, lang);
+
+        if (response && response.success && response.file_path) {
+            console.log('[apiService] PDF saved to:', response.file_path);
+            return response;
+        } else if (response && response.error) {
+            return response;
+        }
+
+        return { success: false, error: 'Unknown error occurred during export' };
+    };
+
+    const getShopSettings = async () => {
+        return await apiCall(API_ENDPOINTS.GET_SHOP_SETTINGS);
+    };
+
+    const updateShopSettings = async (data) => {
+        return await apiCall(API_ENDPOINTS.UPDATE_SHOP_SETTINGS, data);
+    };
+
     return {
         isReady,
+        // Shop Settings
+        getShopSettings,
+        updateShopSettings,
         // Products
         getProducts,
         getProduct,
@@ -494,5 +530,7 @@ export function useApi() {
         createAttendanceExpense,
         deleteAttendanceExpense,
         checkAttendanceDuplicate,
+        bulkCreateAttendance,
+        exportAttendancePdf,
     };
 }

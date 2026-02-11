@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { useApi } from '../../services';
 
@@ -15,6 +16,7 @@ import { useApi } from '../../services';
  * />
  */
 function RestockModal({ show, onClose, onSuccess, product }) {
+    const { t } = useTranslation();
     const [quantity, setQuantity] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -48,11 +50,11 @@ function RestockModal({ show, onClose, onSuccess, product }) {
     // Validate quantity
     const validateQuantity = () => {
         if (!quantity || parseFloat(quantity) <= 0) {
-            setError('Please enter a valid quantity');
+            setError(t('invalid_quantity_error'));
             return false;
         }
         if (parseFloat(quantity) > 10000) {
-            setError('Quantity cannot exceed 10,000 units');
+            setError(t('max_quantity_error'));
             return false;
         }
         return true;
@@ -81,7 +83,7 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                 }, 1500);
             }
         } catch (err) {
-            setError('Failed to restock product. Please try again.');
+            setError(t('failed_restock_error'));
             console.error('[RestockModal] Restock error:', err);
         } finally {
             setLoading(false);
@@ -128,7 +130,7 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                         <div className="modal-header">
                             <h5 className="modal-title">
                                 <i className="bi bi-box-seam me-2"></i>
-                                Restock Product
+                                {t('restock_product')}
                             </h5>
                             {!loading && (
                                 <button
@@ -147,9 +149,13 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                     <div className="text-success mb-3">
                                         <i className="bi bi-check-circle" style={{ fontSize: '3rem' }}></i>
                                     </div>
-                                    <h5 className="text-success">Restock Successful!</h5>
+                                    <h5 className="text-success">{t('restock_successful')}</h5>
                                     <p className="text-muted">
-                                        Added {parseFloat(quantity).toFixed(3)} {product?.unit} to {product?.name}
+                                        {t('added_unit_to_product', {
+                                            count: parseFloat(quantity).toFixed(3),
+                                            unit: t(`unit_${product?.unit?.toLowerCase()}`),
+                                            name: product?.name
+                                        })}
                                     </p>
                                 </div>
                             ) : (
@@ -161,13 +167,13 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                                 <div>
                                                     <h6 className="mb-1">{product?.name}</h6>
                                                     <small className="text-muted">
-                                                        {product?.category_name && `Category: ${product.category_name}`}
+                                                        {product?.category_name && `${t('category_label')}: ${product.category_name}`}
                                                     </small>
                                                 </div>
                                                 <div className="text-end">
-                                                    <small className="text-muted d-block">Current Stock</small>
+                                                    <small className="text-muted d-block">{t('current_stock_label')}</small>
                                                     <strong className="h5 mb-0">
-                                                        {currentStock.toFixed(3)} <small>{product?.unit}</small>
+                                                        {currentStock.toFixed(3)} <small>{t(`unit_${product?.unit?.toLowerCase()}`)}</small>
                                                     </strong>
                                                 </div>
                                             </div>
@@ -177,9 +183,9 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                     {/* Stock Preview */}
                                     <div className="alert alert-info mb-4">
                                         <div className="d-flex justify-content-between align-items-center">
-                                            <span>Stock after restock:</span>
+                                            <span>{t('stock_after_restock')}</span>
                                             <strong className="h5 mb-0">
-                                                {stockAfter.toFixed(3)} <small>{product?.unit}</small>
+                                                {stockAfter.toFixed(3)} <small>{t(`unit_${product?.unit?.toLowerCase()}`)}</small>
                                             </strong>
                                         </div>
                                     </div>
@@ -187,7 +193,7 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                     {/* Quantity Input */}
                                     <div className="mb-4">
                                         <label htmlFor="restockQuantity" className="form-label">
-                                            Quantity to Add <span className="text-danger">*</span>
+                                            {t('quantity_to_add')} <span className="text-danger">*</span>
                                         </label>
                                         <div className="input-group">
                                             <input
@@ -196,17 +202,17 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                                 className="form-control form-control-lg"
                                                 value={quantity}
                                                 onChange={handleQuantityChange}
-                                                placeholder="Enter quantity"
+                                                placeholder={t('enter_valid_amount')}
                                                 min="0.001"
                                                 max="10000"
                                                 step="0.001"
                                                 disabled={loading}
                                                 autoFocus
                                             />
-                                            <span className="input-group-text">{product?.unit}</span>
+                                            <span className="input-group-text">{t(`unit_${product?.unit?.toLowerCase()}`)}</span>
                                         </div>
                                         <small className="text-muted">
-                                            Max: 10,000 {product?.unit}
+                                            {t('max_label')} 10,000 {t(`unit_${product?.unit?.toLowerCase()}`)}
                                         </small>
                                     </div>
 
@@ -229,7 +235,7 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                     onClick={onClose}
                                     disabled={loading}
                                 >
-                                    Cancel
+                                    {t('cancel')}
                                 </Button>
                                 <Button
                                     variant="success"
@@ -239,12 +245,12 @@ function RestockModal({ show, onClose, onSuccess, product }) {
                                     {loading ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2"></span>
-                                            Restocking...
+                                            {t('restocking')}
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-plus-circle me-2"></i>
-                                            Restock
+                                            {t('restock')}
                                         </>
                                     )}
                                 </Button>

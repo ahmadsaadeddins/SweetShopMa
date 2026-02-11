@@ -37,6 +37,14 @@ class LicenseManager:
         # Try to load from config file
         config_path = Path(__file__).parent.parent / "security_config.json"
         
+        # Check for override in frozen mode
+        exe_dir = os.environ.get('SWEETSHOP_EXE_DIR')
+        if exe_dir:
+            frozen_config_path = Path(exe_dir) / "security_config.json"
+            if frozen_config_path.exists():
+                config_path = frozen_config_path
+                print(f"[LicenseManager] Using config from EXE dir: {config_path}")
+        
         if config_path.exists():
             try:
                 with open(config_path, 'r') as f:
@@ -193,17 +201,25 @@ class LicenseManager:
         
         Args:
             filepath (str, optional): Path to the license file.
-                                     If None, looks in sweetshopma-desktop directory.
+                                     If None, looks in EXE directory (frozen) or project root (dev).
             
         Returns:
             str or None: The license key, or None if file doesn't exist
         """
         try:
             if filepath is None:
-                # Default to license.key in sweetshopma-desktop directory
-                filepath = Path(__file__).parent.parent / "license.key"
+                # Determine the correct path based on frozen state
+                import sys
+                if getattr(sys, 'frozen', False):
+                    # Running as compiled EXE - look next to the EXE
+                    filepath = Path(sys.executable).parent / "license.key"
+                else:
+                    # Running as script - look in project root
+                    filepath = Path(__file__).parent.parent / "license.key"
             else:
                 filepath = Path(filepath)
+            
+            print(f"[License] Looking for license at: {filepath}")
             
             if not filepath.exists():
                 return None

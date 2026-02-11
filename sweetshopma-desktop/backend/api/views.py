@@ -9,10 +9,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Sum, Count, Q, F
 from django.db import transaction
+from django.http import FileResponse
+import io
+from .pdf_generator import generate_attendance_pdf
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal
 import logging
 
@@ -30,6 +33,7 @@ from .models import (
     AttendanceRecord,
     AttendanceSummary,
     AttendanceExpense,
+    ShopSettings,
 )
 from .serializers import (
     CategorySerializer,
@@ -55,10 +59,13 @@ from .serializers import (
     AttendanceSummarySerializer,
     AttendanceExpenseSerializer,
     AttendanceExpenseCreateSerializer,
+    ShopSettingsSerializer,
 )
 from .permissions import (
     CanManageUsers,
+    CanManageUsers,
     CanManageStock,
+    CanManageSettings,
     CanRestock,
     IsDeveloperOrReadOnly,
     IsAdminOrReadOnly,
@@ -1098,11 +1105,29 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set user_name when creating attendance record."""
         instance = serializer.save()
-        # Update user_name from related user
-        if instance.user and not instance.user_name:
-            full_name = instance.user.get_full_name()
-            instance.user_name = full_name or instance.user.username
-            instance.save(update_fields=['user_name'])
+        
+        # Update user_name and daily_pay from related user
+        if instance.user:
+            updates = []
+            
+            # Update user_name if missing
+            if not instance.user_name:
+                full_name = instance.user.get_full_name()
+                instance.user_name = full_name or instance.user.username
+                updates.append('user_name')
+            
+            # Update daily_pay if 0
+            if instance.daily_pay == 0:
+                try:
+                    profile = UserProfile.objects.select_related('user').get(user=instance.user)
+                    if profile.monthly_salary > 0:
+                        instance.daily_pay = profile.monthly_salary / Decimal(30.00)
+                        updates.append('daily_pay')
+                except UserProfile.DoesNotExist:
+                    pass
+            
+            if updates:
+                instance.save(update_fields=updates)
     
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -1121,24 +1146,164 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         if user_id:
             queryset = queryset.filter(user_id=user_id)
         
+        
+        # Get Shop Settings
+        try:
+            settings = ShopSettings.load()
+            ratio = settings.work_to_rest_ratio
+        except:
+            ratio = 6
+            
+        # Get present count
+        present_count = queryset.filter(is_present=True).count()
+        
+        # Calculate rest days
+        rest_days = present_count // ratio if ratio > 0 else 0
+        
+        # Calculate financials
+        total_regular_hours = queryset.aggregate(total=Sum('regular_hours'))['total'] or Decimal('0.00')
+        total_overtime_hours = queryset.aggregate(total=Sum('overtime_hours'))['total'] or Decimal('0.00')
+        total_payroll = queryset.aggregate(total=Sum('daily_pay'))['total'] or Decimal('0.00')
+        
+        # Calculate rest day payout and absence deductions if user is selected
+        rest_day_payout = Decimal('0.00')
+        absence_deductions = Decimal('0.00')
+        
+        if user_id:
+            try:
+                user_profile = UserProfile.objects.select_related('user').get(user_id=user_id)
+                daily_rate = user_profile.monthly_salary / Decimal('30.00')
+                
+                # Rest Day Payout
+                rest_day_payout = Decimal(rest_days) * daily_rate
+                
+                # Absence Deductions
+                # 1 day for WithPermission, 2 days for WithoutPermission
+                with_perm = queryset.filter(absence_permission_type='WithPermission').count()
+                without_perm = queryset.filter(absence_permission_type='WithoutPermission').count()
+                
+                deduction_days = with_perm + (without_perm * 2)
+                absence_deductions = Decimal(deduction_days) * daily_rate
+                
+            except UserProfile.DoesNotExist:
+                pass
+
         # Get summary stats
         stats = {
             'total_records': queryset.count(),
-            'present_count': queryset.filter(is_present=True).count(),
+            'present_count': present_count,
             'absent_count': queryset.filter(is_present=False).count(),
-            'total_regular_hours': queryset.aggregate(
-                total=Sum('regular_hours')
-            )['total'] or Decimal('0.00'),
-            'total_overtime_hours': queryset.aggregate(
-                total=Sum('overtime_hours')
-            )['total'] or Decimal('0.00'),
-            'total_payroll': queryset.aggregate(
-                total=Sum('daily_pay')
-            )['total'] or Decimal('0.00'),
+            'rest_days': rest_days,
+            'work_to_rest_ratio': ratio,
+            'total_regular_hours': total_regular_hours,
+            'total_overtime_hours': total_overtime_hours,
+            'total_payroll': total_payroll,
+            'rest_day_payout': rest_day_payout,
+            'absence_deductions': absence_deductions,
+            'final_payroll': total_payroll + rest_day_payout - absence_deductions
         }
         
         return Response(stats)
     
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """
+        Create multiple attendance records at once.
+        
+        Expected data:
+        {
+            'user': int,           # User ID
+            'start_date': str,     # YYYY-MM-DD
+            'end_date': str,       # YYYY-MM-DD
+            'status': str,         # 'Present', 'Reset', etc.
+            'skip_weekends': bool, # Skip Fri/Sat (default: false)
+            'notes': str,          # Optional notes
+        }
+        """
+        user_id = request.data.get('user')
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        status = request.data.get('status', 'Present')
+        skip_weekends = request.data.get('skip_weekends', False)
+        notes = request.data.get('notes', '')
+        
+        if not all([user_id, start_date_str, end_date_str]):
+            return Response(
+                {'error': 'Missing required fields (user, start_date, end_date)'},
+                status=400
+            )
+            
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response(
+                {'error': 'Invalid date format (use YYYY-MM-DD)'},
+                status=400
+            )
+            
+        if start_date > end_date:
+            return Response(
+                {'error': 'Start date must be before end date'},
+                status=400
+            )
+            
+        # Get user instance
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=404
+            )
+            
+        created_count = 0
+        skipped_dates = []
+        
+        current_date = start_date
+        while current_date <= end_date:
+            # Skip weekends if requested (Friday=4, Saturday=5 in Python weekday() where Mon=0)
+            if skip_weekends and current_date.weekday() in [4, 5]:
+                current_date += timedelta(days=1)
+                continue
+                
+            # Check if record already exists
+            if AttendanceRecord.objects.filter(user=user, date=current_date).exists():
+                skipped_dates.append(current_date.strftime('%Y-%m-%d'))
+                current_date += timedelta(days=1)
+                continue
+                
+            # Create record
+            data = {
+                'user': user.id,
+                'date': current_date,
+                'status': status,
+                'is_present': status == 'Present',
+                'notes': notes
+            }
+            
+            # Default hours/pay for bulk creation
+            if status == 'Present':
+                data['regular_hours'] = 8.0
+                data['check_in_time'] = datetime.combine(current_date, time(8, 0))
+                data['check_out_time'] = datetime.combine(current_date, time(16, 0))
+            
+            serializer = self.get_serializer(data=data)
+            if serializer.is_valid():
+                self.perform_create(serializer)
+                created_count += 1
+            else:
+                skipped_dates.append(f"{current_date} (Error: {serializer.errors})")
+                
+            current_date += timedelta(days=1)
+            
+        return Response({
+            'success': True,
+            'created_count': created_count,
+            'skipped_dates': skipped_dates,
+            'message': f"Created {created_count} records. Skipped {len(skipped_dates)} dates."
+        })
+
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request):
         """
@@ -1215,59 +1380,231 @@ class AttendanceSummaryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AttendanceSummary.objects.select_related('user').all()
     serializer_class = AttendanceSummarySerializer
     
-    def get_queryset(self):
-        """Filter by month and optionally by user."""
-        queryset = super().get_queryset()
-        
-        # Filter by month (YYYY-MM format)
-        month = self.request.query_params.get('month')
-        if month:
-            try:
-                month_date = datetime.strptime(month, '%Y-%m').date().replace(day=1)
-                queryset = queryset.filter(month=month_date)
-            except ValueError:
-                pass
-        
-        # Filter by user
-        user_id = self.request.query_params.get('user')
-        if user_id:
-            queryset = queryset.filter(user_id=user_id)
-        
-        return queryset
-    
+    def list(self, request):
+        """Calculate attendance summaries on the fly."""
+        month = request.query_params.get('month')
+        if not month:
+            month = timezone.now().strftime('%Y-%m')
+
+        # Shop Settings
+        try:
+            settings = ShopSettings.load()
+            ratio = settings.work_to_rest_ratio
+        except:
+            ratio = 6
+        if ratio <= 0: ratio = 6
+
+        # Fetch all user profiles
+        profiles = UserProfile.objects.select_related('user').all()
+
+        # Fetch Attendance Stats
+        attendance_stats = AttendanceRecord.objects.filter(
+            date__startswith=month
+        ).values('user_id').annotate(
+            days_present=Count('id', filter=Q(is_present=True)),
+            days_absent=Count('id', filter=Q(is_present=False)),
+            total_payroll=Sum('daily_pay'),
+            with_perm=Count('id', filter=Q(absence_permission_type='WithPermission')),
+            without_perm=Count('id', filter=Q(absence_permission_type='WithoutPermission')),
+        )
+        stats_map = {s['user_id']: s for s in attendance_stats}
+
+        # Fetch Expenses
+        expense_stats = AttendanceExpense.objects.filter(
+            expense_date__startswith=month
+        ).values('user_id').annotate(
+            total=Sum('amount')
+        )
+        expense_map = {e['user_id']: e['total'] for e in expense_stats}
+
+        results = []
+        for profile in profiles:
+            user_id = profile.user_id
+            stats = stats_map.get(user_id, {})
+            expense_total = expense_map.get(user_id, Decimal('0.00'))
+
+            present = stats.get('days_present', 0)
+            absent = stats.get('days_absent', 0)
+            # Calculate Financials
+            daily_rate = profile.monthly_salary / Decimal('30.00')
+
+            # Base Payroll (Days Present * Daily Rate)
+            # We calculate this dynamically instead of summing stored 'daily_pay'
+            # to ensure consistency with current salary and fix issues with old records having 0 pay.
+            base_payroll = Decimal(present) * daily_rate
+
+            # Calculate Rest Days
+            rest_days = present // ratio
+
+
+            # Rest Day Payout
+            rest_pay = Decimal(rest_days) * daily_rate
+            
+            with_perm = stats.get('with_perm', 0)
+            without_perm = stats.get('without_perm', 0)
+            
+            # Deduction Logic:
+            # - With Permission: 0 deduction (Pay is already lost because day is not 'present')
+            # - Without Permission: 1 day deduction (Penalty)
+            deduction_days = without_perm
+            deductions = Decimal(deduction_days) * daily_rate
+            
+            final_payroll = base_payroll + rest_pay - deductions
+
+            results.append({
+                'id': user_id,
+                'user_name': profile.user.username,
+                'full_name': f"{profile.user.first_name} {profile.user.last_name}".strip(),
+                'month': month,
+                'days_present': present,
+                'days_absent': absent,
+                'rest_days': rest_days,
+                'work_to_rest_ratio': ratio,
+                'total_payroll': base_payroll,
+                'expenses_total': expense_total,
+                'rest_day_payout': rest_pay,
+                'absence_deductions': deductions,
+                'final_payroll': final_payroll
+            })
+
+        return Response(results)
+
     @action(detail=False, methods=['get'])
-    def totals(self, request):
-        """
-        Get totals across all users for a month.
+    def export_pdf(self, request):
+        """Export attendance summary as PDF"""
+        user_id = request.query_params.get('user_id')
+        month = request.query_params.get('month')
         
-        Query params:
-        - month: Month in YYYY-MM format
-        """
-        queryset = self.get_queryset()
+        if not user_id or not month:
+            return Response({'error': 'User ID and Month are required'}, status=400)
+            
+        try:
+            profile = UserProfile.objects.select_related('user').get(user__id=user_id)
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+
+        # 1. Fetch Summary Data (Re-using logic from list method efficiently)
+        # Note: In a real refactor, we would extract the calculation logic to a service/helper
         
-        totals = {
-            'total_present_days': queryset.aggregate(
-                total=Sum('days_present')
-            )['total'] or 0,
-            'total_absent_days': queryset.aggregate(
-                total=Sum('days_absent')
-            )['total'] or 0,
-            'total_regular_hours': queryset.aggregate(
-                total=Sum('total_regular_hours')
-            )['total'] or Decimal('0.00'),
-            'total_overtime_hours': queryset.aggregate(
-                total=Sum('total_overtime_hours')
-            )['total'] or Decimal('0.00'),
-            'total_payroll': queryset.aggregate(
-                total=Sum('total_payroll')
-            )['total'] or Decimal('0.00'),
-            'total_expenses': queryset.aggregate(
-                total=Sum('expenses_total')
-            )['total'] or Decimal('0.00'),
+        # Shop Settings
+        try:
+            settings = ShopSettings.load()
+            ratio = settings.work_to_rest_ratio
+        except:
+            ratio = 6
+        if ratio <= 0: ratio = 6
+        
+        # Filter for specific user
+        attendance_stats = AttendanceRecord.objects.filter(
+            user_id=user_id,
+            date__startswith=month
+        ).aggregate(
+            days_present=Count('id', filter=Q(is_present=True)),
+            days_absent=Count('id', filter=Q(is_present=False)),
+            total_payroll=Sum('daily_pay'),
+            with_perm=Count('id', filter=Q(absence_permission_type='WithPermission')),
+            without_perm=Count('id', filter=Q(absence_permission_type='WithoutPermission')),
+            total_regular_hours=Sum('regular_hours'),
+            total_overtime_hours=Sum('overtime_hours')
+        )
+        
+        expense_stats = AttendanceExpense.objects.filter(
+            user_id=user_id,
+            expense_date__startswith=month
+        ).aggregate(
+            total=Sum('amount')
+        )
+        
+        present = attendance_stats.get('days_present', 0)
+        absent = attendance_stats.get('days_absent', 0)
+        expense_total = expense_stats.get('total') or Decimal('0.00')
+        
+        daily_rate = profile.monthly_salary / Decimal('30.00')
+        base_payroll = Decimal(present) * daily_rate
+        rest_days = present // ratio
+        rest_pay = Decimal(rest_days) * daily_rate
+        
+        without_perm = attendance_stats.get('without_perm', 0)
+        deductions = Decimal(without_perm) * daily_rate
+        
+        final_payroll = base_payroll + rest_pay - deductions
+        
+        stats = {
+            'days_present': present,
+            'days_absent': absent,
+            'rest_days': rest_days,
+            'total_regular_hours': attendance_stats.get('total_regular_hours', 0),
+            'total_overtime_hours': attendance_stats.get('total_overtime_hours', 0),
+            'total_payroll': base_payroll,
+            'expenses_total': expense_total,
+            'final_payroll': final_payroll
         }
         
-        return Response(totals)
+        # 2. Fetch Detailed Records
+        records_qs = AttendanceRecord.objects.filter(
+            user_id=user_id,
+            date__startswith=month
+        ).order_by('date')
+        
+        records = [{
+            'date': r.date.strftime('%Y-%m-%d'),
+            'status': r.status,
+            'check_in_display': r.check_in_display,
+            'check_out_display': r.check_out_display,
+            'regular_hours': r.regular_hours,
+            'overtime_hours': r.overtime_hours,
+            'daily_pay': r.daily_pay
+        } for r in records_qs]
+        
+        lang = request.query_params.get('lang', 'ar')
+        
+        # 3. Generate PDF
+        buffer = io.BytesIO()
+        user_data = {
+            'full_name': f"{profile.user.first_name} {profile.user.last_name}".strip() or profile.user.username
+        }
+        
+        generate_attendance_pdf(buffer, user_data, month, stats, records, lang=lang)
+        
+        # Save to Downloads folder
+        import os
+        from pathlib import Path
+        
+        # Get User's Downloads folder (Windows/Linux/Mac compatible)
+        downloads_path = str(Path.home() / "Downloads")
+        report_dir = os.path.join(downloads_path, "SweetShopReports")
+        
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir)
+            
+        import time
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"Attendance_{profile.user.username}_{month}_{lang}_{timestamp}.pdf"
+        file_path = os.path.join(report_dir, filename)
+        
+        try:
+            with open(file_path, 'wb') as f:
+                f.write(buffer.getvalue())
+            
+            return Response({
+                'success': True,
+                'message': 'PDF Report generated successfully',
+                'file_path': file_path,
+                'filename': filename
+            })
+        except Exception as e:
+            print(f"[ViewSet] Error saving PDF: {e}")
+            return Response({
+                'success': False,
+                'message': f'Failed to save PDF: {str(e)}'
+            }, status=500)
 
+    def totals(self, request):
+        """Aggregate totals across all users."""
+        # Use the logic from AttendanceRecordViewSet.summary or aggregate the list above
+        # For now, let's keep it simple or implement if needed. 
+        # The frontend calls attendance/summary for general stats, not this.
+        return Response({})
 
 class AttendanceExpenseViewSet(viewsets.ModelViewSet):
     """ViewSet for AttendanceExpense model."""
@@ -1332,3 +1669,26 @@ class AttendanceExpenseViewSet(viewsets.ModelViewSet):
         ).order_by('user_name')
         
         return Response(list(by_user))
+
+
+class ShopSettingsViewSet(viewsets.ModelViewSet):
+    """ViewSet for ShopSettings."""
+    queryset = ShopSettings.objects.all()
+    serializer_class = ShopSettingsSerializer
+    permission_classes = [CanManageSettings]
+
+    def list(self, request):
+        """Return the singleton settings object"""
+        settings = ShopSettings.load()
+        serializer = self.get_serializer(settings)
+        return Response(serializer.data)
+
+    def update(self, request, pk=None):
+        """Update the singleton settings object"""
+        settings = ShopSettings.load()
+        serializer = self.get_serializer(settings, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+

@@ -31,6 +31,31 @@ body {
     overflow-x: hidden;
 }
 
+/* RTL Support */
+[dir="rtl"] {
+    font-family: var(--font-family-arabic);
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+[dir="rtl"] .me-3 {
+    margin-right: 0 !important;
+    margin-left: 1rem !important;
+}
+
+[dir="rtl"] .ms-1 {
+    margin-left: 0 !important;
+    margin-right: 0.25rem !important;
+}
+
+[dir="rtl"] .ms-2 {
+    margin-left: 0 !important;
+    margin-right: 0.5rem !important;
+}
+
 /* Typography */
 h1,
 h2,
@@ -629,6 +654,10 @@ table {
     text-align: left;
     padding: 0.75rem;
     background-color: var(--color-gray-50);
+}
+
+[dir="rtl"] .table thead th {
+    text-align: right;
 }
 
 .table tbody td {

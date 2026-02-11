@@ -3,12 +3,14 @@ import { Card, Table, Button, Input, Select, Alert } from '../components/common'
 import { useSales, useSale } from '../hooks';
 import { useApi } from '../services';
 import { formatCurrency, formatDateTime } from '../utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * SalesPage Component
  * Sales history with filters and details
  */
 function SalesPage() {
+    const { t } = useTranslation();
     const [filters, setFilters] = useState({
         start_date: '',
         end_date: '',
@@ -23,35 +25,35 @@ function SalesPage() {
     const { refundSale } = useApi();
 
     const columns = [
-        { header: 'ID', field: 'id', width: '80px' },
+        { header: t('id'), field: 'id', width: '80px' },
         {
-            header: 'Date',
+            header: t('date'),
             field: 'created_at',
             render: (val) => formatDateTime(val),
         },
-        { header: 'Items', field: 'item_count', width: '80px', render: (val) => val || 0 },
-        { header: 'Subtotal', field: 'subtotal', render: (val) => formatCurrency(val) },
-        { header: 'Tax', field: 'tax', render: (val) => formatCurrency(val) },
-        { header: 'Discount', field: 'discount', render: (val) => formatCurrency(val) },
-        { header: 'Total', field: 'total', render: (val) => formatCurrency(val) },
+        { header: t('items_table_header'), field: 'item_count', width: '80px', render: (val) => val || 0 },
+        { header: t('subtotal'), field: 'subtotal', render: (val) => formatCurrency(val) },
+        { header: t('tax'), field: 'tax', render: (val) => formatCurrency(val) },
+        { header: t('discount_amount'), field: 'discount', render: (val) => formatCurrency(val) },
+        { header: t('total'), field: 'total', render: (val) => formatCurrency(val) },
         {
-            header: 'Payment',
+            header: t('payment'),
             field: 'payment_method',
             width: '100px',
-            render: (val) => val?.charAt(0).toUpperCase() + val?.slice(1) || '-',
+            render: (val) => val ? t(val.toLowerCase()) : '-',
         },
         {
-            header: 'Status',
+            header: t('status'),
             field: 'status',
             width: '100px',
             render: (val) => (
                 <span className={`badge bg-${val === 'completed' ? 'success' : val === 'refunded' ? 'danger' : 'warning'}`}>
-                    {val?.charAt(0).toUpperCase() + val?.slice(1) || '-'}
+                    {val ? t(val.toLowerCase()) : '-'}
                 </span>
             ),
         },
         {
-            header: 'Actions',
+            header: t('actions'),
             field: 'id',
             width: '120px',
             render: (val, row) => (
@@ -61,7 +63,7 @@ function SalesPage() {
                         variant="secondary"
                         onClick={() => handleViewDetails(row)}
                     >
-                        View
+                        {t('view')}
                     </Button>
                     {row.status === 'completed' && (
                         <Button
@@ -69,7 +71,7 @@ function SalesPage() {
                             variant="warning"
                             onClick={() => handleRefund(val)}
                         >
-                            Refund
+                            {t('refund')}
                         </Button>
                     )}
                 </div>
@@ -87,15 +89,15 @@ function SalesPage() {
     };
 
     const handleRefund = async (id) => {
-        const reason = window.prompt('Enter refund reason:');
+        const reason = window.prompt(t('refund_reason_prompt'));
         if (!reason) return;
 
         try {
             await refundSale(id, reason);
             refetch();
-            alert('Sale refunded successfully');
+            alert(t('refund_success'));
         } catch (error) {
-            alert(`Error refunding sale: ${error.message}`);
+            alert(`${t('error_refunding_sale')}: ${error.message}`);
         }
     };
 
@@ -116,13 +118,13 @@ function SalesPage() {
         <div className="p-4">
             {/* Header */}
             <div className="mb-4">
-                <h1 className="h3 mb-1">Sales</h1>
-                <p className="text-muted mb-0">View and manage sales history</p>
+                <h1 className="h3 mb-1">{t('sales')}</h1>
+                <p className="text-muted mb-0">{t('view_manage_sales')}</p>
             </div>
 
             {/* Error Alert */}
             {error && (
-                <Alert variant="danger" message={`Error loading sales: ${error}`} />
+                <Alert variant="danger" message={`${t('error_loading_records')}: ${error}`} />
             )}
 
             {/* Filters Card */}
@@ -130,7 +132,7 @@ function SalesPage() {
                 <div className="row g-3">
                     <div className="col-12 col-md-4">
                         <Input
-                            label="Start Date"
+                            label={t('start_date')}
                             type="date"
                             value={filters.start_date}
                             onChange={(e) => handleFilterChange('start_date', e.target.value)}
@@ -138,7 +140,7 @@ function SalesPage() {
                     </div>
                     <div className="col-12 col-md-4">
                         <Input
-                            label="End Date"
+                            label={t('end_date')}
                             type="date"
                             value={filters.end_date}
                             onChange={(e) => handleFilterChange('end_date', e.target.value)}
@@ -146,14 +148,14 @@ function SalesPage() {
                     </div>
                     <div className="col-12 col-md-4">
                         <Select
-                            label="Status"
+                            label={t('status')}
                             value={filters.status}
                             onChange={(e) => handleFilterChange('status', e.target.value)}
                             options={[
-                                { value: '', label: 'All Statuses' },
-                                { value: 'completed', label: 'Completed' },
-                                { value: 'refunded', label: 'Refunded' },
-                                { value: 'cancelled', label: 'Cancelled' },
+                                { value: '', label: t('all_statuses') },
+                                { value: 'completed', label: t('completed') },
+                                { value: 'refunded', label: t('refunded') },
+                                { value: 'cancelled', label: t('cancelled') },
                             ]}
                         />
                     </div>
@@ -166,7 +168,7 @@ function SalesPage() {
                     columns={columns}
                     data={sales}
                     loading={loading}
-                    emptyMessage="No sales found"
+                    emptyMessage={t('no_records_found')}
                     keyField="id"
                 />
             </Card>
@@ -197,7 +199,7 @@ function SalesPage() {
                                 }}
                             >
                                 <div className="modal-header">
-                                    <h5 className="modal-title">Sale Details #{selectedSale.id}</h5>
+                                    <h5 className="modal-title">{t('sale_details')} #{selectedSale.id}</h5>
                                     <button
                                         type="button"
                                         className="btn-close"
@@ -208,7 +210,7 @@ function SalesPage() {
                                     {detailsLoading ? (
                                         <div className="text-center py-4">
                                             <div className="spinner-border" role="status">
-                                                <span className="visually-hidden">Loading...</span>
+                                                <span className="visually-hidden">{t('loading')}</span>
                                             </div>
                                         </div>
                                     ) : saleDetails ? (
@@ -216,32 +218,30 @@ function SalesPage() {
                                             {/* Sale Info */}
                                             <div className="row mb-4">
                                                 <div className="col-6">
-                                                    <strong>Date:</strong>{' '}
+                                                    <strong>{t('date')}:</strong>{' '}
                                                     {formatDateTime(saleDetails.created_at)}
                                                 </div>
                                                 <div className="col-6">
-                                                    <strong>Status:</strong>{' '}
+                                                    <strong>{t('status')}:</strong>{' '}
                                                     <span className={`badge ${getStatusBadgeClass(saleDetails.status)}`}>
-                                                        {saleDetails.status?.charAt(0).toUpperCase() +
-                                                            saleDetails.status?.slice(1)}
+                                                        {saleDetails.status ? t(saleDetails.status.toLowerCase()) : '-'}
                                                     </span>
                                                 </div>
                                                 <div className="col-6">
-                                                    <strong>Cashier:</strong>{' '}
+                                                    <strong>{t('cashier')}:</strong>{' '}
                                                     {saleDetails.staff_name ? (
                                                         <span className="text-success">{saleDetails.staff_name}</span>
                                                     ) : (
                                                         <span className="text-muted" style={{ fontStyle: 'italic' }}>
-                                                            Not Assigned
+                                                            {t('not_assigned')}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="col-6">
-                                                    <strong>Payment Method:</strong>{' '}
+                                                    <strong>{t('payment_method')}:</strong>{' '}
                                                     {saleDetails.payment_method ?
-                                                        saleDetails.payment_method.charAt(0).toUpperCase() +
-                                                        saleDetails.payment_method.slice(1) :
-                                                        'N/A'}
+                                                        t(saleDetails.payment_method.toLowerCase()) :
+                                                        t('n_a')}
                                                 </div>
                                             </div>
 
@@ -249,20 +249,20 @@ function SalesPage() {
                                             <div className="card mb-4">
                                                 <div className="card-body">
                                                     <div className="d-flex justify-content-between mb-2">
-                                                        <span>Subtotal:</span>
+                                                        <span>{t('subtotal')}:</span>
                                                         <strong>{formatCurrency(saleDetails.subtotal)}</strong>
                                                     </div>
                                                     <div className="d-flex justify-content-between mb-2">
-                                                        <span>Tax:</span>
+                                                        <span>{t('tax')}:</span>
                                                         <strong>{formatCurrency(saleDetails.tax)}</strong>
                                                     </div>
                                                     <div className="d-flex justify-content-between mb-2">
-                                                        <span>Discount:</span>
+                                                        <span>{t('discount_amount')}:</span>
                                                         <strong>{formatCurrency(saleDetails.discount)}</strong>
                                                     </div>
                                                     <hr />
                                                     <div className="d-flex justify-content-between">
-                                                        <span className="h5 mb-0">Total:</span>
+                                                        <span className="h5 mb-0">{t('total')}:</span>
                                                         <span className="h5 mb-0">
                                                             {formatCurrency(saleDetails.total)}
                                                         </span>
@@ -271,15 +271,15 @@ function SalesPage() {
                                             </div>
 
                                             {/* Items */}
-                                            <h6 className="mb-3">Sale Items</h6>
+                                            <h6 className="mb-3">{t('sale_items')}</h6>
                                             {saleDetails.items && saleDetails.items.length > 0 ? (
                                                 <table className="table table-sm">
                                                     <thead>
                                                         <tr>
-                                                            <th>Product</th>
-                                                            <th className="text-center">Qty</th>
-                                                            <th className="text-end">Price</th>
-                                                            <th className="text-end">Total</th>
+                                                            <th>{t('product')}</th>
+                                                            <th className="text-center">{t('qty')}</th>
+                                                            <th className="text-end">{t('price')}</th>
+                                                            <th className="text-end">{t('total')}</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -298,7 +298,7 @@ function SalesPage() {
                                                     </tbody>
                                                 </table>
                                             ) : (
-                                                <p className="text-muted">No items found</p>
+                                                <p className="text-muted">{t('no_items_found')}</p>
                                             )}
 
                                             {/* Notes */}
@@ -318,7 +318,7 @@ function SalesPage() {
                                         variant="secondary"
                                         onClick={() => setShowDetailsModal(false)}
                                     >
-                                        Close
+                                        {t('close')}
                                     </Button>
                                 </div>
                             </div>

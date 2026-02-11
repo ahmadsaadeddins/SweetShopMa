@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { Input, Select, Textarea, Checkbox } from './Input';
 import { useApi } from '../../services';
@@ -15,6 +16,7 @@ import { useApi } from '../../services';
  * @param {Array} props.categories - List of available categories
  */
 function ProductModal({ show, onClose, onSuccess, product, categories }) {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         name: '',
         category: '',
@@ -74,9 +76,9 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
     };
 
     const validate = () => {
-        if (!formData.name) return 'Product name is required';
-        if (!formData.price || parseFloat(formData.price) < 0) return 'Valid price is required';
-        if (formData.quantity === '' || parseFloat(formData.quantity) < 0) return 'Valid quantity is required';
+        if (!formData.name) return t('error_name_required', 'Product name is required');
+        if (!formData.price || parseFloat(formData.price) < 0) return t('error_price_required', 'Valid price is required');
+        if (formData.quantity === '' || parseFloat(formData.quantity) < 0) return t('error_quantity_required', 'Valid quantity is required');
         return null;
     };
 
@@ -116,7 +118,7 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
             onClose();
         } catch (err) {
             console.error('[ProductModal] Error saving product:', err);
-            setError(err.message || 'Failed to save product');
+            setError(err.message || t('error_save_failed', 'Failed to save product'));
         } finally {
             setLoading(false);
         }
@@ -131,11 +133,11 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
     if (!show) return null;
 
     const unitOptions = [
-        { value: 'piece', label: 'Piece' },
-        { value: 'kg', label: 'Kilogram' },
-        { value: 'g', label: 'Gram' },
-        { value: 'lb', label: 'Pound' },
-        { value: 'oz', label: 'Ounce' },
+        { value: 'piece', label: t('unit_piece') },
+        { value: 'kg', label: t('unit_kg') },
+        { value: 'g', label: t('unit_g') },
+        { value: 'lb', label: t('unit_lb') },
+        { value: 'oz', label: t('unit_oz') },
     ];
 
     const categoryOptions = categories.map(cat => ({
@@ -148,11 +150,18 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
             <div className="modal-backdrop fade show" onClick={handleBackdropClick}></div>
             <div className="modal fade show d-block" tabIndex="-1" role="dialog">
                 <div className="modal-dialog modal-lg">
-                    <div className="modal-content bg-white shadow-lg border-0">
+                    <div
+                        className="modal-content"
+                        style={{
+                            backgroundColor: '#ffffff',
+                            opacity: '1',
+                            boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.5)'
+                        }}
+                    >
                         <div className="modal-header bg-light">
                             <h5 className="modal-title fw-bold">
                                 <i className={`bi bi-${product ? 'pencil-square' : 'plus-circle'} me-2 text-primary`}></i>
-                                {product ? 'Edit Product' : 'Add New Product'}
+                                {product ? t('edit_product_title') : t('add_product_title')}
                             </h5>
                             <button
                                 type="button"
@@ -173,36 +182,36 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                 <div className="row g-3">
                                     {/* Basic Info Section */}
                                     <div className="col-12 mb-2">
-                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">Basic Information</h6>
+                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">{t('basic_info_section')}</h6>
                                     </div>
                                     <div className="col-md-8">
                                         <Input
-                                            label="Product Name"
+                                            label={t('product_name_label')}
                                             value={formData.name}
                                             onChange={(e) => handleChange('name', e.target.value)}
-                                            placeholder="Enter product name"
+                                            placeholder={t('enter_product_name')}
                                             required
                                             disabled={loading}
                                         />
                                     </div>
                                     <div className="col-md-4">
                                         <Select
-                                            label="Category"
+                                            label={t('category_label')}
                                             value={formData.category}
                                             onChange={(e) => handleChange('category', e.target.value)}
                                             options={categoryOptions}
-                                            placeholder="None"
+                                            placeholder={t('none')}
                                             disabled={loading}
                                         />
                                     </div>
 
                                     {/* Inventory Section */}
                                     <div className="col-12 mt-4 mb-2">
-                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">Pricing & Inventory</h6>
+                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">{t('pricing_inventory_section')}</h6>
                                     </div>
                                     <div className="col-md-3">
                                         <Input
-                                            label="Selling Price"
+                                            label={t('selling_price_label')}
                                             type="number"
                                             step="0.01"
                                             value={formData.price}
@@ -214,7 +223,7 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                     </div>
                                     <div className="col-md-3">
                                         <Input
-                                            label="Cost Price"
+                                            label={t('cost_price_label')}
                                             type="number"
                                             step="0.01"
                                             value={formData.cost}
@@ -225,19 +234,19 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                     </div>
                                     <div className="col-md-3">
                                         <Input
-                                            label="Initial Stock"
+                                            label={t('initial_stock_label')}
                                             type="number"
                                             step="0.001"
                                             value={formData.quantity}
                                             onChange={(e) => handleChange('quantity', e.target.value)}
                                             placeholder="0.000"
                                             disabled={loading || !!product} // Quantity shouldn't be edited directly for existing products, use Restock
-                                            helpText={!!product ? "Use Restock button to add stock" : "Starting stock level"}
+                                            helpText={!!product ? t('restock_hint') : t('starting_stock_hint')}
                                         />
                                     </div>
                                     <div className="col-md-3">
                                         <Select
-                                            label="Unit"
+                                            label={t('unit')}
                                             value={formData.unit}
                                             onChange={(e) => handleChange('unit', e.target.value)}
                                             options={unitOptions}
@@ -247,29 +256,29 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
 
                                     {/* Additional Settings Section */}
                                     <div className="col-12 mt-4 mb-2">
-                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">Additional Settings</h6>
+                                        <h6 className="text-uppercase text-muted fw-bold small border-bottom pb-2">{t('additional_settings_section')}</h6>
                                     </div>
                                     <div className="col-md-6">
                                         <Input
-                                            label="Barcode"
+                                            label={t('barcode_label')}
                                             value={formData.barcode}
                                             onChange={(e) => handleChange('barcode', e.target.value)}
-                                            placeholder="Scan or enter barcode"
+                                            placeholder={t('scan_barcode_placeholder')}
                                             disabled={loading}
                                         />
                                     </div>
                                     <div className="col-md-6">
                                         <Input
-                                            label="SKU / Internal Ref"
+                                            label={t('sku_label')}
                                             value={formData.sku}
                                             onChange={(e) => handleChange('sku', e.target.value)}
-                                            placeholder="Enter SKU"
+                                            placeholder={t('enter_sku_placeholder')}
                                             disabled={loading}
                                         />
                                     </div>
                                     <div className="col-md-6">
                                         <Input
-                                            label="Low Stock Alert Level"
+                                            label={t('low_stock_threshold_label')}
                                             type="number"
                                             value={formData.low_stock_threshold}
                                             onChange={(e) => handleChange('low_stock_threshold', e.target.value)}
@@ -278,7 +287,7 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                     </div>
                                     <div className="col-md-6 d-flex align-items-center pt-4">
                                         <Checkbox
-                                            label="Product is Active"
+                                            label={t('product_active_label')}
                                             checked={formData.is_active}
                                             onChange={(e) => handleChange('is_active', e.target.checked)}
                                             disabled={loading}
@@ -286,10 +295,10 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                     </div>
                                     <div className="col-12">
                                         <Textarea
-                                            label="Description"
+                                            label={t('description_label')}
                                             value={formData.description}
                                             onChange={(e) => handleChange('description', e.target.value)}
-                                            placeholder="Additional product details..."
+                                            placeholder={t('product_details_placeholder')}
                                             rows={2}
                                             disabled={loading}
                                         />
@@ -303,7 +312,7 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                 onClick={onClose}
                                 disabled={loading}
                             >
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button
                                 variant="primary"
@@ -313,12 +322,12 @@ function ProductModal({ show, onClose, onSuccess, product, categories }) {
                                 {loading ? (
                                     <>
                                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Saving...
+                                        {t('saving_btn')}
                                     </>
                                 ) : (
                                     <>
                                         <i className="bi bi-check-lg me-2"></i>
-                                        {product ? 'Update Product' : 'Create Product'}
+                                        {product ? t('update_product_btn') : t('create_product_btn')}
                                     </>
                                 )}
                             </Button>

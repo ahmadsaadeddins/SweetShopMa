@@ -127,10 +127,16 @@ except Exception as e:
     print(f"[Django]   Using fallback key (database will not be properly encrypted)")
     encryption_key = "fallback-key-do-not-use-in-production"
 
+# Database path - use custom path if provided (for frozen EXE)
+# In frozen mode, main.py sets SWEETSHOP_DB_PATH to a writable location
+db_path = os.environ.get('SWEETSHOP_DB_PATH')
+if not db_path:
+    db_path = os.path.join(PROJECT_ROOT, 'sweetshopma.db')
+
 DATABASES = {
     'default': {
         'ENGINE': 'sweetshop.sqlcipher_backend',  # Use custom SQLCipher backend
-        'NAME': os.path.join(PROJECT_ROOT, 'sweetshopma.db'),
+        'NAME': db_path,
         'OPTIONS': {
             'key': encryption_key,
         },
@@ -160,9 +166,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'frontend', 'static')
 
 # Additional static files directories for development
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+STATICFILES_DIRS = []
+static_dir = os.path.join(BASE_DIR, 'static')
+if os.path.exists(static_dir):
+    STATICFILES_DIRS.append(static_dir)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

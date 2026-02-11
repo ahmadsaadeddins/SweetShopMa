@@ -691,6 +691,37 @@ from django.db.models.signals import post_save
 post_save.connect(create_user_profile, sender=User)
 
 
+class ShopSettings(models.Model):
+    """
+    Global settings for the shop application.
+    Singleton model pattern - there should only be one instance.
+    """
+    currency = models.CharField(max_length=10, default='EGP')
+    work_to_rest_ratio = models.IntegerField(
+        default=6,
+        help_text="Number of days worked to earn 1 rest day (default: 6)"
+    )
+    
+    class Meta:
+        db_table = 'shop_settings'
+        verbose_name = 'Shop Settings'
+        verbose_name_plural = 'Shop Settings'
+        
+    def __str__(self):
+        return "Shop Settings"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk and ShopSettings.objects.exists():
+            # If you want to prevent creating multiple instances
+            return
+        return super(ShopSettings, self).save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 # ============================================
 # ATTENDANCE MODELS (Ported from C# SweetShopMa)
 # ============================================
@@ -816,6 +847,30 @@ class AttendanceRecord(models.Model):
         if self.user and not self.user_name:
             full_name = self.user.get_full_name()
             self.user_name = full_name or self.user.username
+            
+        # 1. Automatic Pay Calculation
+        # If Present and daily_pay is 0, calculate from monthly salary
+        if self.status == 'Present' and self.daily_pay == Decimal('0.00') and self.user:
+            try:
+                # Access UserProfile via related_name 'profile'
+                if hasattr(self.user, 'profile'):
+                    profile = self.user.profile
+                    if profile and profile.monthly_salary > 0:
+                        # Standard 30-day month calculation
+                        self.daily_pay = profile.monthly_salary / Decimal('30.00')
+            except Exception:
+                pass # Fail silently/safely
+                
+        # 2. Default Times for Full Day
+        # If Present with 8 hours but no timestamps, set default 8:00 - 16:00
+        # This fixes "missing In/Out" on bulk-created or imported records
+        if self.status == 'Present' and self.regular_hours == Decimal('8.00'):
+            from datetime import datetime, time
+            if not self.check_in_time:
+                self.check_in_time = datetime.combine(self.date, time(8, 0))
+            if not self.check_out_time:
+                self.check_out_time = datetime.combine(self.date, time(16, 0))
+                
         super().save(*args, **kwargs)
 
 
@@ -840,6 +895,9 @@ class AttendanceSummary(models.Model):
     # Basic counts
     days_present = models.IntegerField(default=0)
     days_absent = models.IntegerField(default=0)
+    
+    # Rest days earned
+    rest_days = models.IntegerField(default=0)
     
     # Hours
     total_regular_hours = models.DecimalField(

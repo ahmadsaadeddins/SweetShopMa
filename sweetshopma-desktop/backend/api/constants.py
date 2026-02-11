@@ -58,7 +58,7 @@ ROLE_PERMISSIONS = {
         'can_manage_stock': True,
         'can_use_attendance': True,
         'can_restock': True,
-        'can_manage_settings': False,
+        'can_manage_settings': True,
         'can_view_all_reports': False,
         'can_sell': True,
     },

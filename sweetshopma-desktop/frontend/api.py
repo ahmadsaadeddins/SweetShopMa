@@ -685,6 +685,15 @@ class ApiBridge:
             dict: Created record or error
         """
         return self._post('attendance/', data)
+        
+    def bulk_create_attendance(self, data):
+        """
+        Create multiple attendance records at once.
+        
+        Args:
+            data (dict): {user, start_date, end_date, status, skip_weekends, notes}
+        """
+        return self._post('attendance/bulk_create/', data)
     
     def update_attendance_record(self, record_id, data):
         """
@@ -789,6 +798,20 @@ class ApiBridge:
             dict: Created expense or error
         """
         return self._post('attendance-expenses/', data)
+
+    def export_attendance_pdf(self, user_id, month, lang='ar'):
+        """
+        Export attendance report as PDF.
+        
+        Args:
+            user_id (int): User ID
+            month (str): Month (YYYY-MM)
+            lang (str): Language (en/ar)
+            
+        Returns:
+            dict: Response with file path or error
+        """
+        return self._get('attendance-summary/export_pdf/', {'user_id': user_id, 'month': month, 'lang': lang})
     
     def delete_attendance_expense(self, expense_id):
         """
@@ -801,6 +824,21 @@ class ApiBridge:
             dict: Success status or error
         """
         return self._delete(f'attendance-expenses/{expense_id}/')
+
+    # Shop Settings
+    def get_shop_settings(self):
+        """Get shop settings"""
+        return self._get('shop-settings/')
+
+    def update_shop_settings(self, data):
+        """
+        Update shop settings.
+        
+        Args:
+            data (dict): Settings data
+        """
+        return self._put('shop-settings/1/', data)
+
     
     # User API
 

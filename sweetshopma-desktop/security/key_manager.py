@@ -108,7 +108,14 @@ class KeyManager:
         Returns:
             str: ISO format timestamp
         """
-        config_file = 'install_config.json'
+        # Determine config file path
+        # In frozen mode, backend_main.py sets SWEETSHOP_EXE_DIR
+        exe_dir = os.environ.get('SWEETSHOP_EXE_DIR')
+        if exe_dir:
+            config_file = os.path.join(exe_dir, 'install_config.json')
+            print(f"[KeyManager] Using explicit config path: {config_file}")
+        else:
+            config_file = 'install_config.json'
         
         try:
             if os.path.exists(config_file):
@@ -135,6 +142,7 @@ class KeyManager:
                 with open(config_file, 'w') as f:
                     json.dump(config, f, indent=2)
                 
+                print(f"[KeyManager] Created new install config at: {config_file}")
                 return install_time
         except Exception as e:
             print(f"[KeyManager] Error getting install time: {e}")
@@ -149,7 +157,16 @@ class KeyManager:
             str: SHA-256 hash of license key, or "no-license"
         """
         try:
-            from license_manager import LicenseManager
+            try:
+                # Try package import first
+                from security.license_manager import LicenseManager
+            except ImportError:
+                try:
+                    # Try relative import
+                    from .license_manager import LicenseManager
+                except ImportError:
+                    # Try direct import
+                    from license_manager import LicenseManager
             
             license_mgr = LicenseManager()
             license_key = license_mgr.load_license()

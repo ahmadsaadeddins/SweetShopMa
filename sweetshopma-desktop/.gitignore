@@ -145,3 +145,7 @@ backups/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Frontend build artifacts
+frontend/build/
+build_temp/

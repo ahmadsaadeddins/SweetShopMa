@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -9,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 function LoginPage() {
     const navigate = useNavigate();
     const { login, isLoading } = useAuth();
+    const { t } = useTranslation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -151,7 +153,7 @@ function LoginPage() {
         setError('');
 
         if (!username || !password) {
-            setError('Please enter both username and password');
+            setError(t('login_error_empty'));
             return;
         }
 
@@ -185,7 +187,7 @@ function LoginPage() {
                 navigate('/dashboard');  // Others go to dashboard
             }
         } else {
-            setError(result.error || 'Login failed. Please try again.');
+            setError(result.error || t('login_failed'));
         }
     };
 
@@ -208,7 +210,7 @@ function LoginPage() {
             <div style={cardStyle}>
                 <div style={headerStyle}>
                     <h1 style={titleStyle}>SweetShopMa</h1>
-                    <p style={subtitleStyle}>Sign in to your account</p>
+                    <p style={subtitleStyle}>{t('sign_in_title')}</p>
                 </div>
 
                 {error && <div style={errorStyle}>{error}</div>}
@@ -216,7 +218,7 @@ function LoginPage() {
                 <form style={formStyle} onSubmit={handleSubmit}>
                     <div style={inputGroupStyle}>
                         <label htmlFor="username" style={labelStyle}>
-                            Username
+                            {t('username')}
                         </label>
                         <input
                             id="username"
@@ -224,7 +226,7 @@ function LoginPage() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             style={inputStyle}
-                            placeholder="Enter your username"
+                            placeholder={t('username_placeholder')}
                             disabled={isLoading}
                             autoFocus
                         />
@@ -232,7 +234,7 @@ function LoginPage() {
 
                     <div style={inputGroupStyle}>
                         <label htmlFor="password" style={labelStyle}>
-                            Password
+                            {t('password')}
                         </label>
                         <input
                             id="password"
@@ -240,7 +242,7 @@ function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             style={inputStyle}
-                            placeholder="Enter your password"
+                            placeholder={t('password_placeholder')}
                             disabled={isLoading}
                         />
                     </div>
@@ -255,7 +257,7 @@ function LoginPage() {
                             disabled={isLoading}
                         />
                         <label htmlFor="rememberMe" style={checkboxLabelStyle}>
-                            Remember me
+                            {t('remember_me')}
                         </label>
                     </div>
 
@@ -264,7 +266,7 @@ function LoginPage() {
                         style={buttonStyle}
                         disabled={isLoading}
                     >
-                        {isLoading ? 'Signing in...' : 'Sign In'}
+                        {isLoading ? t('signing_in') : t('signin_button')}
                     </button>
                 </form>
             </div>

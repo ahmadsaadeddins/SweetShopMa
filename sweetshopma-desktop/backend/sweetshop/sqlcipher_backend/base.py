@@ -240,8 +240,16 @@ class DatabaseWrapper(SQLiteDatabaseWrapper):
                 # Set the encryption key using PRAGMA
                 cursor = conn.cursor()
                 cursor.execute(f'PRAGMA key = "{encryption_key}"')
+                
+                # Explicitly set cipher parameters to avoid MemoryError/incompatibility
+                # These ensure consistent behavior regardless of sqlcipher version/defaults
+                cursor.execute('PRAGMA cipher_page_size = 4096')
+                cursor.execute('PRAGMA kdf_iter = 64000')
+                cursor.execute('PRAGMA cipher_hmac_algorithm = HMAC_SHA1')
+                cursor.execute('PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA1')
+                
                 cursor.close()
-                print("[SQLCipherBackend] [OK] Encryption key set successfully")
+                print("[SQLCipherBackend] [OK] Encryption key and parameters set successfully")
             except Exception as e:
                 print(f"[SQLCipherBackend] [ERROR] Failed to set encryption key: {e}")
                 print("[SQLCipherBackend] Database may not be properly encrypted!")

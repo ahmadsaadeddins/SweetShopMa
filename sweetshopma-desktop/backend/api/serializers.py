@@ -22,7 +22,10 @@ from .models import (
     UserActivityLog,
     AttendanceRecord,
     AttendanceSummary,
+    AttendanceRecord,
+    AttendanceSummary,
     AttendanceExpense,
+    ShopSettings,
 )
 from .constants import ROLE_CHOICES
 
@@ -317,6 +320,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'synced_at',
         ]
         read_only_fields = ['created_at', 'updated_at', 'synced_at']
+
+
+class ShopSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for ShopSettings model"""
+    class Meta:
+        model = ShopSettings
+        fields = ['id', 'currency', 'work_to_rest_ratio']
 
 
 class SyncMetadataSerializer(serializers.ModelSerializer):
@@ -664,7 +674,9 @@ class AttendanceSummarySerializer(serializers.ModelSerializer):
             'user_name',
             'month',
             'days_present',
+            'days_present',
             'days_absent',
+            'rest_days',
             'total_regular_hours',
             'total_overtime_hours',
             'total_hours',

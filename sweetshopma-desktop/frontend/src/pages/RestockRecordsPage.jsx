@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Card, Table, Button, Input, Select, Alert } from '../components/common';
 import { useRestockRecords } from '../hooks';
 import { formatCurrency } from '../utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * RestockRecordsPage Component
  * View restock history and audit trail
  */
 function RestockRecordsPage() {
+    const { t } = useTranslation();
     const [filters, setFilters] = useState({
         product_id: '',
         search: '',
@@ -38,7 +40,7 @@ function RestockRecordsPage() {
 
     const columns = [
         {
-            header: 'Date',
+            header: t('date'),
             field: 'restock_date',
             width: '180px',
             render: (val) => {
@@ -53,7 +55,7 @@ function RestockRecordsPage() {
             }
         },
         {
-            header: 'Product',
+            header: t('product'),
             field: 'product_name',
             render: (val, row) => (
                 <div>
@@ -65,7 +67,7 @@ function RestockRecordsPage() {
             )
         },
         {
-            header: 'Quantity Added',
+            header: t('quantity_added'),
             field: 'quantity_added',
             width: '120px',
             render: (val, row) => (
@@ -75,13 +77,13 @@ function RestockRecordsPage() {
             )
         },
         {
-            header: 'Stock Before',
+            header: t('stock_before'),
             field: 'stock_before',
             width: '100px',
             render: (val) => val || 0
         },
         {
-            header: 'Stock After',
+            header: t('stock_after'),
             field: 'stock_after',
             width: '100px',
             render: (val) => (
@@ -89,13 +91,13 @@ function RestockRecordsPage() {
             )
         },
         {
-            header: 'By',
+            header: t('by'),
             field: 'user_name',
             width: '120px',
-            render: (val) => val || 'Unknown'
+            render: (val) => val || t('unknown')
         },
         {
-            header: 'ID',
+            header: t('id'),
             field: 'id',
             width: '60px',
             render: (val) => (
@@ -112,13 +114,13 @@ function RestockRecordsPage() {
         <div className="p-4">
             {/* Header */}
             <div className="mb-4">
-                <h1 className="h3 mb-1">Restock History</h1>
-                <p className="text-muted mb-0">Audit trail of inventory restocking operations</p>
+                <h1 className="h3 mb-1">{t('restock_history')}</h1>
+                <p className="text-muted mb-0">{t('restock_audit_trail')}</p>
             </div>
 
             {/* Error Alert */}
             {errorMessage && (
-                <Alert variant="danger" message={`Error loading restock records: ${errorMessage}`} />
+                <Alert variant="danger" message={t('error_loading_restock_records', { error: errorMessage })} />
             )}
 
             {/* Filters Card */}
@@ -126,8 +128,8 @@ function RestockRecordsPage() {
                 <div className="row g-3">
                     <div className="col-12 col-md-6">
                         <Input
-                            label="Search"
-                            placeholder="Search by product name, user..."
+                            label={t('search')}
+                            placeholder={t('search_products')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -135,7 +137,7 @@ function RestockRecordsPage() {
                     <div className="col-12 col-md-6 d-flex align-items-end">
                         <Button variant="secondary" onClick={() => refetch()}>
                             <i className="bi bi-arrow-clockwise me-2"></i>
-                            Refresh
+                            {t('refresh')}
                         </Button>
                     </div>
                 </div>
@@ -147,7 +149,7 @@ function RestockRecordsPage() {
                     <Card className="h-100">
                         <div className="text-center">
                             <h3 className="text-primary mb-0">{filteredRecords.length}</h3>
-                            <small className="text-muted">Total Records</small>
+                            <small className="text-muted">{t('total_records')}</small>
                         </div>
                     </Card>
                 </div>
@@ -159,7 +161,7 @@ function RestockRecordsPage() {
                                     ? filteredRecords.reduce((sum, r) => sum + parseFloat(r.quantity_added || 0), 0).toFixed(3)
                                     : '0'}
                             </h3>
-                            <small className="text-muted">Total Items Added</small>
+                            <small className="text-muted">{t('total_items_added')}</small>
                         </div>
                     </Card>
                 </div>
@@ -171,7 +173,7 @@ function RestockRecordsPage() {
                                     ? new Set(filteredRecords.map(r => r.user_name).filter(Boolean)).size
                                     : 0}
                             </h3>
-                            <small className="text-muted">Unique Staff</small>
+                            <small className="text-muted">{t('unique_staff')}</small>
                         </div>
                     </Card>
                 </div>
@@ -182,18 +184,18 @@ function RestockRecordsPage() {
                 {loading ? (
                     <div className="text-center py-5">
                         <div className="spinner-border" role="status">
-                            <span className="visually-hidden">Loading...</span>
+                            <span className="visually-hidden">{t('loading')}</span>
                         </div>
-                        <p className="mt-2 text-muted">Loading restock records...</p>
+                        <p className="mt-2 text-muted">{t('loading_restock_records')}</p>
                     </div>
                 ) : filteredRecords.length === 0 ? (
                     <div className="text-center py-5">
                         <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
                         <p className="mt-3 text-muted">
-                            {searchTerm ? 'No records match your search' : 'No restock records found'}
+                            {searchTerm ? t('no_records_match_search') : t('no_records_found')}
                         </p>
                         <small className="text-muted">
-                            Restock operations will appear here after products are restocked.
+                            {t('restock_empty_hint')}
                         </small>
                     </div>
                 ) : (
@@ -211,7 +213,7 @@ function RestockRecordsPage() {
             {/* Info Alert */}
             <Alert
                 variant="info"
-                message="Only staff users (Admin, Moderator) can restock products. All restock operations are recorded for audit purposes."
+                message={t('restock_permission_info')}
                 className="mt-4"
             />
         </div>
